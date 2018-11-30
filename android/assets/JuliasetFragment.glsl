@@ -6,7 +6,7 @@ varying vec2 v_texCoords;
 varying vec2 pos;
 uniform sampler2D u_texture;
 uniform int iterations;
-//uniform sampler1D palette;
+uniform sampler1D palette;
 uniform vec2 center;
 uniform float scale;
 uniform float ratio;
@@ -22,18 +22,18 @@ vec3 hsv2rgb(vec3 c) {
 
 void main()
 {
-	gl_FragColor = v_color * texture2D(u_texture, v_texCoords);
+	//gl_FragColor = v_color * texture2D(u_texture, v_texCoords);
 	//vec2 p = pos*8 - vec2(2,2);
-	float resX = biasReal;
-	float resY = biasImag;
-	float cx = (pos.x - 0.5*ratio) * scale + center.x;
-	float cy = (pos.y - 0.5) * scale + center.y;
+	float cx = biasReal;
+	float cy = biasImag;
+	float resX = (pos.x - 0.5*ratio) * scale + center.x;
+	float resY = (pos.y - 0.5) * scale + center.y;
 	float resYSq = resY*resY;
 	float resXSq = resX*resX;
 	float resIterations = 0.0;
-	for (int i = 0 ; i < iterations ; i++){ //todo iterations as int
-	    //resX = abs(resX);
-	    //resY = abs(resY);
+	for (int i = 0 ; i < iterations ; i++){
+	    resX = abs(resX);
+	    resY = abs(resY);
         resY = resX*resY*2.0 + cy;
         resX = resXSq - resYSq + cx;
         resXSq = resX*resX;
@@ -49,7 +49,7 @@ void main()
 		vec3 hsv = vec3(log(l)*0.5,0.6,1);
 		vec3 rgb = hsv2rgb(hsv);
 		gl_FragColor = vec4(rgb,1);
-		//gl_FragColor = texture1D(palette, float(i) / 100.0);
+		//gl_FragColor = texture1D(palette, l);
 	} else {
 		gl_FragColor = vec4(0, 0, 0, 1);
 	}

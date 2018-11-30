@@ -9,7 +9,7 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
-		float scaledown = 4;
+		float scaledown = 2;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.foregroundFPS = 0;
 		config.width = (int)(1920/scaledown);

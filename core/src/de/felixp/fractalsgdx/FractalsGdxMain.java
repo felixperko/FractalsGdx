@@ -23,7 +23,10 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	ShaderProgram sobelShader;
 	Matrix3 matrix = new Matrix3(new float[] {1,0,0, 0,1,0, 0,0,1, 0,0,0});
 
-	String fragmentPrefix = "CalculateFloatHtml";
+	final static String mandelbrot = "Mandelbrot";
+	final static String juliaset = "Juliaset";
+
+	String fragmentPrefix = juliaset;
 	public static int iterations = 1000;
 
 	long lastIncrease = System.currentTimeMillis();
@@ -34,7 +37,9 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	public static double velocityX = 0;
 	public static double velocityY = 0;
 
-	public static double velocityDecay = 5; //decay factor per second
+	public static double velocityDecay = 3; //decay factor per second
+	public static double velocityDecayFixed = 0.1;
+	public static double biasChangeSpeed = 0.1;
 
 	public static double scale = 3;
 	public static double scalingFactor = 0;
@@ -57,6 +62,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		batch = new SpriteBatch();
 		img = new Texture("badlogic.jpg");
 		palette = new Texture("palette.png");
+		palette.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 		setupShaders();
 		batch.setShader(shader);
 		InputMultiplexer multiplexer = new InputMultiplexer();
@@ -76,7 +82,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 			fbo.begin();
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		palette.bind();
+		//palette.bind();
 		shader.begin();
 
 		setShaderUniforms();
@@ -88,13 +94,13 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		shader.end();
 //		shader.begin();
 //
-//		shader.setUniformf("scale", 5);
-//		shader.setUniformf("center", (float) 0, (float) 0);
-//		//shader.setUniformf("resolution", (float) 250, (float) 250);
-//		//if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600)
-//			batch.begin();
-//			batch.draw(img, Gdx.graphics.getWidth()-300, Gdx.graphics.getHeight()-300, 250, 250);
-//		batch.end();
+		shader.setUniformf("scale", 5);
+		shader.setUniformf("center", (float) 0, (float) 0);
+		//shader.setUniformf("resolution", (float) 250, (float) 250);
+		//if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600)
+			batch.begin();
+			batch.draw(img, Gdx.graphics.getWidth()-300, Gdx.graphics.getHeight()-300, 250, 250);
+		batch.end();
 
 		shader.end();
 		if (postprocessing) {
@@ -140,7 +146,6 @@ public class FractalsGdxMain extends ApplicationAdapter {
 			FractalsInputProcessor.iterationsStep = 0;
 		}
 
-		double biasChangeSpeed = 0.1;
 		if (Gdx.input.isKeyPressed(Keys.I) && !Gdx.input.isKeyPressed(Keys.K)){
 			biasReal += biasChangeSpeed*absFactor;
 		} else if (Gdx.input.isKeyPressed(Keys.K)){
@@ -156,16 +161,31 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		yPos += FractalsInputProcessor.yMultiplier * velocityY * absFactor;
 
 		double decayFactor = (velocityDecay*deltaTime);
-		if (velocityX > 0) {
-			velocityX -= Math.min(decayFactor, velocityX);
-		} else if (velocityX < 0) {
-			velocityX += Math.min(decayFactor, -velocityX);
+		if (decayFactor > 1)
+			decayFactor = 1;
+		double length = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+		if (length > 0) {
+			double newLength = length * (1 - decayFactor) - velocityDecayFixed * deltaTime;
+			if (newLength < 0) {
+				velocityX = 0;
+				velocityY = 0;
+			} else {
+				double factor = newLength / length;
+				velocityX *= factor;
+				velocityY *= factor;
+			}
 		}
-		if (velocityY > 0) {
-			velocityY -= Math.min(decayFactor, velocityY);
-		} else if (velocityY < 0) {
-			velocityY += Math.min(decayFactor, -velocityY);
-		}
+
+//		if (velocityX > 0) {
+//			velocityX -= Math.min(decayFactor, velocityX);
+//		} else if (velocityX < 0) {
+//			velocityX += Math.min(decayFactor, -velocityX);
+//		}
+//		if (velocityY > 0) {
+//			velocityY -= Math.min(decayFactor, velocityY);
+//		} else if (velocityY < 0) {
+//			velocityY += Math.min(decayFactor, -velocityY);
+//		}
 
 		if (FractalsInputProcessor.iterationsStep != 0){
 			long t = System.currentTimeMillis();
@@ -199,6 +219,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		shader.setUniformf("biasReal", biasReal);
 		shader.setUniformf("biasImag", biasImag);
 		//shader.setUniformi("u_texture", 0);
+		//palette.bind(1);
 		shader.setUniformi("palette", 0);
 	}
 

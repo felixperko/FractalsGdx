@@ -36,8 +36,8 @@ void main(void){
     //gl_FragColor = vec4(0.3 + 0.3*sobel.rgb, 1.0)*texture2D(u_texture, v_texCoords);
     float s = sobel.x + sobel.y + sobel.z;
     s = s;
-    if (s > 1.25)
-        s = 1.25;
+    if (s > 1)
+        s = 1;
     gl_FragColor = vec4(ambient + magnitude*s, ambient + magnitude*s, ambient + magnitude*s, 1) * texture2D(u_texture, v_texCoords);
     //gl_FragColor = vec4(0.0,0.0,1.0,1.0);
 }
