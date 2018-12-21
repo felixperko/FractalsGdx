@@ -12,6 +12,7 @@ uniform float scale;
 uniform float ratio;
 uniform float biasReal;
 uniform float biasImag;
+uniform float colorShift;
 const float log2 = log(2.0);
 
 vec3 hsv2rgb(vec3 c) {
@@ -38,18 +39,20 @@ void main()
         resX = resXSq - resYSq + cx;
         resXSq = resX*resX;
         resYSq = resY*resY;
-		if (resXSq + resYSq > 65536.0){
+		if (resXSq + resYSq > 65536.0*256.0){
 		    resIterations = float(i);
 		    break;
         }
 	}
 	float lSq = resXSq + resYSq;
-	if (lSq > 65536.0){
-		float l = resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2;
-		vec3 hsv = vec3(log(l)*0.5,0.6,1);
+	if (lSq > 65536.0*256.0){
+		float l = log(resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2)*0.5+colorShift;
+		vec3 hsv = vec3(log(l),0.6,1);
 		vec3 rgb = hsv2rgb(hsv);
 		gl_FragColor = vec4(rgb,1);
 		//gl_FragColor = texture1D(palette, l);
+		vec2 coords = vec2(fract(l),0);
+		gl_FragColor = texture2D(u_texture, coords);
 	} else {
 		gl_FragColor = vec4(0, 0, 0, 1);
 	}

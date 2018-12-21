@@ -12,6 +12,7 @@ public class FractalsGestureListener implements GestureDetector.GestureListener 
     public boolean pan(float x, float y, float deltaX, float deltaY) {
         xPos -= scale*deltaX / Gdx.graphics.getHeight();
         yPos += FractalsInputProcessor.yMultiplier * scale*deltaY / Gdx.graphics.getHeight();
+        FractalsGdxMain.forceRefresh = true;
         //System.out.println(deltaX+", "+deltaY);
         return true;
     }
@@ -35,6 +36,7 @@ public class FractalsGestureListener implements GestureDetector.GestureListener 
         scale *= 1+((lastDistance/distance)-1);
         lastDistance = distance;
         lastZoom = System.currentTimeMillis();
+        FractalsGdxMain.forceRefresh = true;
         return true;
     }
 
@@ -67,12 +69,15 @@ public class FractalsGestureListener implements GestureDetector.GestureListener 
         if (count >= 2) {
             if (button == 0) {
                 FractalsGdxMain.scale /= 2;
+                FractalsGdxMain.forceRefresh = true;
             } else if (button == 1) {
                 FractalsGdxMain.scale *= 2;
+                FractalsGdxMain.forceRefresh = true;
             }
             return true;
         } else if (button == 1) {
             FractalsGdxMain.scale *= 2;
+            FractalsGdxMain.forceRefresh = true;
             return true;
         }
         return false;

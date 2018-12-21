@@ -6,6 +6,7 @@ varying vec2 v_texCoords;
 varying vec2 pos;
 uniform sampler2D u_texture;
 uniform int iterations;
+uniform float colorShift;
 //uniform sampler1D palette;
 uniform vec2 center;
 uniform float scale;
@@ -45,11 +46,13 @@ void main()
 	}
 	float lSq = resXSq + resYSq;
 	if (lSq > 65536.0){
-		float l = resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2;
+		float l = log(resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2)*0.5+colorShift;
 		vec3 hsv = vec3(log(l)*0.5,0.6,1);
 		vec3 rgb = hsv2rgb(hsv);
-		gl_FragColor = vec4(rgb,1);
-		//gl_FragColor = texture1D(palette, float(i) / 100.0);
+	    gl_FragColor = vec4(rgb,1);
+		//gl_FragColor = texture1D(palette, float(i) / 10.0);
+		vec2 coords = vec2(fract(l),0);
+        gl_FragColor = texture2D(u_texture, coords);
 	} else {
 		gl_FragColor = vec4(0, 0, 0, 1);
 	}
