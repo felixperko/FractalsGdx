@@ -83,7 +83,7 @@ void main(void){
     //gl_FragColor = texture2D(u_texture, v_texCoords);
     //gl_FragColor = vec4(0.3 + 0.3*sobel.rgb, 1.0)*texture2D(u_texture, v_texCoords);
     float s = sobel;
-    s = log(s+0.75);
+    s = log(s+1);
     if (s > 1.0)
         s = 1.0;
     //float accumulated = samples < 10.0 ? samples : 10.0;

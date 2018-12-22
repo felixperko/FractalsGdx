@@ -25,8 +25,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	ShaderProgram sobelShader;
 	Matrix3 matrix = new Matrix3(new float[] {1,0,0, 0,1,0, 0,0,1, 0,0,0});
 
-	final static boolean juliaset = false;
-	final static boolean burningship = false;
+	public static boolean juliaset = false;
+	public static boolean burningship = false;
 
 	final static String shader1 = "CalcMandelbrotFragment.glsl";
 	final static String shader2 = "SobelDecodeFragment.glsl";
@@ -260,6 +260,13 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		} else if (Gdx.input.isKeyPressed(Keys.L)){
 			biasImag -= biasChangeSpeed*absFactor;
 			refresh = true;
+		}
+
+		if (Gdx.input.isKeyPressed(Keys.J)){
+			juliaset = !juliaset;
+		}
+		if (Gdx.input.isKeyPressed(Keys.B)){
+			burningship = !burningship;
 		}
 
 		if (velocityX != 0) {

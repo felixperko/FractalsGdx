@@ -12,13 +12,19 @@ public class FractalsInputProcessor implements InputProcessor {
     @Override
     public boolean keyDown(int keycode) {
         System.out.println(keycode);
-        if (keycode == Input.Keys.PLUS)
+        if (keycode == Input.Keys.PLUS) {
             iterationsStep += iterationsChangeSpeed;
-        else if (keycode == Input.Keys.MINUS)
+            lastIterationStepTime = System.currentTimeMillis();
+        } else if (keycode == Input.Keys.MINUS) {
             iterationsStep -= iterationsChangeSpeed;
-        else
+            lastIterationStepTime = System.currentTimeMillis();
+        } else if (keycode == Input.Keys.J) {
+            FractalsGdxMain.juliaset = !FractalsGdxMain.juliaset;
+            System.out.println(FractalsGdxMain.juliaset);
+        }  else if (keycode == Input.Keys.B) {
+            FractalsGdxMain.burningship = !FractalsGdxMain.burningship;
+        } else
             return false;
-        lastIterationStepTime = System.currentTimeMillis();
         return true;
     }
 
