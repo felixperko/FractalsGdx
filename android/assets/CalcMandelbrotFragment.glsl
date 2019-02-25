@@ -20,25 +20,9 @@ const float log2 = log(2.0);
 const float upperborder = 100.0;
 const float lowerborder = 0.0;
 
-uniform float burningship = 1.0;
-uniform float juliaset = 0.0;
+uniform float burningship;
+uniform float juliaset;
 
-
-
-vec3 hsv2rgb(vec3 c) {
-  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-vec4 EncodeExpV4( in float value )
-{
-    int exponent  = int( log(  abs( value )  )/log(2.0) + 1.0 );
-    value        /= exp2( float( exponent ) );
-    value         = (value + 1.0) * (256.0*256.0*256.0 - 1.0) / (2.0*256.0*256.0*256.0);
-    vec4 encode   = fract( value * vec4(1.0, 256.0, 256.0*256.0, 256.0*256.0*256.0) );
-    return vec4( encode.xyz - encode.yzw / 256.0 + 1.0/512.0, (float(exponent) + 127.5) / 256.0 );
-}
 
 vec3 EncodeExpV3( in float value )
 {
@@ -47,22 +31,6 @@ vec3 EncodeExpV3( in float value )
     value         = (value + 1.0) * (256.0*256.0 - 1.0) / (2.0*256.0*256.0);
     vec3 encode   = fract( value * vec3(1.0, 256.0, 256.0*256.0) );
     return vec3( encode.xy - encode.yz / 256.0 + 1.0/512.0, (float(exponent) + 127.5) / 256.0 );
-}
-
-vec4 EncodeRangeV4( in float value, in float minVal, in float maxVal )
-{
-    value        = clamp( (value-minVal) / (maxVal-minVal), 0.0, 1.0 );
-    value       *= (256.0*256.0*256.0 - 1.0) / (256.0*256.0*256.0);
-    vec4 encode  = fract( value * vec4(1.0, 256.0, 256.0*256.0, 256.0*256.0*256.0) );
-    return vec4( encode.xyz - encode.yzw / 256.0, encode.w ) + 1.0/512.0;
-}
-
-float DecodeExpV4( in vec4 pack )
-{
-    int exponent = int( pack.w * 256.0 - 127.0 );
-    float value  = dot( pack.xyz, 1.0 / vec3(1.0, 256.0, 256.0*256.0) );
-    value        = value * (2.0*256.0*256.0*256.0) / (256.0*256.0*256.0 - 1.0) - 1.0;
-    return value * exp2( float(exponent) );
 }
 
 float DecodeExpV3( in vec3 pack )
@@ -92,17 +60,6 @@ void addValue(inout vec4 pixel, in float addValue){
     if (oldValue >= 0.0)
         pixel = encode(oldValue+addValue);
 }
-
-vec4 pack_depth(const in float depth)
-{
-    const vec4 bit_shift = vec4(256.0*256.0, 256.0, 1.0, 1.0/256.0);
-    const vec4 bit_mask  = vec4(1.0/256.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);
-    vec4 res = fract(depth * bit_shift);
-    res -= res.xxyz * bit_mask;
-    return res;
-}
-
-
 
 void main()
 {
@@ -151,20 +108,26 @@ void main()
         //vec2 coords = v_texCoords;
         //if (flip == -1.0)
         //    coords.y = resolution.y - coords.y;
-        float last = decode(texture2D(u_texture, v_texCoords));
+        vec4 lastColor = texture2D(u_texture, v_texCoords);
+        float last = decode(lastColor);
         //addValue(gl_FragColor, l);
         //gl_FragColor = encode((smoothIterations)*(1.0/(samples)) + last*((samples-1.0)/(samples)));
+        //addValue(gl_FragColor, smoothIterations);
+        //if (last == 0.0)
+        //if (lastColor.a > 0.0)
         gl_FragColor = encode(smoothIterations + last);
+        //else
+        //    gl_FragColor = encode(smoothIterations*samples);
         //if (samples == 1){
         //    gl_FragColor = encode(smoothIterations);
         //}
         //else {
-        //    gl_FragColor = encode(last*0.99);
+        //    gl_FragColor = encode(smoothIterations*0.01 + last);
         //}
         //gl_FragColor = encode((l/100.0 + last*(99.0/100.0)));
         //gl_FragColor = encode(last*0.9 + smoothIterations*0.1);
 	} else {
-		//gl_FragColor = encode(0.0);
+		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
 		//addValue(gl_FragColor, 0.0);
 		//gl_FragColor = decode(texture2D(u_texture, v_texCoords)) + encode(0.0);
 	}

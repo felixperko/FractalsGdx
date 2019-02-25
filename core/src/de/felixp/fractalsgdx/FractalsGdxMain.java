@@ -17,12 +17,17 @@ import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Matrix3;
 import com.kotcrab.vis.ui.VisUI;
 
+import de.felixp.fractalsgdx.client.Client;
+import de.felixperko.fractals.network.ClientConfiguration;
+
 public class FractalsGdxMain extends ApplicationAdapter {
+
 	SpriteBatch batch;
 	Texture img;
 	Texture palette;
 	ShaderProgram shader;
 	ShaderProgram sobelShader;
+	ShaderProgram passthroughShader;
 	Matrix3 matrix = new Matrix3(new float[] {1,0,0, 0,1,0, 0,0,1, 0,0,0});
 
 	public static boolean juliaset = false;
@@ -32,7 +37,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	final static String shader2 = "SobelDecodeFragment.glsl";
 //	final static String shader2 = "PassthroughFragment.glsl";
 
-	public static int iterations = 1000;
+	public static int iterations = 500;
 
 	long lastIncrease = System.currentTimeMillis();
 
@@ -70,25 +75,30 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	@Override
 	public void create () {
+
+//		Client client = new Client();
+//		client.start();
+
+
 		VisUI.load();
 		batch = new SpriteBatch();
 
 		img = new Texture("badlogic.jpg");
-		palette = new Texture("palette.png");
-		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+//		palette = new Texture("palette.png");
+//		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
-		setupShaders();
+//		setupShaders();
 //		batch.setShader(shader);
 
-		InputMultiplexer multiplexer = new InputMultiplexer();
-		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
-		multiplexer.addProcessor(new FractalsInputProcessor());
-		Gdx.input.setInputProcessor(new GestureDetector(new FractalsGestureListener()));
+//		InputMultiplexer multiplexer = new InputMultiplexer();
+//		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
+//		multiplexer.addProcessor(new FractalsInputProcessor());
+//		Gdx.input.setInputProcessor(new GestureDetector(new FractalsGestureListener()));
 
-		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
-		fbo2 = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
-		if (postprocessing)
-			FractalsInputProcessor.yMultiplier *= -1;
+//		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+//		fbo2 = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+//		if (postprocessing)
+//			FractalsInputProcessor.yMultiplier *= -1;
 	}
 
 	int sampleLimit = 255;
@@ -96,111 +106,111 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	@Override
 	public void render () {
-		boolean refresh = handleInput();
-		if (forceRefresh) {
-			forceRefresh = false;
-			refresh = true;
-		}
-
-		if (refresh)
-			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT) ;
-
-		if (postprocessing)
-			fbo.begin();
-
-		if (refresh) {
-			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-			currentRefreshes = 0;
-			decode_factor = 1f;
-		} else {
-			currentRefreshes++;
-		}
-
-		if (currentRefreshes+1 > sampleLimit)
-			return;
-
-		//palette.bind();
-		shader.begin();
-
-		setShaderUniforms();
-		batch.begin();
-		batch.setShader(shader);
-
-		Color c = batch.getColor();
-		batch.setColor(c.r, c.g, c.b, 1.0f);
-
-		Texture tex = fbo.getColorBufferTexture();
-		TextureRegion texReg =  new TextureRegion(tex);
-		texReg.flip(false, true);
-		batch.draw(texReg, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		batch.end();
-
-		shader.end();
-//		shader.begin();
+//		//if active
+//		boolean refresh = handleInput();
+//		if (forceRefresh) {
+//			forceRefresh = false;
+//			refresh = true;
+//		}
+//		Gdx.gl.glClearColor( 0, 0, 0, 1 );
+//		if (refresh)
+//			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 //
-//		shader.setUniformf("scale", 5);
-//		shader.setUniformf("center", (float) 0, (float) 0);
-		//shader.setUniformf("resolution", (float) 250, (float) 250);
-		//if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600)
-//			batch.begin();
-//			batch.draw(palette, Gdx.graphics.getWidth()-300, Gdx.graphics.getHeight()-300, 250, 250);
-//		batch.end();
-
-		shader.end();
-		if (postprocessing) {
-			fbo.end();
-//			fbo2.begin();
-
-			sobelShader.begin();
-			sobelShader.setUniformf("resolution", Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-			sobelShader.setUniformf("samples", currentRefreshes+1f);
-			sobelShader.setUniformf("colorShift", colorShift);
-//			for (int i = 0 ; i < currentRefreshes ; i++){
-//				decode_factor += (byte)(1f/(i+1));
-//			}
-			sobelShader.setUniformf("decode_factor", 1f/decode_factor);
-
+//		fbo.begin();
+//
+//		if (refresh) {
+//			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+//			currentRefreshes = 0;
+//			decode_factor = 1f;
+//		}
+//
+//		if (currentRefreshes < sampleLimit){
+//			currentRefreshes++;
+//
+////			palette.bind();
+////			shader.begin();
+//
+//			setShaderUniforms();
 			batch.begin();
-			batch.setShader(sobelShader);
+//			batch.setShader(shader);
 
-			//Texture texture = fbo.getColorBufferTexture();
-			//TextureRegion textureRegion = new TextureRegion(texture);
-			//textureRegion.flip(false, true);
-
-			Color c2 = batch.getColor();
-			batch.enableBlending();
-			batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-			float r = c2.r;
-			float g = c2.g;
-			float b = c2.b;
-			float a = 1.0f/(currentRefreshes+1.0f);
-			decode_factor = currentRefreshes+1;
-//			if (decode_factor > 1.5f)
-//				decode_factor = 1.5f;
-			//decode_factor += 0.5f*(2.0f-(decode_factor));
-			//decode_factor += ((float)((byte)Math.floor(a*255)))/255f;
-			System.out.println(currentRefreshes+"  "+decode_factor+"  "+a+"  "+((float)((byte)(a*255)))/255f);
-			batch.setColor(a, a, a, a);
-
-			batch.draw(fbo.getColorBufferTexture(), 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-//			batch.disableBlending();
+//			Color c = batch.getColor();
+//			batch.setColor(c.r, c.g, c.b, 1.0f);
+//
+//			Texture tex = fbo.getColorBufferTexture();
+//			TextureRegion texReg = new TextureRegion(tex);
+//			texReg.flip(false, true);
+//			batch.draw(texReg, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		batch.draw(img, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 			batch.end();
 
-			sobelShader.end();
-//			fbo2.end();
+//			shader.end();
+
+	//		shader.begin();
+	//		shader.setUniformf("scale", 5);
+	//		shader.setUniformf("center", (float) 0, (float) 0);
+	//		shader.setUniformf("resolution", (float) 250, (float) 250);
+	//		if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600) {
+	//			batch.begin();
+	//			batch.draw(palette, Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 300, 250, 250);
+	//			batch.end();
+	//		}
+	//		shader.end();
+
+//			fbo.end();
+//			fbo2.begin();
+//
+//			if (refresh)
+//				Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+//
+//			sobelShader.begin();
+//			sobelShader.setUniformf("resolution", Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+//			sobelShader.setUniformf("samples", currentRefreshes + 1f);
+//			sobelShader.setUniformf("colorShift", colorShift);
+//	//			for (int i = 0 ; i < currentRefreshes ; i++){
+//	//				decode_factor += (byte)(1f/(i+1));
+//	//			}
+//			sobelShader.setUniformf("decode_factor", 1f / decode_factor);
 //
 //			batch.begin();
-//			batch.draw(fbo2.getColorBufferTexture(),0,0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+//			batch.setShader(sobelShader);
+//
+//			//Texture texture = fbo.getColorBufferTexture();
+//			//TextureRegion textureRegion = new TextureRegion(texture);
+//			//textureRegion.flip(false, true);
+//
+//			Color c2 = batch.getColor();
+//			batch.enableBlending();
+//			batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//			float r = c2.r;
+//			float g = c2.g;
+//			float b = c2.b;
+//			float a = 1.0f / (currentRefreshes);
+//			//float a = 1.0f/sampleLimit;
+//			//decode_factor = currentRefreshes+1;
+//	//			if (decode_factor > 1.5f)
+//	//				decode_factor = 1.5f;
+//			//decode_factor += 0.5f*(2.0f-(decode_factor));
+//			decode_factor += a;
+//			//decode_factor += ((float)((byte)Math.floor(a*255)))/255f;
+//			System.out.println(currentRefreshes + "  " + decode_factor + "  " + a + "  " + ((float) ((byte) (a * 255))) / 255f);
+//			batch.setColor(a, a, a, a);
+//
+//			batch.draw(fbo.getColorBufferTexture(), 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+////			batch.disableBlending();
 //			batch.end();
-		}
-//		// get the graphics rendered to the framebuffer as a texture
-//		Texture texture = fbo.getColorBufferTexture();
-//		// welcome to the wonderful world of different coordinate systems!
-//		// simply put, the framebuffer is upside down to normal textures, so we have to flip it
-//		// Use a TextureRegion to do so
-//		TextureRegion textureRegion = new TextureRegion(texture);
-//		// and.... FLIP!  V (vertical) only
-//		textureRegion.flip(false, true);
+//
+//			sobelShader.end();
+//			fbo2.end();
+//		}
+
+//		batch.begin();
+//		batch.setShader(passthroughShader);
+//		Texture tex2 = fbo2.getColorBufferTexture();
+//		TextureRegion texReg2 = new TextureRegion(tex2);
+//		texReg2.flip(false, true);
+//		batch.draw(texReg2, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+//		batch.end();
 	}
 
 	private boolean handleInput() {
@@ -209,9 +219,9 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		float deltaTime = Gdx.graphics.getDeltaTime();
 		double absFactor = deltaTime * scale;
 
-//		if (Gdx.input.isKeyPressed(Keys.C)){
-			colorShift += -deltaTime*0.1;
-//		}
+		if (Gdx.input.isKeyPressed(Keys.C)){
+			colorShift += -deltaTime*0.5;
+		}
 
 		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
 			refresh = true;
@@ -293,6 +303,10 @@ public class FractalsGdxMain extends ApplicationAdapter {
 				velocityY *= factor;
 			}
 		}
+		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
+			velocityX = 0;
+			velocityY = 0;
+		}
 
 //		if (velocityX > 0) {
 //			velocityX -= Math.min(decayFactor, velocityX);
@@ -353,21 +367,22 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	public void setupShaders() {
 		ShaderProgram.pedantic = false;
-		shader = new ShaderProgram(Gdx.files.internal("PassthroughVertex.glsl"),
-				Gdx.files.internal(shader1));
-		if (!shader.isCompiled()) {
-			throw new IllegalStateException("Error compiling shaders: "+shader.getLog());
-		}
-
-		sobelShader = new ShaderProgram(Gdx.files.internal("PassthroughVertex.glsl"),
-				Gdx.files.internal(shader2));
-		if (!sobelShader.isCompiled()) {
-			throw new IllegalStateException("Error compiling shaders: "+sobelShader.getLog());
-		}
-
+		String vertexPassthrough = "PassthroughVertex.glsl";
+		shader = compileShader(vertexPassthrough, shader1);
+		sobelShader = compileShader(vertexPassthrough, shader2);
+		passthroughShader = compileShader(vertexPassthrough, "PassthroughFragment.glsl");
 
 		width = Gdx.graphics.getWidth();
 		height = Gdx.graphics.getHeight();
+	}
+
+	public ShaderProgram compileShader(String vertexPath, String fragmentPath){
+		ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
+				Gdx.files.internal(fragmentPath));
+		if (!shader.isCompiled()) {
+			throw new IllegalStateException("Error compiling shaders ("+vertexPath+", "+fragmentPath+"): "+shader.getLog());
+		}
+		return shader;
 	}
 
 	@Override

@@ -12,34 +12,12 @@ uniform float samples;
 uniform float decode_factor;
 uniform float colorShift;
 
-float unpack_depth(const in vec4 rgba_depth)
-{
-    const vec4 bit_shift = vec4(1.0/(256.0*256.0), 1.0/(256.0), 1.0, 256.0);
-    float depth = dot(rgba_depth, bit_shift);
-    return depth;
-}
-
-float DecodeExpV4( in vec4 pack )
-{
-    int exponent = int( pack.w * 256.0 - 127.0 );
-    float value  = dot( pack.xyz, 1.0 / vec3(1.0, 256.0, 256.0*256.0) );
-    value        = value * (2.0*256.0*256.0*256.0) / (256.0*256.0*256.0 - 1.0) - 1.0;
-    return value * exp2( float(exponent) );
-}
-
 float DecodeExpV3( in vec3 pack )
 {
     int exponent = int( pack.z * 256.0 - 127.0 );
     float value  = dot( pack.xy, 1.0 / vec2(1.0, 256.0) );
     value        = value * (2.0*256.0*256.0) / (256.0*256.0 - 1.0) - 1.0;
     return value * exp2( float(exponent) );
-}
-
-float DecodeRangeV4( in vec4 pack, in float minVal, in float maxVal )
-{
-    float value  = dot( pack, 1.0 / vec4(1.0, 256.0, 256.0*256.0, 256.0*256.0*256.0) );
-    value       *= (256.0*256.0*256.0) / (256.0*256.0*256.0 - 1.0);
-    return mix( minVal, maxVal, value );
 }
 
 vec3 hsv2rgb(vec3 c) {
@@ -51,7 +29,9 @@ vec3 hsv2rgb(vec3 c) {
 float decode(in vec4 pixel){
     //return log(DecodeRangeV4(pixel, lowerborder, upperborder));
     float value = DecodeExpV3(vec3(pixel));
-    return log(value/samples)*0.5;
+    return log(value/(pow(samples, 1.0+(samples-1.0)*0.00102)))*0.5;
+    //return log(value*(10.0/samples));
+    //return log(value)*0.5;
     //return DecodeExpV4(pixel);
 }
 
@@ -83,7 +63,7 @@ void main(void){
     //gl_FragColor = texture2D(u_texture, v_texCoords);
     //gl_FragColor = vec4(0.3 + 0.3*sobel.rgb, 1.0)*texture2D(u_texture, v_texCoords);
     float s = sobel;
-    s = log(s+1);
+    s = log(s+1.0);
     if (s > 1.0)
         s = 1.0;
     //float accumulated = samples < 10.0 ? samples : 10.0;
