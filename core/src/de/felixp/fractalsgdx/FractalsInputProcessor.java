@@ -11,31 +11,31 @@ public class FractalsInputProcessor implements InputProcessor {
 
     @Override
     public boolean keyDown(int keycode) {
-        System.out.println(keycode);
-        if (keycode == Input.Keys.PLUS) {
-            iterationsStep += iterationsChangeSpeed;
-            lastIterationStepTime = System.currentTimeMillis();
-        } else if (keycode == Input.Keys.MINUS) {
-            iterationsStep -= iterationsChangeSpeed;
-            lastIterationStepTime = System.currentTimeMillis();
-        } else if (keycode == Input.Keys.J) {
-            FractalsGdxMain.juliaset = !FractalsGdxMain.juliaset;
-            System.out.println(FractalsGdxMain.juliaset);
-        }  else if (keycode == Input.Keys.B) {
-            FractalsGdxMain.burningship = !FractalsGdxMain.burningship;
-        } else
-            return false;
+//        System.out.println(keycode);
+//        if (keycode == Input.Keys.PLUS) {
+//            iterationsStep += iterationsChangeSpeed;
+//            lastIterationStepTime = System.currentTimeMillis();
+//        } else if (keycode == Input.Keys.MINUS) {
+//            iterationsStep -= iterationsChangeSpeed;
+//            lastIterationStepTime = System.currentTimeMillis();
+//        } else if (keycode == Input.Keys.J) {
+//            FractalsGdxMain.juliaset = !FractalsGdxMain.juliaset;
+//            System.out.println(FractalsGdxMain.juliaset);
+//        }  else if (keycode == Input.Keys.B) {
+//            FractalsGdxMain.burningship = !FractalsGdxMain.burningship;
+//        } else
+//            return false;
         return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        if (keycode == Input.Keys.PLUS)
-            iterationsStep -= iterationsChangeSpeed;
-        else if (keycode == Input.Keys.MINUS)
-            iterationsStep += iterationsChangeSpeed;
-        else
-            return false;
+//        if (keycode == Input.Keys.PLUS)
+//            iterationsStep -= iterationsChangeSpeed;
+//        else if (keycode == Input.Keys.MINUS)
+//            iterationsStep += iterationsChangeSpeed;
+//        else
+//            return false;
         return true;
     }
 
@@ -49,6 +49,9 @@ public class FractalsInputProcessor implements InputProcessor {
     public static double speedMultiplier_pan = 2;
 
     public static double yMultiplier = 1;
+
+    int touchDownScreenX;
+    int touchDownScreenY;
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
@@ -64,7 +67,11 @@ public class FractalsInputProcessor implements InputProcessor {
 //            FractalsGdxMain.scalingFactor = +speedMultiplier_zoom;
 //            return true;
 //        }
-        return false;
+
+        this.touchDownScreenX = screenX;
+        this.touchDownScreenY = screenY;
+
+        return true;
     }
 
     @Override
@@ -76,6 +83,35 @@ public class FractalsInputProcessor implements InputProcessor {
 //            FractalsGdxMain.scalingFactor = 0;
 //            return true;
 //        }
+
+        System.out.println("button: "+button);
+        if (touchDownScreenX != screenX || touchDownScreenY != screenY)
+            return false;
+
+        boolean changed = false;
+        if (button == Input.Buttons.LEFT) {
+            FractalsGdxMain.client.updateZoom(0.5f);
+            changed = true;
+        }else if (button == Input.Buttons.RIGHT){
+            FractalsGdxMain.client.updateZoom(2f);
+            changed = true;
+        }
+
+        if (changed){
+            FractalsGdxMain.xPos = 0;
+            FractalsGdxMain.yPos = 0;
+            FractalsGdxMain.client.jobId++;
+            synchronized (FractalsGdxMain.newPixmaps) {
+                FractalsGdxMain.newPixmaps.forEach((x, xMap) -> xMap.forEach((y, pixmap) -> pixmap.dispose()));
+                FractalsGdxMain.newPixmaps.clear();
+            }
+            synchronized (FractalsGdxMain.textures) {
+                FractalsGdxMain.textures.forEach((x, xMap) -> xMap.forEach((y, texture) -> texture.dispose()));
+                FractalsGdxMain.textures.clear();
+            }
+            return true;
+        }
+
         return false;
     }
 

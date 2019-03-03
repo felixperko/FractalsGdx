@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
@@ -16,6 +17,11 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Matrix3;
 import com.kotcrab.vis.ui.VisUI;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import de.felixp.fractalsgdx.client.Client;
 import de.felixperko.fractals.network.ClientConfiguration;
@@ -26,7 +32,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	Texture img;
 	Texture palette;
 	ShaderProgram shader;
-	ShaderProgram sobelShader;
+//	ShaderProgram sobelShader;
 	ShaderProgram passthroughShader;
 	Matrix3 matrix = new Matrix3(new float[] {1,0,0, 0,1,0, 0,0,1, 0,0,0});
 
@@ -73,144 +79,126 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	int currentRefreshes = 0;
 
+
+
+	public static Client client;
+
+	public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
+	List<Texture> textureList = new ArrayList<>();
+
+	public static Map<Integer, Map<Integer,Pixmap>> newPixmaps = new HashMap<>();
+
 	@Override
 	public void create () {
 
-//		Client client = new Client();
-//		client.start();
+		client = new Client(this);
+		client.start();
 
 
 		VisUI.load();
 		batch = new SpriteBatch();
 
+//		shader = compileShader("passthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
+		ShaderProgram.pedantic = false;
+		shader = compileShader("passthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
+
 		img = new Texture("badlogic.jpg");
-//		palette = new Texture("palette.png");
-//		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
 //		setupShaders();
 //		batch.setShader(shader);
 
-//		InputMultiplexer multiplexer = new InputMultiplexer();
-//		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
-//		multiplexer.addProcessor(new FractalsInputProcessor());
-//		Gdx.input.setInputProcessor(new GestureDetector(new FractalsGestureListener()));
+		InputMultiplexer multiplexer = new InputMultiplexer();
+		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
+		multiplexer.addProcessor(new FractalsInputProcessor());
+		Gdx.input.setInputProcessor(multiplexer);
 
-//		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
-//		fbo2 = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
-//		if (postprocessing)
-//			FractalsInputProcessor.yMultiplier *= -1;
+		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
 	}
 
-	int sampleLimit = 255;
-	float decode_factor = 1f;
+	public void drawPixmap(Integer startX, Integer startY, Pixmap pixmap){
+		synchronized (newPixmaps){
+			Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);
+			pixmapsYMap.put(startY, pixmap);
+		}
+//			texture = new Texture(pixmap);
+//			textureYMap.put(startY, texture)
+	}
+
+	private Map<Integer, Texture> getTextureYMap(Integer x){
+		Map<Integer, Texture> map = textures.get(x);
+		if (map == null) {
+			map = new HashMap<>();
+			textures.put(x, map);
+		}
+		return map;
+	}
+
+	private Map<Integer, Pixmap> getPixmapsYMap(Integer x){
+		Map<Integer, Pixmap> map = newPixmaps.get(x);
+		if (map == null) {
+			map = new HashMap<>();
+			newPixmaps.put(x, map);
+		}
+		return map;
+	}
 
 	@Override
 	public void render () {
-//		//if active
-//		boolean refresh = handleInput();
-//		if (forceRefresh) {
-//			forceRefresh = false;
-//			refresh = true;
-//		}
-//		Gdx.gl.glClearColor( 0, 0, 0, 1 );
-//		if (refresh)
-//			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-//
-//		fbo.begin();
-//
-//		if (refresh) {
-//			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-//			currentRefreshes = 0;
-//			decode_factor = 1f;
-//		}
-//
-//		if (currentRefreshes < sampleLimit){
-//			currentRefreshes++;
-//
-////			palette.bind();
-////			shader.begin();
-//
-//			setShaderUniforms();
-			batch.begin();
-//			batch.setShader(shader);
+		Gdx.gl.glClearColor( 0, 0, 0, 1 );
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-//			Color c = batch.getColor();
-//			batch.setColor(c.r, c.g, c.b, 1.0f);
-//
-//			Texture tex = fbo.getColorBufferTexture();
-//			TextureRegion texReg = new TextureRegion(tex);
-//			texReg.flip(false, true);
-//			batch.draw(texReg, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		batch.draw(img, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-			batch.end();
+		synchronized (newPixmaps){
+			for (Map.Entry<Integer, Map<Integer, Pixmap>> e : newPixmaps.entrySet()){
+				Map<Integer, Texture> textureYMap = getTextureYMap(e.getKey());
+				for (Map.Entry<Integer,Pixmap> e2 : e.getValue().entrySet()){
+					Texture texture = textureYMap.get(e2.getKey());
+					if (texture == null) {
+						texture = new Texture(e2.getValue());
+						textureYMap.put(e2.getKey(), texture);
+						textureList.add(texture);
+					}
+					else {
+						texture.draw(e2.getValue(), 0, 0);
+					}
+					e2.getValue().dispose();
+				}
+			}
+			newPixmaps.clear();
+		}
 
-//			shader.end();
 
-	//		shader.begin();
-	//		shader.setUniformf("scale", 5);
-	//		shader.setUniformf("center", (float) 0, (float) 0);
-	//		shader.setUniformf("resolution", (float) 250, (float) 250);
-	//		if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600) {
-	//			batch.begin();
-	//			batch.draw(palette, Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 300, 250, 250);
-	//			batch.end();
-	//		}
-	//		shader.end();
+		fbo.begin();
 
-//			fbo.end();
-//			fbo2.begin();
-//
-//			if (refresh)
-//				Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-//
-//			sobelShader.begin();
-//			sobelShader.setUniformf("resolution", Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-//			sobelShader.setUniformf("samples", currentRefreshes + 1f);
-//			sobelShader.setUniformf("colorShift", colorShift);
-//	//			for (int i = 0 ; i < currentRefreshes ; i++){
-//	//				decode_factor += (byte)(1f/(i+1));
-//	//			}
-//			sobelShader.setUniformf("decode_factor", 1f / decode_factor);
-//
-//			batch.begin();
-//			batch.setShader(sobelShader);
-//
-//			//Texture texture = fbo.getColorBufferTexture();
-//			//TextureRegion textureRegion = new TextureRegion(texture);
-//			//textureRegion.flip(false, true);
-//
-//			Color c2 = batch.getColor();
-//			batch.enableBlending();
-//			batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-//			float r = c2.r;
-//			float g = c2.g;
-//			float b = c2.b;
-//			float a = 1.0f / (currentRefreshes);
-//			//float a = 1.0f/sampleLimit;
-//			//decode_factor = currentRefreshes+1;
-//	//			if (decode_factor > 1.5f)
-//	//				decode_factor = 1.5f;
-//			//decode_factor += 0.5f*(2.0f-(decode_factor));
-//			decode_factor += a;
-//			//decode_factor += ((float)((byte)Math.floor(a*255)))/255f;
-//			System.out.println(currentRefreshes + "  " + decode_factor + "  " + a + "  " + ((float) ((byte) (a * 255))) / 255f);
-//			batch.setColor(a, a, a, a);
-//
-//			batch.draw(fbo.getColorBufferTexture(), 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-////			batch.disableBlending();
-//			batch.end();
-//
-//			sobelShader.end();
-//			fbo2.end();
-//		}
+		Gdx.gl.glClearColor( 0, 0, 0, 1 );
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-//		batch.begin();
-//		batch.setShader(passthroughShader);
-//		Texture tex2 = fbo2.getColorBufferTexture();
-//		TextureRegion texReg2 = new TextureRegion(tex2);
-//		texReg2.flip(false, true);
-//		batch.draw(texReg2, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-//		batch.end();
+		batch.begin();
+		batch.setShader(null);
+
+		for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()){
+			for (Map.Entry<Integer,Texture> e2 : e.getValue().entrySet())
+				batch.draw(e2.getValue(), e.getKey()+(float)xPos, -e2.getKey()-(float)yPos);
+		}
+
+		batch.end();
+		fbo.end();
+
+		shader.begin();
+		batch.begin();
+
+		batch.setShader(shader);
+
+		shader.setUniformMatrix("u_projTrans", matrix);
+		shader.setUniformf("colorShift", 0);
+		shader.setUniformf("resolution", 1920f, 1080f);
+
+		Texture texture = fbo.getColorBufferTexture();
+		TextureRegion textureRegion = new TextureRegion(texture);
+		textureRegion.flip(false, true);
+		batch.draw(textureRegion, 0, 0);
+		batch.end();
+
+		shader.end();
 	}
 
 	private boolean handleInput() {
@@ -369,7 +357,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		ShaderProgram.pedantic = false;
 		String vertexPassthrough = "PassthroughVertex.glsl";
 		shader = compileShader(vertexPassthrough, shader1);
-		sobelShader = compileShader(vertexPassthrough, shader2);
+//		sobelShader = compileShader(vertexPassthrough, shader2);
 		passthroughShader = compileShader(vertexPassthrough, "PassthroughFragment.glsl");
 
 		width = Gdx.graphics.getWidth();

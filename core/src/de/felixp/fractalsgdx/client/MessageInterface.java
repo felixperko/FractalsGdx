@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.client;
 
 import java.util.UUID;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.ClientMessageInterface;
@@ -27,7 +28,7 @@ public class MessageInterface extends ClientMessageInterface {
     protected ClientSystemInterface createSystemInterface(ClientConfiguration clientConfiguration) {
         if (managers == null)
             throw new IllegalStateException();
-        SystemInterface systemInterface = new SystemInterface(managers);
+        SystemInterface systemInterface = new EncodeSystemInterface(this, managers);
         return systemInterface;
     }
 
@@ -35,7 +36,7 @@ public class MessageInterface extends ClientMessageInterface {
     public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration) {
         if (managers == null)
             throw new IllegalStateException();
-        SystemInterface systemInterface = new SystemInterface(managers);
+        SystemInterface systemInterface = new EncodeSystemInterface(this, managers);
 
         int chunkSize = clientConfiguration.getParameterGeneralValue(systemId, "chunkSize", Integer.class);
         int width = clientConfiguration.getParameterGeneralValue(systemId, "width", Integer.class);
@@ -57,14 +58,17 @@ public class MessageInterface extends ClientMessageInterface {
 
     @Override
     public void serverStateUpdated(ServerStateInfo serverStateInfo) {
-        for (UUID systemId : getRegisteredSystems()) {
-            SystemStateInfo ssi = serverStateInfo.getSystemState(systemId);
-            System.out.println(ssi.getUpdateTime());
-            if (ssi.getTaskListForState(TaskState.OPEN).size() == 0 && ssi.getTaskListForState(TaskState.ASSIGNED).size() == 0 && ssi.getTaskListForState(TaskState.STARTED).size() == 0 && ssi.getTaskListForState(TaskState.PLANNED).size() == 0 && ssi.getTaskListForState(TaskState.FINISHED).size() > 0)
-                TEST_FINISH = true;
-            for (TaskState state : TaskState.values())
-                System.out.println(state.name()+": "+ssi.getTaskListForState(state).size());
-        }
+//        for (UUID systemId : getRegisteredSystems()) {
+//            SystemStateInfo ssi = serverStateInfo.getSystemState(systemId);
+//            System.out.println(ssi.getUpdateTime());
+//            if (ssi.getTaskListForState(TaskState.OPEN).size() == 0 && ssi.getTaskListForState(TaskState.ASSIGNED).size() == 0 && ssi.getTaskListForState(TaskState.STARTED).size() == 0 && ssi.getTaskListForState(TaskState.PLANNED).size() == 0 && ssi.getTaskListForState(TaskState.DONE).size() > 0)
+//                TEST_FINISH = true;
+////            for (TaskState state : TaskState.values())
+////                System.out.println(state.name()+": "+ssi.getTaskListForState(state).size());
+//        }
     }
 
+    public FractalsGdxMain getFractalsGdxMain() {
+        return client.getFractalsGdxMain();
+    }
 }

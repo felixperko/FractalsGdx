@@ -9,11 +9,12 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
-		float scaledown = 2;
+		float scaledown = 1;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.foregroundFPS = 0;
 		config.width = (int)(1920/scaledown);
 		config.height = (int)(1080/scaledown);
+		config.vSyncEnabled = false;
 		config.fullscreen = true;
 		new LwjglApplication(new FractalsGdxMain(), config);
 	}

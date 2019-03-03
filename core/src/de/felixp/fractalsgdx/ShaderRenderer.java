@@ -53,6 +53,11 @@ public class ShaderRenderer extends WidgetGroup {
         setupShaders();
     }
 
+    public void init(){
+//		palette = new Texture("palette.png");
+//		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+    }
+
     @Override
     public void draw(Batch batch, float parentAlpha) {
         validate();
