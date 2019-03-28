@@ -4,7 +4,7 @@ precision highp float;
 uniform sampler2D u_texture;
 varying vec2 v_texCoords;
 const float ambient = 0.2;
-const float magnitude = 0.1;
+const float magnitude = 0.5;
 const float upperborder = 100.0;
 const float lowerborder = 0.0;
 uniform float colorShift;
@@ -31,7 +31,7 @@ vec3 hsv2rgb(vec3 c) {
 float decode(in vec4 pixel){
     float value = DecodeExpV3(vec3(pixel));
     //float value = Decode1(pixel);
-    return value;
+    return log(value+1);
 }
 
 void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
@@ -63,15 +63,15 @@ void main(void){
     float sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
 
     float s = sobel;
-    s = log(s+1.0);
+    //s = log(s+1);
     if (s > 1.0)
         s = 1.0;
     float d = decode(texture2D(u_texture, v_texCoords.xy));
     if (d > 0.0){
-        d = log(log(d+1)+1);
+        d = log(d+1);
         vec3 hsv = vec3(d+colorShift,0.6,1.0);
         vec4 rgb = vec4(hsv2rgb(hsv), 1.0);
-        //gl_FragColor = rgb;
+        gl_FragColor = rgb;
         gl_FragColor = vec4(ambient + magnitude*s, ambient + magnitude*s, ambient + magnitude*s, 1) * rgb;
     }
     else {

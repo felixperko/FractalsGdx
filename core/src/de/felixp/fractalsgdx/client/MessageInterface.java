@@ -3,6 +3,7 @@ package de.felixp.fractalsgdx.client;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.MainStage;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.ClientMessageInterface;
@@ -47,11 +48,12 @@ public class MessageInterface extends ClientMessageInterface {
             height += chunkSize;
         width /= chunkSize;
         height /= chunkSize;
-        systemInterface.addChunkCount((width)*(height));
+        systemInterface.addChunkCount((width)*(height));//TODO remove
         systemInterface.setParameters(clientConfiguration.getSystemClientData(systemId).getClientParameters());
         addSystemInterface(systemId, systemInterface);
 
         client.setClientConfiguration(clientConfiguration);
+        ((MainStage)FractalsGdxMain.stage).setSystemClientData(clientConfiguration.getSystemClientData(systemId));
     }
 
     public static boolean TEST_FINISH = false;

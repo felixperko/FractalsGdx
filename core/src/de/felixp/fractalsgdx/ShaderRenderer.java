@@ -11,7 +11,7 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 
-public class ShaderRenderer extends WidgetGroup {
+public class ShaderRenderer extends WidgetGroup implements Renderer {
 
     final static String shader1 = "CalcMandelbrotFragment.glsl";
     final static String shader2 = "SobelDecodeFragment.glsl";
@@ -53,6 +53,7 @@ public class ShaderRenderer extends WidgetGroup {
         setupShaders();
     }
 
+    @Override
     public void init(){
 //		palette = new Texture("palette.png");
 //		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);

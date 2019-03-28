@@ -50,6 +50,7 @@ public class SystemInterface implements ClientSystemInterface {
     public void chunkUpdated(AbstractArrayChunk chunk) {
 
         int jobId = chunk.getJobId();
+        System.out.println("chunk update "+jobId+" (this:"+messageInterface.client.jobId+")");
         if (jobId != messageInterface.client.jobId)
             return;
         int chunkSize = chunk.getChunkDimensions();
@@ -78,7 +79,7 @@ public class SystemInterface implements ClientSystemInterface {
         int chunkY = (int)(long)chunk.getChunkY();
 
         int chunkImgX = (int)((chunkX-0.5)*chunkSize + width/2.);
-        int chunkImgY = (int)((chunkY-1)*chunkSize + (int)height/2.);
+        int chunkImgY = (int)((chunkY-0.5)*chunkSize + (int)height/2.);
 //        int chunkImgX = chunk X*chunkSize;
 //        int chunkImgY = chunkY*chunkSize;
         Pixmap pixmap = new Pixmap(width, (int)height, Pixmap.Format.RGBA8888);

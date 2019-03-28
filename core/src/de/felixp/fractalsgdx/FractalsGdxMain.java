@@ -16,6 +16,8 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
 
 import java.util.ArrayList;
@@ -81,6 +83,11 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 
 
+	public static Stage stage;
+
+
+
+
 	public static Client client;
 
 	public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
@@ -91,35 +98,39 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	@Override
 	public void create () {
 
-		client = new Client(this);
-		client.start();
-
 
 		VisUI.load();
 		batch = new SpriteBatch();
 
+		stage = new MainStage(new ScreenViewport(), batch);
+		((MainStage) stage).create();
+
+		client = new Client(this);
+		client.start();
+
+
 //		shader = compileShader("passthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
 		ShaderProgram.pedantic = false;
-		shader = compileShader("passthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
+		shader = compileShader("PassthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
 
 		img = new Texture("badlogic.jpg");
 
 //		setupShaders();
 //		batch.setShader(shader);
 
-		InputMultiplexer multiplexer = new InputMultiplexer();
-		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
-		multiplexer.addProcessor(new FractalsInputProcessor());
-		Gdx.input.setInputProcessor(multiplexer);
-
-		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+//		InputMultiplexer multiplexer = new InputMultiplexer();
+//		multiplexer.addProcessor(new GestureDetector(new FractalsGestureListener()));
+//		multiplexer.addProcessor(new FractalsInputProcessor());
+//		Gdx.input.setInputProcessor(multiplexer);
+		Gdx.input.setInputProcessor(stage);
 	}
 
 	public void drawPixmap(Integer startX, Integer startY, Pixmap pixmap){
-		synchronized (newPixmaps){
-			Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);
-			pixmapsYMap.put(startY, pixmap);
-		}
+		((MainStage)stage).getRenderer().drawPixmap(startX, startY, pixmap);
+//		synchronized (newPixmaps){
+//			Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);
+//			pixmapsYMap.put(startY, pixmap);
+//		}
 //			texture = new Texture(pixmap);
 //			textureYMap.put(startY, texture)
 	}
@@ -147,58 +158,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		Gdx.gl.glClearColor( 0, 0, 0, 1 );
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		synchronized (newPixmaps){
-			for (Map.Entry<Integer, Map<Integer, Pixmap>> e : newPixmaps.entrySet()){
-				Map<Integer, Texture> textureYMap = getTextureYMap(e.getKey());
-				for (Map.Entry<Integer,Pixmap> e2 : e.getValue().entrySet()){
-					Texture texture = textureYMap.get(e2.getKey());
-					if (texture == null) {
-						texture = new Texture(e2.getValue());
-						textureYMap.put(e2.getKey(), texture);
-						textureList.add(texture);
-					}
-					else {
-						texture.draw(e2.getValue(), 0, 0);
-					}
-					e2.getValue().dispose();
-				}
-			}
-			newPixmaps.clear();
-		}
-
-
-		fbo.begin();
-
-		Gdx.gl.glClearColor( 0, 0, 0, 1 );
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-		batch.begin();
-		batch.setShader(null);
-
-		for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()){
-			for (Map.Entry<Integer,Texture> e2 : e.getValue().entrySet())
-				batch.draw(e2.getValue(), e.getKey()+(float)xPos, -e2.getKey()-(float)yPos);
-		}
-
-		batch.end();
-		fbo.end();
-
-		shader.begin();
-		batch.begin();
-
-		batch.setShader(shader);
-
-		shader.setUniformMatrix("u_projTrans", matrix);
-		shader.setUniformf("colorShift", 0);
-		shader.setUniformf("resolution", 1920f, 1080f);
-
-		Texture texture = fbo.getColorBufferTexture();
-		TextureRegion textureRegion = new TextureRegion(texture);
-		textureRegion.flip(false, true);
-		batch.draw(textureRegion, 0, 0);
-		batch.end();
-
-		shader.end();
+		stage.act(Gdx.graphics.getDeltaTime());
+		stage.draw();
 	}
 
 	private boolean handleInput() {

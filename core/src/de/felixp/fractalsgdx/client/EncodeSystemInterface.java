@@ -44,7 +44,8 @@ public class EncodeSystemInterface extends SystemInterface {
 //        }
         if (value == 0)
             return new Color(0,0,0,1);
-        float logval = (float)Math.log(value);
+        float logval = (float)Math.log(value+1);
+//        float logval = log(value+1);
         float byLog2 = (float)(logval/log2);
         int exponent = (int)(byLog2+1);
         if (exponent != 0)
@@ -58,6 +59,20 @@ public class EncodeSystemInterface extends SystemInterface {
         float b2 = (exponent + 127.5f) / 256f;
         return new Color(r2, g2, b2, 1);
 //        return new Color(0f, 0f, value, 1f);
+    }
+
+    public static double exp(double val) {
+        final long tmp = (long) (1512775 * val + 1072632447);
+        return Double.longBitsToDouble(tmp << 32);
+    }
+
+    /**
+     * Pretty much useless for bigger numbers
+     * @param x
+     * @return
+     */
+    public static float log(float x) {
+        return (float)(6 * (x - 1) / (x + 1 + 4 * (Math.sqrt(x))));
     }
 
     private float decode3f(byte x, byte y, byte z){
