@@ -6,4 +6,7 @@ interface Renderer {
     void init();
 
     void draw(Batch batch, float parentAlpha);
+
+    void setScreenshot(boolean screenshot);
+    boolean isScreenshot(boolean reset);
 }

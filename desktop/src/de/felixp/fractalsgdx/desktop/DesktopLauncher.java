@@ -12,10 +12,16 @@ public class DesktopLauncher {
 		float scaledown = 0.5f;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.foregroundFPS = 0;
-		config.width = 3840;
-		config.height = 2160;
+//		config.width = 1920;
+//		config.height = 1080;
+
+		config.width = 1024;
+		config.height = 512;
+		config.fullscreen = false;
+//		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
+//		config.fullscreen = true;
+
 		config.vSyncEnabled = true;
-		config.fullscreen = true;
 		new LwjglApplication(new FractalsGdxMain(), config);
 	}
 }

@@ -15,10 +15,11 @@ android {
     }
     packagingOptions {
         exclude 'META-INF/robovm/ios/robovm.xml'
+        //exclude 'org.xerial.snappy:snappy-java:1.1.7.1'
     }
     defaultConfig {
         applicationId "de.felixp.fractalsgdx"
-        minSdkVersion 24
+        minSdkVersion 26
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"

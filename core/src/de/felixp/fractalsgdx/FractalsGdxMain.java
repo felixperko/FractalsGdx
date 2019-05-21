@@ -17,6 +17,10 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.Scaling;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
 
@@ -102,7 +106,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		VisUI.load();
 		batch = new SpriteBatch();
 
-		stage = new MainStage(new ScreenViewport(), batch);
+		stage = new MainStage(new ScalingViewport(Scaling.fill, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()), batch);
 		((MainStage) stage).create();
 
 		client = new Client(this);
@@ -339,7 +343,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 //		shader.begin();
 //		shader.setUniformf("resolution", width, height);
 //		shader.end();
-		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false);
+//		fbo = new FrameBuffer(Pixmap.Format.RGBA8888, width, height, false);
+//		stage.getViewport().update(width, height, true);
 	}
 
 //	public void setIterations() {

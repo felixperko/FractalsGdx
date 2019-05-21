@@ -1,21 +1,21 @@
 package de.felixp.fractalsgdx.ui.entries;
 
-import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
-import de.felixperko.fractals.system.parameters.ParamSupplier;
-import de.felixperko.fractals.system.parameters.StaticParamSupplier;
+import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
-public class ComplexNumberPropertyEntry extends AbstractDoublePropertyEntry {
+public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry {
 
     NumberFactory numberFactory;
 
-    public ComplexNumberPropertyEntry(VisTable table, SystemClientData systemClientData, String propertyName, NumberFactory numberFactory) {
-        super(table, systemClientData, propertyName, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
+    public ComplexNumberPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
+        super(table, systemClientData, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
         this.numberFactory = numberFactory;
     }
 
@@ -31,7 +31,7 @@ public class ComplexNumberPropertyEntry extends AbstractDoublePropertyEntry {
 
     @Override
     protected ParamSupplier getSupplier() {
-        ParamSupplier supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(field1.getText(), field2.getText()));
+        ParamSupplier supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(text1, text2));
         supplier.setLayerRelevant(true);
         return supplier;
     }

@@ -1,29 +1,64 @@
 package de.felixp.fractalsgdx.client;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
 
-import java.awt.image.BufferedImage;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
-import de.felixperko.fractals.data.Chunk;
 import de.felixperko.fractals.manager.client.ClientManagers;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.Number;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
-import de.felixperko.fractals.system.parameters.ParamSupplier;
 
 public class EncodeSystemInterface extends SystemInterface {
+//    public static void printColorBits(Color color){
+//        int b1 = (int)(color.r*256);
+//        int b2 = (int)(color.g*256);
+//        int b3 = (int)(color.b*256);
+//        System.out.println(Integer.toBinaryString(b3)+", "+Integer.toBinaryString(b1)+", "+Integer.toBinaryString(b2));
+//    }
+
+    public static void encode3fFast(Color color, float value){
+        int integer = Float.floatToIntBits(value);
+        int mantissa = integer & 0x007fffff;
+        float exponent = ((integer >>> 23) & 0x000000ff);
+        float mantissa1 = (integer >>> 15) & 0x000000ff;
+        float mantissa2 = (integer >>> 7) & 0x000000ff;
+        color.set(mantissa1/256f, mantissa2/256f, exponent/256f, 1f);
+    }
+
+//    public static Color encode4fFast(float value){
+//        int integer = Float.floatToIntBits(value);
+//        //int mantissa = integer & 0x007fffff;
+//        float exponent = ((integer >>> 23) & 0x000000ff);
+//        float mantissa1 = (integer >>> 15) & 0x000000ff;
+//        float mantissa2 = (integer >>> 7) & 0x000000ff;
+//        float mantissa3 = integer & 0x0000007f;
+//        Color color = new Color(mantissa1/256, mantissa2/256, mantissa3/256, exponent/256);
+//        return color;
+//    }
+//
+//    public static float decode3fFast(Color color){
+//        float mantissa1 = color.r;
+//        float mantissa2 = color.g / 256;
+//        float exponent = color.b*256 - 127;
+//        float value = mantissa1 + mantissa2 + 1;
+//        return value*(float)Math.pow(2, (exponent));
+//    }
+//
+//    public static float decode4fFast(Color color){
+//        float mantissa1 = color.r;
+//        float mantissa2 = color.g / 256;
+//        float mantissa3 = color.b / (256*256);
+//        float exponent = color.a*256 - 127;
+//        float value = mantissa1 + mantissa2 + 1;
+//        return value*(float)Math.pow(2, (exponent));
+//    }
 
     static double log2 = Math.log(2);
-    public EncodeSystemInterface(MessageInterface messageInterface, ClientManagers managers){
-        super(messageInterface, managers);
+    public EncodeSystemInterface(UUID systemId, MessageInterface messageInterface, ClientManagers managers){
+        super(systemId, messageInterface, managers);
     }
 
     @Override
-    protected Color getColor(float value) {
-        return encode3f(value);
+    protected void getColor(Color color, float value) {
+        encode3fFast(color, value);
 //        Color c = encode3f(value);
 //        float valueAfter = decode3f((byte)(c.r*256), (byte)(c.g*256), (byte)(c.b*256));
 //        return encode1f(value);
@@ -33,7 +68,7 @@ public class EncodeSystemInterface extends SystemInterface {
         return new Color((value+1)/256,0, 0, 1);
     }
 
-    private Color encode3f(float value) {
+    private static Color encode3f(float value) {
 //        vec3 EncodeExpV3( in float value )
 //        {
 //            int exponent  = int( log( abs( value ) )/log(2.0) + 1.0 );
@@ -44,6 +79,9 @@ public class EncodeSystemInterface extends SystemInterface {
 //        }
         if (value == 0)
             return new Color(0,0,0,1);
+        if (value < 0)
+            value = 2000000;
+
         float logval = (float)Math.log(value+1);
 //        float logval = log(value+1);
         float byLog2 = (float)(logval/log2);

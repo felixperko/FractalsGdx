@@ -1,16 +1,18 @@
 package de.felixp.fractalsgdx.client;
 
+import java.util.List;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.MainStage;
+import de.felixperko.fractals.data.shareddata.DataContainer;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.ClientMessageInterface;
 import de.felixperko.fractals.network.ClientSystemInterface;
+import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.systems.stateinfo.ServerStateInfo;
-import de.felixperko.fractals.system.systems.stateinfo.SystemStateInfo;
-import de.felixperko.fractals.system.systems.stateinfo.TaskState;
+import de.felixperko.fractals.system.task.FractalsTask;
 
 public class MessageInterface extends ClientMessageInterface {
 
@@ -27,17 +29,23 @@ public class MessageInterface extends ClientMessageInterface {
 
     @Override
     protected ClientSystemInterface createSystemInterface(ClientConfiguration clientConfiguration) {
-        if (managers == null)
-            throw new IllegalStateException();
-        SystemInterface systemInterface = new EncodeSystemInterface(this, managers);
-        return systemInterface;
+//        if (managers == null)
+//            throw new IllegalStateException();
+//        SystemInterface systemInterface = new EncodeSystemInterface(this, managers);
+//        return systemInterface;
+        throw new IllegalArgumentException("not implemented");
     }
 
     @Override
-    public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration) {
+    public void assignedTasks(List<FractalsTask> list) {
+
+    }
+
+    @Override
+    public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration, ParameterConfiguration parameterConfiguration) {
         if (managers == null)
             throw new IllegalStateException();
-        SystemInterface systemInterface = new EncodeSystemInterface(this, managers);
+        SystemInterface systemInterface = new EncodeSystemInterface(systemId, this, managers);
 
         int chunkSize = clientConfiguration.getParameterGeneralValue(systemId, "chunkSize", Integer.class);
         int width = clientConfiguration.getParameterGeneralValue(systemId, "width", Integer.class);
@@ -51,9 +59,9 @@ public class MessageInterface extends ClientMessageInterface {
         systemInterface.addChunkCount((width)*(height));//TODO remove
         systemInterface.setParameters(clientConfiguration.getSystemClientData(systemId).getClientParameters());
         addSystemInterface(systemId, systemInterface);
+        systemInterface.updateParameterConfiguration(clientConfiguration, parameterConfiguration);
 
         client.setClientConfiguration(clientConfiguration);
-        ((MainStage)FractalsGdxMain.stage).setSystemClientData(clientConfiguration.getSystemClientData(systemId));
     }
 
     public static boolean TEST_FINISH = false;
@@ -72,5 +80,10 @@ public class MessageInterface extends ClientMessageInterface {
 
     public FractalsGdxMain getFractalsGdxMain() {
         return client.getFractalsGdxMain();
+    }
+
+    @Override
+    public void updateSharedData(DataContainer dataContainer) {
+        //todo
     }
 }

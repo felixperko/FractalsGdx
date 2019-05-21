@@ -18,6 +18,8 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
 
     boolean refresh = true;
 
+    boolean screenshot = false;
+
     FrameBuffer fbo;
     FrameBuffer fbo2;
 
@@ -216,5 +218,18 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
 
     public void setRefresh(){
         refresh = true;
+    }
+
+    @Override
+    public boolean isScreenshot(boolean reset) {
+        boolean curr = screenshot;
+        if (reset)
+            screenshot = false;
+        return curr;
+    }
+
+    @Override
+    public void setScreenshot(boolean screenshot) {
+        this.screenshot = screenshot;
     }
 }
