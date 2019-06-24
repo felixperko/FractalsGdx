@@ -3,8 +3,8 @@ precision highp float;
 #endif
 uniform sampler2D u_texture;
 varying vec2 v_texCoords;
-const float sobel_ambient = 0.2;
-const float sobel_magnitude = 0.8;
+const float sobel_ambient = 0.3;
+const float sobel_magnitude = 0.7;
 uniform float colorShift;
 uniform vec2 resolution;
 
@@ -85,11 +85,11 @@ void main(void){
         s = 1.0 - abs(1.0 - s);
         vec3 hsv = vec3(d+colorShift,0.6,1.0);
         vec4 rgb = vec4(hsv2rgb(hsv), 1.0);
-        //gl_FragColor = rgb;
         float brightness = sobel_ambient + sobel_magnitude*s;
         //float chance = fract(brightness * 256.0);
         //if (rand(v_texCoords.xy) < chance)
         //    brightness += 1.0/256.0;
+        //gl_FragColor = rgb;
         gl_FragColor = vec4(brightness, brightness, brightness, 1) * rgb;
     }
     else {

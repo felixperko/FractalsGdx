@@ -110,6 +110,8 @@ public class RemoteRenderer extends AbstractRenderer {
         }
     }
 
+    Color tintColor = new Color(1f,1f,1f,0.5f);
+
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
@@ -122,10 +124,11 @@ public class RemoteRenderer extends AbstractRenderer {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        //draw textures on framebuffer
         for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()) {
             for (Map.Entry<Integer, Texture> e2 : e.getValue().entrySet()) {
-                batch.draw(e2.getValue(), (e.getKey() - 0.0f * chunkSize) + (float) xPos + Gdx.graphics.getWidth() / 2, (e2.getKey() - 0.0f * chunkSize) + (float) yPos + Gdx.graphics.getHeight() / 2, chunkSize, chunkSize);
+                float x = (e.getKey() - 0.0f * chunkSize) + (float) xPos + Gdx.graphics.getWidth() / 2;
+                float y = (e2.getKey() - 0.0f * chunkSize) + (float) yPos + Gdx.graphics.getHeight() / 2;
+                batch.draw(e2.getValue(), x, y, chunkSize, chunkSize);
             }
         }
 
@@ -195,9 +198,9 @@ public class RemoteRenderer extends AbstractRenderer {
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
         float subY = 0;
-        if (height > 1025)
-            subY = chunkSize/2f;
-        float startX = (float)(xPos+width/2f) % chunkSize;
+        float subX = chunkSize/2f;
+        subY = chunkSize/2f;
+        float startX = (float)(xPos+width/2f-subX) % chunkSize;
         float startY = (float)(yPos+height/2f-subY) % chunkSize;
         for (float x = startX ; x < width ; x += chunkSize){
             shapeRenderer.line(x, 0, x, height);

@@ -26,6 +26,7 @@ import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftPa
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstTaskManager;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
 
@@ -41,12 +42,13 @@ public class Client {
     FractalsGdxMain fractalsGdxMain;
 
     ComplexNumber midpoint = new DoubleComplexNumber(new DoubleNumber(0), new DoubleNumber(0));
+    ComplexNumber anchor = new DoubleComplexNumber(new DoubleNumber(0), new DoubleNumber(0));
     Number zoom;
     NumberFactory numberFactory;
 
     public int jobId = 0;
 
-    public Integer chunkSize = 256;
+    public Integer chunkSize = 128*2;
 
     public Client(FractalsGdxMain fractalsGdxMain) {
         this.fractalsGdxMain = fractalsGdxMain;
@@ -62,27 +64,26 @@ public class Client {
 //		params.put("midpoint", new StaticParamSupplier("midpoint", new DoubleComplexNumber(new DoubleNumber(0.251), new DoubleNumber(0.00004849892910689283399687005))));
         params.put("midpoint", new StaticParamSupplier("midpoint", midpoint));
 //        zoom = numberFactory.createNumber(5./200000.);
-        zoom = numberFactory.createNumber(30.);
+        zoom = numberFactory.createNumber(3.);
         params.put("zoom", new StaticParamSupplier("zoom", zoom));
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)5000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
 
         List<BreadthFirstLayer> layers = new ArrayList<>();
-//        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true));
-        layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true));
-//        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_priority_shift(5));
-        layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_priority_shift(10));
-//        layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_priority_shift(15));
-        layers.add(new BreadthFirstLayer().with_samples(1).with_priority_shift(30));
-        layers.add(new BreadthFirstLayer().with_samples(9).with_priority_shift(50));
-//        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(70));
-//        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(90));
+        //layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
+        layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
+        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
+        layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
+        layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
+        layers.add(new BreadthFirstLayer().with_samples(1).with_rendering(true).with_priority_shift(90));
+        layers.add(new BreadthFirstLayer().with_samples(9).with_rendering(true).with_priority_shift(110));
+        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(130));
+        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(150));
+
         if (layerConfiguration == null) {
             layerConfiguration = new LayerConfiguration(layers, 0.05D, 20, 42L);
             layerConfiguration.prepare(numberFactory);
         }
-//        layers.add(new BreadthFirstLayer(2).with_samples(8).with_priority_shift(20));
-//        layers.add(new BreadthFirstLayer(2).with_samples(8));
         params.put("layerConfiguration", new StaticParamSupplier("layerConfiguration", layerConfiguration));
         params.put("border_generation", new StaticParamSupplier("border_generation", (Double) 0.));
         params.put("border_dispose", new StaticParamSupplier("border_dispose", (Double) 7.));
@@ -97,11 +98,14 @@ public class Client {
 
         params.put("start", new StaticParamSupplier("start", new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
         params.put("c", new CoordinateBasicShiftParamSupplier("c"));
+
         params.put("pow", new StaticParamSupplier("pow", new DoubleComplexNumber(new DoubleNumber(2), new DoubleNumber(0.000*Math.PI*2))));
         params.put("limit", new StaticParamSupplier("limit", (Double)(double)(2 << 12)));
 
-//		params.put("c", new StaticParamSupplier("c", new DoubleComplexNumber(new DoubleNumber(0.5), new DoubleNumber(0.3))));
-//		params.put("start", new CoordinateParamSupplier("start", numberFactory));
+        params.put("view", new StaticParamSupplier("view", 0));
+
+		//params.put("c", new StaticParamSupplier("c", new DoubleComplexNumber(new DoubleNumber(0.5), new DoubleNumber(0.3))));
+		//params.put("start", new CoordinateBasicShiftParamSupplier("start"));
 
         clientConfiguration = new ClientConfiguration();
         clientConfiguration.addRequest(new SystemClientData(params, 0));
@@ -111,8 +115,8 @@ public class Client {
         managers = new ClientManagers(messageInterface);
         messageInterface.setManagers(managers);
 
-//        managers.getClientNetworkManager().connectToServer("89.16.136.152", 3141);
-//		managers.getClientNetworkManager().connectToServer("192.168.0.13", 3141);
+//        managers.getClientNetworkManager().connectToServer("95.168.135.138", 80);
+//		  managers.getClientNetworkManager().connectToServer("192.168.0.13", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.0.11", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.137.1", 3141);
         managers.getClientNetworkManager().connectToServer("localhost", 3141);
@@ -163,17 +167,49 @@ public class Client {
 
     public void updateZoom(float zoomFactor){
         zoom.mult(numberFactory.createNumber(zoomFactor));
-        for(SystemClientData data : clientConfiguration.getSystemClientData().values()){
+        for(SystemClientData data : clientConfiguration.getSystemClientData().values()){//TODO ...
+            setOldParams(data.getClientParameters()); //TODO !
             StaticParamSupplier supplier = new StaticParamSupplier("zoom", this.zoom);
             supplier.setLayerRelevant(true);
             data.getClientParameters().put("zoom", supplier);
         }
+        anchor = midpoint;
+        incrementJobId();
         updateConfiguration();
+    }
+
+    public void incrementJobId(){
+        for(SystemClientData data : clientConfiguration.getSystemClientData().values()) {//TODO ...
+            ParamSupplier viewSupplier = data.getClientParameters().get("view");
+            Integer view = viewSupplier != null ? viewSupplier.getGeneral(Integer.class) : -1;
+            data.getClientParameters().put("view", new StaticParamSupplier("view", view + 1));
+        }
+    }
+
+    Map<String, ParamSupplier> oldParams = null;
+
+    /**
+     * needs to be called before updating the configuration
+     * @param oldParams
+     */
+    public void setOldParams(Map<String, ParamSupplier> oldParams){
+        this.oldParams = new HashMap<>();
+        for (Map.Entry<String, ParamSupplier> e : oldParams.entrySet()){
+            this.oldParams.put(e.getKey(), e.getValue().copy());
+        }
+    }
+
+    public Map<String, ParamSupplier> getOldParams(){
+        return oldParams;
     }
 
     public void updateConfiguration(){
         managers.getNetworkManager().getServerConnection().writeMessage(new UpdateConfigurationMessage(clientConfiguration));
         ClientMessageInterface messageInterface = managers.getClientNetworkManager().getMessageInterface();
         messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next()).updateParameterConfiguration(clientConfiguration, null);//TODO ...
+    }
+
+    public ComplexNumber getAnchor(){
+        return anchor;
     }
 }
