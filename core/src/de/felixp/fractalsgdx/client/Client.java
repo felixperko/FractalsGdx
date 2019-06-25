@@ -204,7 +204,8 @@ public class Client {
     }
 
     public void updateConfiguration(){
-        managers.getNetworkManager().getServerConnection().writeMessage(new UpdateConfigurationMessage(clientConfiguration));
+        UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(clientConfiguration);
+        managers.getNetworkManager().getServerConnection().writeMessage(updateConfigurationMessage);
         ClientMessageInterface messageInterface = managers.getClientNetworkManager().getMessageInterface();
         messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next()).updateParameterConfiguration(clientConfiguration, null);//TODO ...
     }
