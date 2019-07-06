@@ -14,14 +14,15 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 
 import java.util.List;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 
 public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
 
 
-    public CompositePropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition) {
-        super(table, systemClientData, parameterDefinition);
+    public CompositePropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(table, paramContainer, parameterDefinition);
     }
 
     @Override

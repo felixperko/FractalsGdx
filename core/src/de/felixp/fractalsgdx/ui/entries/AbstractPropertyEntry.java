@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -19,7 +20,7 @@ public abstract class AbstractPropertyEntry {
     public static final String VIEW_DETAILS = "DETAILS";
 
     VisTable table;
-    SystemClientData systemClientData;
+    ParamContainer paramContainer;
 
     String propertyName;
 
@@ -29,10 +30,10 @@ public abstract class AbstractPropertyEntry {
 
     List<AbstractPropertyEntry> subEntries = null;
 
-    public AbstractPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition){
+    public AbstractPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
         this.propertyName = parameterDefinition.getName();
         this.table = table;
-        this.systemClientData = systemClientData;
+        this.paramContainer = paramContainer;
     }
 
     public void init(){
@@ -64,8 +65,8 @@ public abstract class AbstractPropertyEntry {
         }
     }
 
-    public SystemClientData getSystemClientData(){
-        return systemClientData;
+    public ParamContainer getParamContainer(){
+        return paramContainer;
     }
 
     public String getPropertyName() {
@@ -77,7 +78,7 @@ public abstract class AbstractPropertyEntry {
 //        if (supplier.isSystemRelevant())
 //            FractalsGdxMain.client.jobId = 0;
         if (supplier != null)
-            getSystemClientData().getClientParameters().put(getPropertyName(), supplier);
+            getParamContainer().getClientParameters().put(getPropertyName(), supplier);
     }
 
     protected abstract ParamSupplier getSupplier();

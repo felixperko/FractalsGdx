@@ -6,6 +6,7 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamValueField;
@@ -14,9 +15,7 @@ import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
-import de.felixperko.fractals.system.task.Layer;
 
 public class PropertyEntryFactory {
 
@@ -30,8 +29,8 @@ public class PropertyEntryFactory {
 
     static int ID_COUNTER_SUB_DEFINITIONS = 0;
 
-    public AbstractPropertyEntry getPropertyEntry(ParameterDefinition parameterDefinition, SystemClientData systemClientData){
-        if (!(systemClientData.getClientParameter(parameterDefinition.getName()) instanceof StaticParamSupplier))
+    public AbstractPropertyEntry getPropertyEntry(ParameterDefinition parameterDefinition, ParamContainer paramContainer){
+        if (!(paramContainer.getClientParameter(parameterDefinition.getName()) instanceof StaticParamSupplier))
             return null;
 
         ParameterConfiguration config = parameterDefinition.getConfiguration();
@@ -46,7 +45,7 @@ public class PropertyEntryFactory {
                 //ParameterDefinition subDefinition = config.getParameters().stream().filter(def -> def.getName().equalsIgnoreCase(subType.getName())).findFirst().get();
                 ParameterDefinition subDefinition = new ParameterDefinition(field.getName(), StaticParamSupplier.class);
                 subDefinition.setConfiguration(parameterDefinition.getConfiguration());
-                AbstractPropertyEntry entry = getByType(subType, systemClientData, subDefinition);
+                AbstractPropertyEntry entry = getByType(subType, paramContainer, subDefinition);
                 if (entry != null) {
                     entry.init();
                     subEntries.add(entry);
@@ -56,7 +55,7 @@ public class PropertyEntryFactory {
                 }
             }
 
-            AbstractPropertyEntry entry = getByType(type, systemClientData, parameterDefinition);
+            AbstractPropertyEntry entry = getByType(type, paramContainer, parameterDefinition);
             if (entry != null) {
                 entry.addSubEntries(subEntries);
                 return entry;
@@ -68,31 +67,31 @@ public class PropertyEntryFactory {
         return null;
     }
 
-    private AbstractPropertyEntry getByType(ParamValueType type, SystemClientData systemClientData, ParameterDefinition parameterDefinition){
+    private AbstractPropertyEntry getByType(ParamValueType type, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
         switch (type.getName()) {
             case ("integer"):
-                return new IntTextPropertyEntry(table, systemClientData, parameterDefinition);
+                return new IntTextPropertyEntry(table, paramContainer, parameterDefinition);
             case ("double"):
-                return new DoubleTextPropertyEntry(table, systemClientData, parameterDefinition);
+                return new DoubleTextPropertyEntry(table, paramContainer, parameterDefinition);
             case ("number"):
-                return new NumberTextPropertyEntry(table, systemClientData, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
+                return new NumberTextPropertyEntry(table, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
             case ("complexnumber"):
-                return new ComplexNumberPropertyEntry(table, systemClientData, parameterDefinition, numberFactory);
+                return new ComplexNumberPropertyEntry(table, paramContainer, parameterDefinition, numberFactory);
             case ("boolean"):
-                return new BooleanPropertyEntry(table, systemClientData, parameterDefinition);
+                return new BooleanPropertyEntry(table, paramContainer, parameterDefinition);
             case ("selection"):
-                return new SelectionPropertyEntry(table, systemClientData, parameterDefinition);
+                return new SelectionPropertyEntry(table, paramContainer, parameterDefinition);
             case ("list"):
-                return new ListPropertyEntry(table, systemClientData, parameterDefinition, this);
+                return new ListPropertyEntry(table, paramContainer, parameterDefinition, this);
             case ("BreadthFirstLayer"):
-                return new BreadthFirstLayerPropertyEntry(table, systemClientData, parameterDefinition);
+                return new BreadthFirstLayerPropertyEntry(table, paramContainer, parameterDefinition);
             case ("BreadthFirstUpsampleLayer"):
-                return new BreadthFirstUpsampleLayerPropertyEntry(table, systemClientData, parameterDefinition);
+                return new BreadthFirstUpsampleLayerPropertyEntry(table, paramContainer, parameterDefinition);
             case ("LayerConfiguration"):
-                return new CompositePropertyEntry(table, systemClientData, parameterDefinition){
+                return new CompositePropertyEntry(table, paramContainer, parameterDefinition){
                     @Override
                     public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
-                        LayerConfiguration current = systemClientData.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
+                        LayerConfiguration current = paramContainer.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
                         if (current != null) {
                             ((ListPropertyEntry) subEntries.get(0)).setContent(current.getLayers());
                         }

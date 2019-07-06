@@ -8,6 +8,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -21,8 +22,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     String text1;
     String text2;
 
-    public AbstractDoubleTextPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
-        super(table, systemClientData, parameterDefinition);
+    public AbstractDoubleTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
+        super(table, paramContainer, parameterDefinition);
 
         this.validator1 = validator1;
         this.validator2 = validator2;
@@ -46,7 +47,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 field1 = new VisValidatableTextField(validator1);
                 field2 = new VisValidatableTextField(validator2);
 
-                ParamSupplier paramSupplier = systemClientData.getClientParameter(propertyName);
+                ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
 
                 if (!(paramSupplier instanceof StaticParamSupplier))
                     throw new IllegalArgumentException("AbstractDoubleTextPropertyEntry only supports StaticParamSuppliers.");

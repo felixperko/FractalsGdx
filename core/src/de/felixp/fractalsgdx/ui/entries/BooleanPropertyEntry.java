@@ -5,14 +5,15 @@ import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 
 public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
-    public BooleanPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition) {
-        super(table, systemClientData, parameterDefinition);
+    public BooleanPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(table, paramContainer, parameterDefinition);
     }
 
     VisLabel label;
@@ -28,7 +29,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
                     checkBox = new VisCheckBox("enabled");
                 }
 
-                ParamSupplier supplier = systemClientData.getClientParameter(propertyName);
+                ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
                 if (supplier != null)
                     checkBox.setChecked(supplier.getGeneral(Boolean.class));
 

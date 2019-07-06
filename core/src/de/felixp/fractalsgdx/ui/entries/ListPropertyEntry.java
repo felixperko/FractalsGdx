@@ -5,7 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
 import com.kotcrab.vis.ui.widget.Separator;
@@ -18,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
@@ -32,8 +32,8 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     PropertyEntryFactory entryFactory;
 
-    public ListPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
-        super(table, systemClientData, parameterDefinition);
+    public ListPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
+        super(table, paramContainer, parameterDefinition);
         types = parameterDefinition.getConfiguration().getListTypes(propertyName);
         this.entryFactory = entryFactory;
     }
@@ -96,9 +96,9 @@ class ListPropertyEntry extends AbstractPropertyEntry {
         int index = menu.getRows();
         ParameterDefinition parameterDefinition = new ParameterDefinition("list_"+type.getName()+index, StaticParamSupplier.class, type);
         parameterDefinition.setConfiguration(parameterDefinition.getConfiguration());
-        systemClientData.addClientParameter(new StaticParamSupplier(parameterDefinition.getName(), new BreadthFirstLayer()));
+        paramContainer.addClientParameter(new StaticParamSupplier(parameterDefinition.getName(), new BreadthFirstLayer()));
 
-        AbstractPropertyEntry entry = entryFactory.getPropertyEntry(parameterDefinition, systemClientData);
+        AbstractPropertyEntry entry = entryFactory.getPropertyEntry(parameterDefinition, paramContainer);
         if (entry != null) {
             entry.init();
 

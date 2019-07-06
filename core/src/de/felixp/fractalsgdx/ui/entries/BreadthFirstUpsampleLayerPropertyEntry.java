@@ -11,11 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixperko.fractals.data.ArrayChunkFactory;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 
 class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
@@ -23,8 +23,8 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstUpsampleLayerPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition) {
-        super(table, systemClientData, parameterDefinition);
+    public BreadthFirstUpsampleLayerPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(table, paramContainer, parameterDefinition);
         this.id = ID_COUNTER++;
     }
 
@@ -97,7 +97,7 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
             e.printStackTrace();
             return null;
         }
-        int chunkSize = systemClientData.getClientParameter("chunkFactory").getGeneral(ArrayChunkFactory.class).getChunkSize();
+        int chunkSize = paramContainer.getClientParameter("chunkFactory").getGeneral(ArrayChunkFactory.class).getChunkSize();
         return new StaticParamSupplier("layer_"+id, new BreadthFirstUpsampleLayer(upsample, chunkSize).with_priority_shift(priority_shift).with_priority_multiplier(priority_multiplier).with_culling(culling));
     }
 

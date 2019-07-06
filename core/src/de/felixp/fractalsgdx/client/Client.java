@@ -48,7 +48,7 @@ public class Client {
 
     public int jobId = 0;
 
-    public Integer chunkSize = 128*2;
+    public Integer chunkSize = 128;
 
     public Client(FractalsGdxMain fractalsGdxMain) {
         this.fractalsGdxMain = fractalsGdxMain;

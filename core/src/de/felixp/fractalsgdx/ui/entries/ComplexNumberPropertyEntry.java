@@ -3,6 +3,7 @@ package de.felixp.fractalsgdx.ui.entries;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
@@ -14,8 +15,8 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
 
     NumberFactory numberFactory;
 
-    public ComplexNumberPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
-        super(table, systemClientData, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
+    public ComplexNumberPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
+        super(table, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
         this.numberFactory = numberFactory;
     }
 

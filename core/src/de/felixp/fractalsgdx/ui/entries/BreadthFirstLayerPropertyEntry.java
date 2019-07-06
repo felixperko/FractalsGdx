@@ -9,6 +9,7 @@ import com.kotcrab.vis.ui.widget.VisTextField;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -20,8 +21,8 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstLayerPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition) {
-        super(table, systemClientData, parameterDefinition);
+    public BreadthFirstLayerPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(table, paramContainer, parameterDefinition);
         this.id = ID_COUNTER++;
     }
 

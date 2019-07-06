@@ -3,6 +3,7 @@ package de.felixp.fractalsgdx.ui.entries;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTable;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
@@ -13,8 +14,8 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     NumberFactory numberFactory;
 
-    public NumberTextPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
-        super(table, systemClientData, parameterDefinition, inputValidator);
+    public NumberTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
+        super(table, paramContainer, parameterDefinition, inputValidator);
         this.numberFactory = numberFactory;
     }
 

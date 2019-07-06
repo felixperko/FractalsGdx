@@ -3,8 +3,8 @@ precision highp float;
 #endif
 uniform sampler2D u_texture;
 varying vec2 v_texCoords;
-const float sobel_ambient = 0.3;
-const float sobel_magnitude = 0.7;
+const float sobel_ambient = 0.2;
+const float sobel_magnitude = 0.8;
 uniform float colorShift;
 uniform vec2 resolution;
 

@@ -26,6 +26,7 @@ import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.network.ClientMessageInterface;
 import de.felixperko.fractals.network.ClientSystemInterface;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
 import de.felixperko.fractals.system.Numbers.DoubleNumber;
@@ -141,7 +142,7 @@ public class MainStage extends Stage {
         propertyEntryList.add(entry);
     }
 
-    public void setParameterConfiguration(SystemClientData systemClientData, ParameterConfiguration parameterConfiguration){
+    public void setParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration){
         for (AbstractPropertyEntry entry : propertyEntryList) {
             entry.closeView(AbstractPropertyEntry.VIEW_LIST);
         }
@@ -158,7 +159,7 @@ public class MainStage extends Stage {
             submitButton.remove();
 
         for (ParameterDefinition parameterDefinition : parameterConfiguration.getParameters()) {
-            AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(parameterDefinition, systemClientData);
+            AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
             if (entry != null) {
                 entry.init();
                 entry.openView(AbstractPropertyEntry.VIEW_LIST, collapsibleTable);
@@ -169,11 +170,11 @@ public class MainStage extends Stage {
         submitButton = new VisTextButton("Submit", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                FractalsGdxMain.client.setOldParams(systemClientData.getClientParameters());
+                FractalsGdxMain.client.setOldParams(paramContainer.getClientParameters());
                 for (AbstractPropertyEntry entry : propertyEntryList){
                     entry.applyValue();
                 }
-                if (systemClientData.needsReset(FractalsGdxMain.client.getOldParams()))//TODO move up
+                if (((SystemClientData)paramContainer).needsReset(FractalsGdxMain.client.getOldParams()))//TODO move up
                     FractalsGdxMain.client.incrementJobId();
                 FractalsGdxMain.client.updateConfiguration();
                 renderer.reset();

@@ -8,8 +8,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 
-import java.util.ArrayList;
-
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -20,9 +19,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     Selection<?> selection;
 
-    public SelectionPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition) {
+    public SelectionPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
 
-        super(table, systemClientData, parameterDefinition);
+        super(table, paramContainer, parameterDefinition);
 
         selection = parameterDefinition.getConfiguration().getSelection(propertyName);
     }
@@ -46,7 +45,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 for (String option : selection.getOptionNames())
                     arr.add(option);
                 box.setItems(arr);
-                Object current = systemClientData.getClientParameter(propertyName).get(0, 0);
+                Object current = paramContainer.getClientParameter(propertyName).get(0, 0);
                 String currentName = null;
                 for (String s : selection.getOptionNames()){
                     Object obj = selection.getOption(s);

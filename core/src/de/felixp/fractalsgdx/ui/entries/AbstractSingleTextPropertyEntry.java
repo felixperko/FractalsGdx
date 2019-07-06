@@ -8,6 +8,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -18,8 +19,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     String text;
 
-    public AbstractSingleTextPropertyEntry(VisTable table, SystemClientData systemClientData, ParameterDefinition parameterDefinition, InputValidator validator) {
-        super(table, systemClientData, parameterDefinition);
+    public AbstractSingleTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator) {
+        super(table, paramContainer, parameterDefinition);
         this.validator = validator;
     }
 
@@ -35,7 +36,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 label = new VisLabel(propertyName);
                 field = new VisValidatableTextField(validator);
 
-                ParamSupplier textSupplier = systemClientData.getClientParameter(propertyName);
+                ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
 
                 if (textSupplier != null)
                     field.setText(text = textSupplier.get(0,0).toString());
