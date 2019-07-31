@@ -4,24 +4,16 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.input.GestureDetector;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Scaling;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.kotcrab.vis.ui.VisUI;
 
 import java.util.ArrayList;
@@ -30,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.client.Client;
-import de.felixperko.fractals.network.ClientConfiguration;
 
 public class FractalsGdxMain extends ApplicationAdapter {
 
@@ -93,6 +84,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 
 	public static Client client;
+	public static Controls controls;
 
 	public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
 	List<Texture> textureList = new ArrayList<>();

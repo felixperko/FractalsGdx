@@ -14,7 +14,7 @@ public class FractalsGestureListener implements GestureDetector.GestureListener 
 //        yPos += FractalsInputProcessor.yMultiplier * scale*deltaY / Gdx.graphics.getHeight();
         xPos += deltaX;
         yPos += deltaY;
-        FractalsGdxMain.client.updatePosition(deltaX, deltaY);
+        FractalsGdxMain.controls.updatePosition(deltaX, deltaY);
         FractalsGdxMain.forceRefresh = true;
         //System.out.println(deltaX+", "+deltaY);
         return true;

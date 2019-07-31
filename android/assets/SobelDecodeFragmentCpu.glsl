@@ -4,7 +4,7 @@ precision highp float;
 uniform sampler2D u_texture;
 varying vec2 v_texCoords;
 const float sobel_ambient = 0.2;
-const float sobel_magnitude = 0.8;
+const float sobel_magnitude = 0.7;
 uniform float colorShift;
 uniform vec2 resolution;
 
@@ -79,7 +79,7 @@ void main(void){
     s = log(s+1.0);
     float d = decode(texture2D(u_texture, v_texCoords.xy));
     if (d > 0.0){
-        d = log(d+1.0);
+        //d = log(d+1.0);
         //s = min(1.0, s);
         s = fract(s*0.5)*2.0;
         s = 1.0 - abs(1.0 - s);

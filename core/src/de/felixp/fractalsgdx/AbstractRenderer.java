@@ -29,6 +29,9 @@ public abstract class AbstractRenderer extends WidgetGroup implements Renderer {
             Gdx.graphics.requestRendering();
     }
 
+    public abstract double getXShift();
+    public abstract double getYShift();
+
 //    public boolean isRefresh(boolean reset){
 //        boolean val = refresh;
 //        if (reset)

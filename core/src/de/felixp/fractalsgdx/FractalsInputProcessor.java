@@ -90,17 +90,17 @@ public class FractalsInputProcessor implements InputProcessor {
 
         boolean changed = false;
         if (button == Input.Buttons.LEFT) {
-            FractalsGdxMain.client.updateZoom(0.5f);
+            FractalsGdxMain.controls.updateZoom(0.5f);
             changed = true;
         }else if (button == Input.Buttons.RIGHT){
-            FractalsGdxMain.client.updateZoom(2f);
+            FractalsGdxMain.controls.updateZoom(2f);
             changed = true;
         }
 
         if (changed){
             FractalsGdxMain.xPos = 0;
             FractalsGdxMain.yPos = 0;
-            FractalsGdxMain.client.jobId++;
+            FractalsGdxMain.controls.incrementJobId();
             synchronized (FractalsGdxMain.newPixmaps) {
                 FractalsGdxMain.newPixmaps.forEach((x, xMap) -> xMap.forEach((y, pixmap) -> pixmap.dispose()));
                 FractalsGdxMain.newPixmaps.clear();

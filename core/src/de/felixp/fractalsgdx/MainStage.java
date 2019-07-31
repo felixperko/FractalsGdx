@@ -5,35 +5,42 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.kotcrab.vis.ui.widget.CollapsibleWidget;
 import com.kotcrab.vis.ui.widget.VisLabel;
+import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.widget.VisTextField;
+import com.kotcrab.vis.ui.widget.VisWindow;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
-import de.felixp.fractalsgdx.client.MessageInterface;
-import de.felixp.fractalsgdx.client.SystemInterface;
+import de.felixp.fractalsgdx.client.ClientSystem;
+import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
-import de.felixperko.fractals.network.ClientMessageInterface;
-import de.felixperko.fractals.network.ClientSystemInterface;
 import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
 import de.felixperko.fractals.system.Numbers.DoubleNumber;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.NumberUtil;
 
 public class MainStage extends Stage {
@@ -86,9 +93,16 @@ public class MainStage extends Stage {
                 super.clicked(event, x, y);
             }
         });
+        VisTextButton positions = new VisTextButton("Jump to...", new ChangeListener(){
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openJumpToWindow();
+            }
+        });
 
-        topButtons.add(connect).pad(1);
-        topButtons.add(screenshot).pad(1);
+        topButtons.add(connect).pad(2);
+        topButtons.add(screenshot).pad(2);
+        topButtons.add(positions).pad(2);
 
         //collapsible left
         collapsibleTable.add().expand(false, true).fill(false, true);
@@ -99,37 +113,148 @@ public class MainStage extends Stage {
             public void changed(ChangeEvent event, Actor actor) {
                 collapsibleWidget.setCollapsed(!collapsibleWidget.isCollapsed());
                 collapsibleWidget.pack();
+                collapseButton.layout();
                 if (collapsibleWidget.isCollapsed()){
-                    collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
+//                    collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
                     collapseButton.setText(">");
                 } else {
-                    collapseButton.setPosition(collapsibleWidget.getWidth(), Gdx.graphics.getHeight()/2, Align.left);
+//                    collapseButton.setPosition(collapsibleWidget.getWidth(), Gdx.graphics.getHeight()/2, Align.left);
                     collapseButton.setText("<");
-//                    collapsibleWidget.setPosition(0, (Gdx.graphics.getHeight())*0.5f, Align.left);
+////                    collapsibleWidget.setPosition(0, (Gdx.graphics.getHeight())*0.5f, Align.left);
                 }
             }
         });
 
         stateBar = new Table();
+        stateBar.align(Align.left);
 
         //add
-        ui.add();
-        ui.add(topButtons).align(Align.top).expandX().row();
+        ui.add(topButtons).align(Align.top).expandX().colspan(3).row();
+        ui.add(collapseButton).align(Align.left);
         ui.add(collapsibleWidget).align(Align.left).expandY();
-        ui.add(stateBar).align(Align.bottomLeft);
-//        ui.add(collapseButton).align(Align.left);
+        ui.add().expandX().row();
+        ui.add(stateBar).align(Align.bottomLeft).colspan(3);
 
-//        collapsibleWidget.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
-//        collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
         collapsibleTable.row();
 
         addActor(renderer);
-//        topButtons.align(Align.top);
-//        addActor(topButtons);
         addActor(ui);
-//        addActor(collapsibleWidget);
-        collapseButton.align(Align.topLeft);
-        addActor(collapseButton);
+    }
+
+    Map<String, ParamContainer> params = new HashMap<>();
+
+    private void openJumpToWindow(){
+        Window window = new VisWindow("Jump to...");
+        ((VisWindow) window).addCloseButton();
+        VisSelectBox selection = new VisSelectBox();
+        updateParamSelectBox(selection);
+        window.add(selection).colspan(3).fillX().pad(2).row();
+
+        VisTextButton cancelBtn = new VisTextButton("cancel");
+        VisTextButton saveBtn = new VisTextButton("save current");
+        VisTextButton jumptoBtn = new VisTextButton("jump to");
+
+        cancelBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                window.remove();
+            }
+        });
+        saveBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openSaveLocationWindow(selection);
+            }
+        });
+        jumptoBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                SystemInterfaceGdx systemInterface = ((RemoteRenderer)renderer).getSystemInterface();
+                SystemClientData systemClientData = systemInterface.getSystemClientData();
+                ClientSystem clientSystem = systemInterface.getClientSystem();
+                ParamContainer container = params.get(selection.getSelected());
+                if (container != null) {
+                    boolean update = systemClientData.applyParamsAndNeedsReset(container);
+                    ParamSupplier viewSupplier = systemClientData.getClientParameter("view");
+                    systemClientData.getClientParameters().put("view", new StaticParamSupplier("view", viewSupplier.getGeneral(Integer.class)+1));
+                    //if (update)
+//                        FractalsGdxMain.client.incrementJobId();
+                    clientSystem.updateConfiguration();
+                    clientSystem.resetAnchor();
+                    setParameterConfiguration(systemClientData, ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration());//TODO put in updateConfiguration()?
+                    renderer.reset();
+                }
+            }
+        });
+
+        window.add(cancelBtn).pad(2);
+        window.add(saveBtn).pad(2);
+        window.add(jumptoBtn).pad(2);
+        addActor(window);
+        window.pack();
+        ((VisWindow) window).centerWindow();
+    }
+
+    private void updateParamSelectBox(VisSelectBox selection) {
+        Array array = new Array();
+        for (String name : params.keySet())
+            array.add(name);
+        selection.setItems(array);
+    }
+
+    private void openSaveLocationWindow(VisSelectBox selection){
+        VisWindow window = new VisWindow("Save location");
+        window.addCloseButton();
+
+        VisLabel nameLbl = new VisLabel("name");
+        VisTextField nameFld = new VisTextField();
+        VisTextButton cancelBtn = new VisTextButton("cancel");
+        VisTextButton saveBtn = new VisTextButton("save");
+
+        for (int i = 1 ; i < 1000 ; i++){
+            String generated_name = "location "+i;
+            if (!params.containsKey(generated_name)){
+                nameFld.setText(generated_name);
+                break;
+            }
+        }
+        nameFld.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                boolean disable = nameFld.isEmpty() || params.containsKey(nameFld.getText());
+                saveBtn.setDisabled(disable);
+            }
+        });
+        cancelBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                window.remove();
+            }
+        });
+        saveBtn.setDisabled(nameFld.isEmpty() || params.containsKey(nameFld.getText()));
+        saveBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                SystemClientData data = ((RemoteRenderer)renderer).getSystemInterface().getSystemClientData();
+                ParamContainer container = data.exportParams();
+                container.getClientParameters().remove("view");
+                params.put(nameFld.getText(), container);
+                updateParamSelectBox(selection);
+                window.remove();
+            }
+        });
+
+        window.add(nameLbl);
+        window.add(nameFld).pad(2).row();
+
+        VisTable btnTable = new VisTable();
+        btnTable.add(cancelBtn).pad(2);
+        btnTable.add(saveBtn).pad(2);
+        window.add(btnTable).colspan(2);
+
+        addActor(window);
+        window.pack();
+        window.centerWindow();
     }
 
     @Override
@@ -167,16 +292,18 @@ public class MainStage extends Stage {
             }
         }
 
+        ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
+
         submitButton = new VisTextButton("Submit", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                FractalsGdxMain.client.setOldParams(paramContainer.getClientParameters());
+                clientSystem.setOldParams(paramContainer.getClientParameters());
                 for (AbstractPropertyEntry entry : propertyEntryList){
                     entry.applyValue();
                 }
-                if (((SystemClientData)paramContainer).needsReset(FractalsGdxMain.client.getOldParams()))//TODO move up
-                    FractalsGdxMain.client.incrementJobId();
-                FractalsGdxMain.client.updateConfiguration();
+                if (((SystemClientData)paramContainer).needsReset(clientSystem.getOldParams()))//TODO move up
+                    clientSystem.incrementJobId();
+                clientSystem.updateConfiguration();
                 renderer.reset();
             }
         });
@@ -192,15 +319,18 @@ public class MainStage extends Stage {
         int mouseX = Gdx.input.getX();
         int mouseY = Gdx.input.getY();
 
-        ClientMessageInterface messageInterface = FractalsGdxMain.client.getManagers().getClientNetworkManager().getMessageInterface();
+        ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
         try {
-            SystemInterface systemInterface = (SystemInterface) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
+            SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
             stateBar.clear();
+            ComplexNumber midpoint = systemInterface.getSystemClientData().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
             ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
             ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
-            stateBar.add(new VisLabel("ScreenPos: "+mouseX+", "+mouseY)).row();
-            stateBar.add(new VisLabel("WorldPos: "+getPrintString(worldCoords, 3))).row();
-            stateBar.add(new VisLabel("ChunkPos: "+getPrintString(systemInterface.getChunkGridCoords(worldCoords), 3)));
+            ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
+            stateBar.add(new VisLabel("midpoint: "+getPrintString(midpoint, 3))).left().row();
+            stateBar.add(new VisLabel("ScreenPos: "+mouseX+", "+mouseY)).left().row();
+            stateBar.add(new VisLabel("WorldPos: "+getPrintString(worldCoords, 3))).left().row();
+            stateBar.add(new VisLabel("ChunkPos: "+getPrintString(chunkCoords, 3))).left();
         } catch (NoSuchElementException e){
             return;
         }

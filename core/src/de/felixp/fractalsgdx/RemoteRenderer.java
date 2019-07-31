@@ -15,7 +15,6 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -29,16 +28,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.client.Client;
-import de.felixperko.fractals.data.ArrayChunkFactory;
+import de.felixp.fractalsgdx.client.ChunkContainer;
+import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
 import de.felixperko.fractals.network.SystemClientData;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
+import de.felixperko.fractals.system.Numbers.infra.Number;
+import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.systems.stateinfo.TaskState;
+import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
 
 public class RemoteRenderer extends AbstractRenderer {
 
     boolean outlineChunkBorders = false;
 
-    SystemClientData systemClientData;
+    SystemInterfaceGdx systemInterface;
 
     public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
     List<Texture> textureList = new ArrayList<>();
@@ -73,10 +76,10 @@ public class RemoteRenderer extends AbstractRenderer {
 
                 boolean changed = false;
                 if (button == Input.Buttons.LEFT) {
-                    FractalsGdxMain.client.updateZoom(0.5f);
+                    systemInterface.getClientSystem().updateZoom(0.5f);
                     changed = true;
                 }else if (button == Input.Buttons.RIGHT){
-                    FractalsGdxMain.client.updateZoom(2f);
+                    systemInterface.getClientSystem().updateZoom(2f);
                     changed = true;
                 }
 
@@ -89,7 +92,7 @@ public class RemoteRenderer extends AbstractRenderer {
             public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
                 xPos += deltaX;
                 yPos += deltaY;
-                FractalsGdxMain.client.updatePosition(deltaX, deltaY);
+                systemInterface.getClientSystem().updatePosition(deltaX, deltaY);
                 FractalsGdxMain.forceRefresh = true;
             }
         });
@@ -99,7 +102,7 @@ public class RemoteRenderer extends AbstractRenderer {
     public void reset() {
         xPos = 0;
         yPos = 0;
-        FractalsGdxMain.client.jobId++;
+        systemInterface.getClientSystem().incrementJobId();
         synchronized (newPixmaps) {
             newPixmaps.forEach((x2, xMap) -> xMap.forEach((y2, pixmap) -> pixmap.dispose()));
             newPixmaps.clear();
@@ -110,14 +113,27 @@ public class RemoteRenderer extends AbstractRenderer {
         }
     }
 
+    @Override
+    public double getXShift() {
+        return xPos;
+    }
+
+    @Override
+    public double getYShift() {
+        return yPos;
+    }
+
     Color tintColor = new Color(1f,1f,1f,0.5f);
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
+        if (systemInterface == null || systemInterface.getClientSystem() == null)
+            return;
+
         processPixmaps();
 
-        int chunkSize = FractalsGdxMain.client.chunkSize;
+        int chunkSize = systemInterface.getClientSystem().chunkSize;
 
         fbo.begin();
 
@@ -193,29 +209,116 @@ public class RemoteRenderer extends AbstractRenderer {
     }
 
     private void drawOutline(int chunkSize) {
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.GRAY);
+        if (systemInterface == null)
+            return;
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
+        float subX = 0;
         float subY = 0;
-        float subX = chunkSize/2f;
-        subY = chunkSize/2f;
+//        subX = chunkSize/2f;
+        subY = -chunkSize*9/32f;
         float startX = (float)(xPos+width/2f-subX) % chunkSize;
-        float startY = (float)(yPos+height/2f-subY) % chunkSize;
-        for (float x = startX ; x < width ; x += chunkSize){
-            shapeRenderer.line(x, 0, x, height);
-        }
-        for (float y = startY ; y < height ; y += chunkSize){
-            shapeRenderer.line(0, y, width, y);
+        float startY = (float)(yPos-height/2f+subY) % chunkSize;
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
+        ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
+//        ComplexNumber endWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(Gdx.graphics.getWidth(), 0));
+//        ComplexNumber endChunkPos = systemInterface.getChunkGridCoords(endWorldPos);
+//        System.out.println("startWorldPos: "+startWorldPos.toString()+" startChunkPos: "+startChunkPos.toString());
+
+        long startChunkX = (long)Math.floor(startChunkPos.getReal().toDouble());
+        long startChunkY = (long)Math.ceil(startChunkPos.getImag().toDouble());
+        long chunkX = startChunkX;
+        for (float x = startX-chunkSize ; x < width ; x += chunkSize){
+            long chunkY = startChunkY;
+            for (float y = startY-chunkSize ; y < height ; y += chunkSize){
+                ChunkContainer chunkContainer = getChunkContainer(chunkX, chunkY);
+                shapeRenderer.setColor(getChunkStateColor(chunkContainer == null ? null : chunkContainer.getTaskState()));
+                if (chunkContainer != null && chunkContainer.getTaskState() == TaskState.STARTED) {
+                    float progress = (float)chunkContainer.getProgress();
+                    float height1 = progress*chunkSize;
+                    float height2 = chunkSize-height1;
+                    shapeRenderer.rect(x, y+height2, chunkSize, height1);
+                    shapeRenderer.setColor(getChunkStateColor(TaskState.PLANNED));
+                    shapeRenderer.rect(x, y, chunkSize, height2);
+                } else {
+                    shapeRenderer.rect(x, y, chunkSize, chunkSize);
+                }
+                chunkY--;
+            }
+            chunkX++;
         }
 
-        shapeRenderer.end();
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+//        shapeRenderer.flush();
+//        shapeRenderer.end();
+//        Gdx.gl.glDisable(GL20.GL_BLEND);
+//        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
         shapeRenderer.setColor(Color.RED);
         shapeRenderer.circle(width/2f + (float)xPos, height/2f + (float)yPos, 3);
 
+        ComplexNumber currentMidpoint = systemInterface.getCurrentMidpoint();
+        if (currentMidpoint != null) {
+            SystemClientData systemClientData = systemInterface.getSystemClientData();
+            int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
+            int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
+            NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+            ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
+            ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);
+            screenPos.sub(currentMidpoint);
+            screenPos.divNumber(systemClientData.getClientParameter("zoom").getGeneral(Number.class));
+            screenPos.add(screenMid);
+//            ComplexNumber screenPos = systemInterface.getChunkData().getScreenCoords(currentMidpoint);
+//            screenPos.multNumber(nf.createNumber(-1.));
+
+            System.out.println(currentMidpoint.toString()+" -> "+screenPos.toString());
+            shapeRenderer.setColor(Color.GREEN);
+            shapeRenderer.circle((float) screenPos.getReal().toDouble(), (float) screenPos.getImag().toDouble(), 3);
+        }
+
+        shapeRenderer.setColor(Color.GRAY);
+        for (float x = startX ; x < width ; x += chunkSize){
+            shapeRenderer.line(x, 0, x, height);
+        }
+        for (float y = startY; y < height ; y += chunkSize){
+            shapeRenderer.line(0, y, width, y);
+        }
+
         shapeRenderer.end();
+    }
+
+    private ChunkContainer getChunkContainer(long chunkX, long chunkY){
+        return systemInterface.getChunkData().getChunkContainer((int)chunkX, (int)chunkY);
+    }
+
+    private Color getChunkStateColor(TaskState taskState){
+        float alpha = 0.5f;
+        if (taskState == null)
+            return new Color(0.5f, 0.5f, 0.5f, alpha);
+        switch (taskState){
+            case PLANNED:
+                return new Color(0.7f, 0.7f, 0.7f, alpha);
+            case STARTED:
+                return new Color(1f, 1f, 0f, alpha);
+            case OPEN:
+                return new Color(0.2f, 1f, 0.2f, alpha);
+            case FINISHED:
+                return new Color(1f, 0.7f, 0f, alpha);
+            case BORDER:
+                return new Color(1f, 0.2f, 0.2f, alpha);
+            case DONE:
+                return new Color(0f, 0f, 1f, alpha);
+            case ASSIGNED:
+                return new Color(1f, 0f, 1f, alpha);
+            case REMOVED:
+                return new Color(1f, 0f, 1f, alpha);
+        }
+        return null;
     }
 
     private void makeScreenshot() {
@@ -248,12 +351,12 @@ public class RemoteRenderer extends AbstractRenderer {
         super.sizeChanged();
     }
 
-    public SystemClientData getSystemClientData(){
-        return systemClientData;
+    public SystemInterfaceGdx getSystemInterface() {
+        return systemInterface;
     }
 
-    public void setSystemClientData(SystemClientData systemClientData){
-        this.systemClientData = systemClientData;
+    public void setSystemInterface(SystemInterfaceGdx systemInterface) {
+        this.systemInterface = systemInterface;
     }
 
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){

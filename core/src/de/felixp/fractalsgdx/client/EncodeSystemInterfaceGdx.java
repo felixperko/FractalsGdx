@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import de.felixperko.fractals.manager.client.ClientManagers;
 
-public class EncodeSystemInterface extends SystemInterface {
+public class EncodeSystemInterfaceGdx extends SystemInterfaceGdx {
 //    public static void printColorBits(Color color){
 //        int b1 = (int)(color.r*256);
 //        int b2 = (int)(color.g*256);
@@ -52,7 +52,7 @@ public class EncodeSystemInterface extends SystemInterface {
 //    }
 
     static double log2 = Math.log(2);
-    public EncodeSystemInterface(UUID systemId, MessageInterface messageInterface, ClientManagers managers){
+    public EncodeSystemInterfaceGdx(UUID systemId, MessageInterfaceGdx messageInterface, ClientManagers managers){
         super(systemId, messageInterface, managers);
     }
 
