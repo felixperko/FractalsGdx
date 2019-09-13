@@ -111,7 +111,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
         int scaledChunkSize = chunkData.chunkSize/upsample;
 
-        for (int i = 0 ; i < chunk.getArrayLength()/chunk.getDownsampleIncrement() ; i++) {
+        for (int i = 0 ; i < chunk.getArrayLength()/(upsample*upsample) ; i++) {
             int x = (int) (i / (scaledChunkSize));
             int y = (int) (i % (scaledChunkSize));
             float value = (float)chunk.getValue(i);
@@ -212,7 +212,8 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 //        ComplexNumber shift = nf.createComplexNumber(width/height/2f, 1/2f);
 //        gridPos.sub(shift);
         gridPos.multNumber(nf.createNumber(chunkData.chunkSize));
-        gridPos.divNumber(nf.createNumber(64));
+        gridPos.divNumber(nf.createNumber(30.4));
+        //gridPos.divNumber(nf.createNumber(64*4));
         //gridPos.add(nf.createComplexNumber(0, 1));
         return gridPos;
     }

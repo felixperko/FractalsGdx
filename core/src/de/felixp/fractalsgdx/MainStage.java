@@ -283,7 +283,10 @@ public class MainStage extends Stage {
         if (submitButton != null)
             submitButton.remove();
 
-        for (ParameterDefinition parameterDefinition : parameterConfiguration.getParameters()) {
+        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
+        List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
+        parameterDefinitions.addAll(calculatorParameterDefinitions);
+        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
             AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
             if (entry != null) {
                 entry.init();

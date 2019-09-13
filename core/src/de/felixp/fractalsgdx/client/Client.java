@@ -13,10 +13,13 @@ import de.felixperko.fractals.data.ReducedNaiveChunk;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.network.infra.connection.ClientConnection;
+import de.felixperko.fractals.network.infra.connection.ClientLocalConnection;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.network.interfaces.NetworkInterfaceFactory;
+import de.felixperko.fractals.network.messages.ConnectedMessage;
 import de.felixperko.fractals.network.messages.SessionInitRequestMessage;
 import de.felixperko.fractals.network.messages.UpdateConfigurationMessage;
 import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
@@ -55,12 +58,21 @@ public class Client {
         this.clientSystem = clientSystem;
         clientConfiguration.addRequest(clientSystem.getSystemClientData());
 
+        LocalMessageableGdx messageable = new LocalMessageableGdx();
+
         serverConnection =
 //        managers.getClientNetworkManager().connectToServer("95.168.135.138", 80);
 //		  managers.getClientNetworkManager().connectToServer("192.168.0.13", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.0.11", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.137.1", 3141);
         managers.getClientNetworkManager().connectToServer("localhost", 3141);
+//        managers.getClientNetworkManager().connectToLocalServer(messageable, true);
+
+
+        serverConnection.getWriteToServer().setConnection(serverConnection);
+        messageable.setServerConnection(serverConnection);
+
+//        messageable.writeMessage(new ConnectedMessage((ClientConnection)messageable.getConnection()));
 
         while (serverConnection.getClientInfo() == null) {
             try {
@@ -72,7 +84,7 @@ public class Client {
 
         messageInterface = (MessageInterfaceGdx) managers.getNetworkManager().getMessageInterface(serverConnection);
 
-        serverConnection.writeMessage(new SessionInitRequestMessage(clientConfiguration));
+        serverConnection.writeMessage(new SessionInitRequestMessage(new ClientConfiguration(clientConfiguration)));
     }
 
     public void createdSystem(ClientConfiguration configuration, SystemInterfaceGdx systemInterface){

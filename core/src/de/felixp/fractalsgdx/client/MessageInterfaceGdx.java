@@ -63,12 +63,14 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         addSharedDataListener(new SharedDataListener("currentMidpoint") {
             @Override
             public void receivedDataContainer(DataContainer dataContainer) {
-                for (SharedDataUpdate update : dataContainer.getUpdates()){
-                    ComplexNumberUpdate complexNumberUpdate = (ComplexNumberUpdate) update;
-                    System.out.println("systemId: "+complexNumberUpdate.getSystemId()+" "+getRegisteredSystems().iterator().next());
-                    SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) getSystemInterface(complexNumberUpdate.getSystemId());
-                    if (systemInterface != null)
-                        systemInterface.setCurrentMidpoint(complexNumberUpdate.getNumber());
+                for (SharedDataUpdate update : dataContainer.getUpdates()) {
+                    for (Object item : ((MappedSharedDataUpdate) update).getUpdates()) {
+                        ComplexNumberUpdate complexNumberUpdate = (ComplexNumberUpdate) item;
+                        System.out.println("systemId: " + complexNumberUpdate.getSystemId() + " " + getRegisteredSystems().iterator().next());
+                        SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) getSystemInterface(complexNumberUpdate.getSystemId());
+                        if (systemInterface != null)
+                            systemInterface.setCurrentMidpoint(complexNumberUpdate.getNumber());
+                    }
                 }
             }
         });
@@ -97,7 +99,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         if (managers == null)
             throw new IllegalStateException();
         SystemInterfaceGdx systemInterface = new EncodeSystemInterfaceGdx(systemId, this, managers);
-        client.setClientConfiguration(clientConfiguration);
+        //client.setClientConfiguration(clientConfiguration);
         int chunkSize = clientConfiguration.getParameterGeneralValue(systemId, "chunkSize", Integer.class);
         int width = clientConfiguration.getParameterGeneralValue(systemId, "width", Integer.class);
         int height = clientConfiguration.getParameterGeneralValue(systemId, "height", Integer.class);
@@ -108,6 +110,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         width /= chunkSize;
         height /= chunkSize;
         systemInterface.addChunkCount((width)*(height));//TODO remove
+        client.clientConfiguration = clientConfiguration;
         SystemClientData systemClientData = clientConfiguration.getSystemClientData(systemId);
         systemInterface.setSystemClientData(systemClientData);
         client.createdSystem(clientConfiguration, systemInterface);

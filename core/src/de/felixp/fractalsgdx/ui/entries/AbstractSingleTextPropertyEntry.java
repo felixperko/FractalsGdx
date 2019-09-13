@@ -39,7 +39,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
 
                 if (textSupplier != null)
-                    field.setText(text = textSupplier.get(0,0).toString());
+                    field.setText(text = textSupplier.getGeneral().toString());
                 field.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {

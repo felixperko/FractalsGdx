@@ -48,7 +48,7 @@ public class ClientSystem {
     Number zoom;
     NumberFactory numberFactory;
     public int jobId = 0;
-    public Integer chunkSize = 128*2;
+    public Integer chunkSize = 128*2*2;
 
     public SystemClientData getSystemClientData() {
         return systemClientData;
@@ -74,7 +74,8 @@ public class ClientSystem {
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
 
         List<BreadthFirstLayer> layers = new ArrayList<>();
-        //layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
+        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
+        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(0));
         layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
         layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
         layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
@@ -102,8 +103,13 @@ public class ClientSystem {
 
         params.put("start", new StaticParamSupplier("start", new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
         params.put("c", new CoordinateBasicShiftParamSupplier("c"));
+//
+//        params.put("start", new CoordinateBasicShiftParamSupplier("start"));
+//        params.put("c", new StaticParamSupplier("c", new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
+
 
         params.put("pow", new StaticParamSupplier("pow", new DoubleComplexNumber(new DoubleNumber(2), new DoubleNumber(0.000*Math.PI*2))));
+//        params.put("pow", new CoordinateBasicShiftParamSupplier("pow"));
         params.put("limit", new StaticParamSupplier("limit", (Double)(double)(2 << 12)));
 
         params.put("view", new StaticParamSupplier("view", 0));
@@ -164,7 +170,7 @@ public class ClientSystem {
         midpoint = systemClientData.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
         zoom = systemClientData.getClientParameter("zoom").getGeneral(Number.class);
 
-        UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(client.clientConfiguration);
+        UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(new ClientConfiguration(client.clientConfiguration));
         client.serverConnection.writeMessage(updateConfigurationMessage);
 
         systemInterface.setSystemClientData(systemClientData);

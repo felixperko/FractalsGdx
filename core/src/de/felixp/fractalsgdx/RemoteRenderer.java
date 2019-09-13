@@ -102,7 +102,7 @@ public class RemoteRenderer extends AbstractRenderer {
     public void reset() {
         xPos = 0;
         yPos = 0;
-        systemInterface.getClientSystem().incrementJobId();
+        //systemInterface.getClientSystem().incrementJobId();
         synchronized (newPixmaps) {
             newPixmaps.forEach((x2, xMap) -> xMap.forEach((y2, pixmap) -> pixmap.dispose()));
             newPixmaps.clear();
@@ -214,18 +214,20 @@ public class RemoteRenderer extends AbstractRenderer {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
-        float subX = 0;
-        float subY = 0;
+        float subX = 1;
+        float subY = 1;
 //        subX = chunkSize/2f;
-        subY = -chunkSize*9/32f;
+//        subY = -chunkSize*9/32f;
         float startX = (float)(xPos+width/2f-subX) % chunkSize;
         float startY = (float)(yPos-height/2f+subY) % chunkSize;
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
+        //ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
+        ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(width*0.5, height*0.5));
         ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
+        startChunkPos.add(systemInterface.toComplex(-width*0.5/chunkSize, height*0.5/chunkSize));
 //        ComplexNumber endWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(Gdx.graphics.getWidth(), 0));
 //        ComplexNumber endChunkPos = systemInterface.getChunkGridCoords(endWorldPos);
 //        System.out.println("startWorldPos: "+startWorldPos.toString()+" startChunkPos: "+startChunkPos.toString());
@@ -268,11 +270,14 @@ public class RemoteRenderer extends AbstractRenderer {
             int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
             int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
             NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+
             ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
             ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);
             screenPos.sub(currentMidpoint);
             screenPos.divNumber(systemClientData.getClientParameter("zoom").getGeneral(Number.class));
-            screenPos.add(screenMid);
+            //screenPos.add(screenMid);
+//            screenPos.divNumber(nf.createNumber(30.4));
+//            screenPos.sub(screenMid);
 //            ComplexNumber screenPos = systemInterface.getChunkData().getScreenCoords(currentMidpoint);
 //            screenPos.multNumber(nf.createNumber(-1.));
 

@@ -45,7 +45,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 for (String option : selection.getOptionNames())
                     arr.add(option);
                 box.setItems(arr);
-                Object current = paramContainer.getClientParameter(propertyName).get(0, 0);
+                Object current = paramContainer.getClientParameter(propertyName).getGeneral();
                 String currentName = null;
                 for (String s : selection.getOptionNames()){
                     Object obj = selection.getOption(s);
@@ -77,7 +77,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
     @Override
     protected ParamSupplier getSupplier() {
         StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyName, selection.getOption(selectedValue));
-        staticParamSupplier.setSystemRelevant(true);
+        staticParamSupplier.setSystemRelevant(true); //TODO only set system relevant if it really is!
         return staticParamSupplier;
     }
 }

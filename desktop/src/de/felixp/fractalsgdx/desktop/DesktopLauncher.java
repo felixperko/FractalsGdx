@@ -12,15 +12,23 @@ public class DesktopLauncher {
 		float scaledown = 0.5f;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 		config.foregroundFPS = 0;
-//		config.width = 1920;
-//		config.height = 1080;
+
+//		config.width = 1920*4;
+//		config.height = 1080*4;
+
+//		config.width = 5760;
+//		config.height = 3240;
 
 //		config.width = 1280;
 //		config.height = 720;
+
 //		config.width = 500;
 //		config.height = 500;
+
 //		config.fullscreen = false;
+//
 		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
+
 		config.fullscreen = true;
 
 		config.vSyncEnabled = true;
