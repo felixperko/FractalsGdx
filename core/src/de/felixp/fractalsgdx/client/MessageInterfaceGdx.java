@@ -1,7 +1,6 @@
 package de.felixp.fractalsgdx.client;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,7 +115,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         client.createdSystem(clientConfiguration, systemInterface);
         systemInterface.getClientSystem().setSystemClientData(systemClientData);
         addSystemInterface(systemId, systemInterface);
-        systemInterface.updateParameterConfiguration(client.getFocusedClientSystem().systemClientData, parameterConfiguration);
+        systemInterface.updateParameterConfiguration(client.getFocusedClientSystem().getParamContainer(), parameterConfiguration);
 
     }
 

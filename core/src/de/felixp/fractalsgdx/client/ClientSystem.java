@@ -11,6 +11,7 @@ import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ReducedNaiveChunk;
 import de.felixperko.fractals.manager.common.Managers;
 import de.felixperko.fractals.network.ClientConfiguration;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
@@ -24,9 +25,11 @@ import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ClientSystem {
 
@@ -36,39 +39,37 @@ public class ClientSystem {
     public ClientSystem(Managers managers, Client client){
         this.managers = managers;
         this.client = client;
-        this.systemClientData = createDefaultSystemConfiguration();
+        this.systemContext = createDefaultSystemConfiguration();
     }
 
     SystemInterfaceGdx systemInterface;
 
-    SystemClientData systemClientData;
-    LayerConfiguration layerConfiguration;
-    ComplexNumber midpoint = new DoubleComplexNumber(new DoubleNumber(0), new DoubleNumber(0));
-    ComplexNumber anchor = new DoubleComplexNumber(new DoubleNumber(0), new DoubleNumber(0));
-    Number zoom;
-    NumberFactory numberFactory;
-    public int jobId = 0;
-    public Integer chunkSize = 128*2*2;
+    BFSystemContext systemContext;
+    public Integer chunkSize = 128*2;
 
-    public SystemClientData getSystemClientData() {
-        return systemClientData;
+    ComplexNumber anchor;
+
+    public ParamContainer getParamContainer() {
+        return systemContext.getParamContainer();
     }
 
     public void setSystemClientData(SystemClientData systemClientData){
-        this.systemClientData = systemClientData;
+        this.systemContext.setParameters(systemClientData);
     }
 
-    private SystemClientData createDefaultSystemConfiguration() {
-        numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
+    private BFSystemContext createDefaultSystemConfiguration() {
+        NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
         Map<String, ParamSupplier> params = new HashMap<>();
         int samplesDim = 1;
         params.put("width", new StaticParamSupplier("width", (Integer) Gdx.graphics.getWidth()));
         params.put("height", new StaticParamSupplier("height", (Integer)Gdx.graphics.getHeight()));
         params.put("chunkSize", new StaticParamSupplier("chunkSize", chunkSize));
 //		params.put("midpoint", new StaticParamSupplier("midpoint", new DoubleComplexNumber(new DoubleNumber(0.251), new DoubleNumber(0.00004849892910689283399687005))));
+        ComplexNumber midpoint = numberFactory.createComplexNumber(0, 0);
+        this.anchor = midpoint.copy();
         params.put("midpoint", new StaticParamSupplier("midpoint", midpoint));
 //        zoom = numberFactory.createNumber(5./200000.);
-        zoom = numberFactory.createNumber(3.);
+        Number zoom = numberFactory.createNumber(3.);
         params.put("zoom", new StaticParamSupplier("zoom", zoom));
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)5000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
@@ -85,10 +86,9 @@ public class ClientSystem {
         layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(130));
         layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(150));
 
-        if (layerConfiguration == null) {
-            layerConfiguration = new LayerConfiguration(layers, 0.05D, 20, 42L);
-            layerConfiguration.prepare(numberFactory);
-        }
+        LayerConfiguration layerConfiguration = new LayerConfiguration(layers, 0.05D, 20, 42L);
+        layerConfiguration.prepare(numberFactory);
+
         params.put("layerConfiguration", new StaticParamSupplier("layerConfiguration", layerConfiguration));
         params.put("border_generation", new StaticParamSupplier("border_generation", (Double) 0.));
         params.put("border_dispose", new StaticParamSupplier("border_dispose", (Double) 7.));
@@ -114,38 +114,42 @@ public class ClientSystem {
 
         params.put("view", new StaticParamSupplier("view", 0));
 
-        return new SystemClientData(params, 0);
+        BFSystemContext systemContext = new BFSystemContext(null);
+        systemContext.setParameters(new SystemClientData(params, 0));
+        return systemContext;
 
     }
 
     public void updatePosition(float deltaX, float deltaY) {
         //TODO scaling
-        ComplexNumber shift = numberFactory.createComplexNumber(deltaX/ Gdx.graphics.getHeight(), -deltaY/Gdx.graphics.getHeight());
-        shift.multNumber(zoom);
+        ComplexNumber shift = systemContext.getNumberFactory().createComplexNumber(deltaX/ Gdx.graphics.getHeight(), -deltaY/Gdx.graphics.getHeight());
+        shift.multNumber(systemContext.getZoom());
 //        System.out.println(shift.toString());
 //        midpoint.sub(shift);
-        midpoint = midpoint.copy();
+        ComplexNumber midpoint = systemContext.getMidpoint();
         midpoint.sub(shift);
-        systemClientData.getClientParameters().put("midpoint", new StaticParamSupplier("midpoint", midpoint));
+        systemContext.setMidpoint(midpoint);
+        //systemClientData.getClientParameters().put("midpoint", new StaticParamSupplier("midpoint", midpoint));
         updateConfiguration();
     }
 
     public void updateZoom(float zoomFactor){
-        zoom.mult(numberFactory.createNumber(zoomFactor));
-        setOldParams(systemClientData.getClientParameters()); //TODO !
-        StaticParamSupplier supplier = new StaticParamSupplier("zoom", this.zoom);
-        supplier.setLayerRelevant(true);
-        systemClientData.getClientParameters().put("zoom", supplier);
-        anchor = midpoint;
+        Number zoom = systemContext.getZoom();
+        zoom.mult(systemContext.getNumberFactory().createNumber(zoomFactor));
+        setOldParams(systemContext.getParamContainer().getClientParameters()); //TODO !
+        systemContext.setZoom(zoom);
+        //systemClientData.getClientParameters().put("zoom", supplier);
         incrementJobId();
         updateConfiguration();
+        resetAnchor();
     }
 
     public void incrementJobId(){
-        ParamSupplier viewSupplier = systemClientData.getClientParameters().get("view");
-        Integer view = viewSupplier != null ? viewSupplier.getGeneral(Integer.class) : -1;
-        systemClientData.getClientParameters().put("view", new StaticParamSupplier("view", view + 1));
-        jobId = view+1;
+        //ParamSupplier viewSupplier = systemClientData.getClientParameters().get("view");
+        //Integer view = viewSupplier != null ? viewSupplier.getGeneral(Integer.class) : -1;
+        //systemClientData.getClientParameters().put("view", new StaticParamSupplier("view", view + 1));
+        systemContext.incrementViewId();
+        //jobId = view+1;
     }
 
     Map<String, ParamSupplier> oldParams = null;
@@ -166,15 +170,12 @@ public class ClientSystem {
     }
 
     public void updateConfiguration(){
-        SystemClientData systemClientData = client.clientConfiguration.getSystemClientData(systemInterface.systemId);
-        midpoint = systemClientData.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-        zoom = systemClientData.getClientParameter("zoom").getGeneral(Number.class);
 
         UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(new ClientConfiguration(client.clientConfiguration));
         client.serverConnection.writeMessage(updateConfigurationMessage);
 
-        systemInterface.setSystemClientData(systemClientData);
-        systemInterface.updateParameterConfiguration(systemClientData, null);
+        systemInterface.setSystemClientData(systemContext.getParamContainer()); //TODO remove
+        systemInterface.updateParameterConfiguration(systemContext.getParamContainer(), null);
     }
 
     public ComplexNumber getAnchor(){
@@ -182,12 +183,16 @@ public class ClientSystem {
     }
 
     public void resetAnchor() {
-        anchor = midpoint;
+        anchor = systemContext.getMidpoint().copy();
     }
 
     public void createdSystem(SystemInterfaceGdx systemInterface, ClientConfiguration clientConfiguration) {
         this.systemInterface = systemInterface;
         setSystemClientData(clientConfiguration.getSystemClientData(systemInterface.systemId));
         systemInterface.setClientSystem(this);
+    }
+
+    public SystemContext getSystemContext() {
+        return systemContext;
     }
 }

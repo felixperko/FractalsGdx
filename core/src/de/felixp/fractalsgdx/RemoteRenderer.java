@@ -30,10 +30,13 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.client.ChunkContainer;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
 import de.felixperko.fractals.system.Numbers.infra.Number;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
 
@@ -226,7 +229,9 @@ public class RemoteRenderer extends AbstractRenderer {
 
         //ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
         ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(width*0.5, height*0.5));
-        ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
+        //ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
+        BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
+        ComplexNumber startChunkPos = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(startWorldPos), systemContext.getChunkY(startWorldPos));
         startChunkPos.add(systemInterface.toComplex(-width*0.5/chunkSize, height*0.5/chunkSize));
 //        ComplexNumber endWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(Gdx.graphics.getWidth(), 0));
 //        ComplexNumber endChunkPos = systemInterface.getChunkGridCoords(endWorldPos);
@@ -266,7 +271,7 @@ public class RemoteRenderer extends AbstractRenderer {
 
         ComplexNumber currentMidpoint = systemInterface.getCurrentMidpoint();
         if (currentMidpoint != null) {
-            SystemClientData systemClientData = systemInterface.getSystemClientData();
+            ParamContainer systemClientData = systemInterface.getSystemClientData();
             int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
             int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
             NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);

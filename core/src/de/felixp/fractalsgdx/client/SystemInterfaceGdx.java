@@ -12,6 +12,7 @@ import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
@@ -19,6 +20,7 @@ import de.felixperko.fractals.system.Numbers.infra.Number;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.CategoryLogger;
 import de.felixperko.fractals.util.ColorContainer;
 
@@ -53,7 +55,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         this.renderer = ((MainStage)FractalsGdxMain.stage).getRenderer();
     }
 
-    public void setSystemClientData(SystemClientData systemClientData) {
+    public void setSystemClientData(ParamContainer systemClientData) {
         int newImgWidth = systemClientData.getClientParameter("width").getGeneral(Integer.class);
         int newImgHeight = systemClientData.getClientParameter("height").getGeneral(Integer.class);
 
@@ -66,14 +68,14 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         renderer.setSystemInterface(this);
     }
 
-    public SystemClientData getSystemClientData(){
+    public ParamContainer getSystemClientData(){
         return chunkData.clientData;
     }
 
     ParameterConfiguration parameterConfiguration;
 
     @Override
-    public void updateParameterConfiguration(SystemClientData systemClientData, ParameterConfiguration parameterConfiguration) {
+    public void updateParameterConfiguration(ParamContainer systemClientData, ParameterConfiguration parameterConfiguration) {
         if (parameterConfiguration != null)
             this.parameterConfiguration = parameterConfiguration;
         if (this.parameterConfiguration != null)
@@ -92,8 +94,8 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
     private void drawPixmap(CompressedChunk compressedChunk) {
         int jobId = compressedChunk.getJobId();
-        System.out.println("chunk update "+jobId+" (this:"+clientSystem.jobId+")");
-        if (jobId != clientSystem.jobId)
+        System.out.println("chunk update "+jobId+" (this:"+clientSystem.systemContext.getViewId()+")");
+        if (jobId != clientSystem.systemContext.getViewId())
             return;
         int upsample = compressedChunk.getUpsample();
         chunkData.chunkSize = compressedChunk.getDimensionSize();
@@ -242,5 +244,9 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
     public void setClientSystem(ClientSystem clientSystem){
         this.clientSystem = clientSystem;
+    }
+
+    public SystemContext getSystemContext() {
+        return clientSystem.systemContext;
     }
 }

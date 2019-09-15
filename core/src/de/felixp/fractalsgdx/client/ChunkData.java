@@ -5,19 +5,21 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixperko.fractals.data.CompressedChunk;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
 import de.felixperko.fractals.system.Numbers.infra.Number;
 import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 
+@Deprecated
 public class ChunkData {
 
     Map<Integer, Map<Integer, ChunkContainer>> chunks_compressed = new HashMap<>();
 
     Map<Integer, ChunkContainer> chunksByTaskId = new HashMap<>();
 
-    SystemClientData clientData;
+    ParamContainer clientData;
 
     int chunkSize;
 

@@ -41,6 +41,7 @@ import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 
 public class MainStage extends Stage {
@@ -170,19 +171,17 @@ public class MainStage extends Stage {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 SystemInterfaceGdx systemInterface = ((RemoteRenderer)renderer).getSystemInterface();
-                SystemClientData systemClientData = systemInterface.getSystemClientData();
+                SystemContext systemContext = systemInterface.getSystemContext();
                 ClientSystem clientSystem = systemInterface.getClientSystem();
                 ParamContainer container = params.get(selection.getSelected());
                 if (container != null) {
-                    boolean update = systemClientData.applyParamsAndNeedsReset(container);
-                    ParamSupplier viewSupplier = systemClientData.getClientParameter("view");
-                    systemClientData.getClientParameters().put("view", new StaticParamSupplier("view", viewSupplier.getGeneral(Integer.class)+1));
-                    //if (update)
-//                        FractalsGdxMain.client.incrementJobId();
+                    boolean update = systemContext.setParameters(container);
+                    if (update)
+                        systemContext.incrementViewId();
+                    renderer.reset();
                     clientSystem.updateConfiguration();
                     clientSystem.resetAnchor();
-                    setParameterConfiguration(systemClientData, ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration());//TODO put in updateConfiguration()?
-                    renderer.reset();
+                    setParameterConfiguration(systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration());//TODO put in updateConfiguration()?
                 }
             }
         });
@@ -235,8 +234,8 @@ public class MainStage extends Stage {
         saveBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                SystemClientData data = ((RemoteRenderer)renderer).getSystemInterface().getSystemClientData();
-                ParamContainer container = data.exportParams();
+                ParamContainer data = ((RemoteRenderer)renderer).getSystemInterface().getSystemClientData();
+                ParamContainer container = new ParamContainer(data.getClientParameters());
                 container.getClientParameters().remove("view");
                 params.put(nameFld.getText(), container);
                 updateParamSelectBox(selection);
@@ -304,10 +303,12 @@ public class MainStage extends Stage {
                 for (AbstractPropertyEntry entry : propertyEntryList){
                     entry.applyValue();
                 }
-                if (((SystemClientData)paramContainer).needsReset(clientSystem.getOldParams()))//TODO move up
+                if (((SystemClientData)paramContainer).needsReset(clientSystem.getOldParams())) {
                     clientSystem.incrementJobId();
+                    renderer.reset();
+                }
                 clientSystem.updateConfiguration();
-                renderer.reset();
+//                }
             }
         });
 

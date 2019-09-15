@@ -1,38 +1,14 @@
 package de.felixp.fractalsgdx.client;
 
-import com.badlogic.gdx.Gdx;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixperko.fractals.data.ArrayChunkFactory;
-import de.felixperko.fractals.data.ReducedNaiveChunk;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.infra.connection.ClientConnection;
-import de.felixperko.fractals.network.infra.connection.ClientLocalConnection;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
-import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
-import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.network.interfaces.NetworkInterfaceFactory;
 import de.felixperko.fractals.network.messages.ConnectedMessage;
 import de.felixperko.fractals.network.messages.SessionInitRequestMessage;
-import de.felixperko.fractals.network.messages.UpdateConfigurationMessage;
-import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
-import de.felixperko.fractals.system.Numbers.DoubleNumber;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.Number;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
-import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
-import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
 
 public class Client {
 
@@ -56,7 +32,7 @@ public class Client {
 
         ClientSystem clientSystem = new ClientSystem(managers, this);
         this.clientSystem = clientSystem;
-        clientConfiguration.addRequest(clientSystem.getSystemClientData());
+        clientConfiguration.addRequest(new SystemClientData(clientSystem.getParamContainer().getClientParameters(), 0));
 
         LocalMessageableGdx messageable = new LocalMessageableGdx();
 
