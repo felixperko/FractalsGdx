@@ -1,10 +1,12 @@
 package de.felixp.fractalsgdx;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -12,15 +14,23 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.kotcrab.vis.ui.util.adapter.ArrayListAdapter;
+import com.kotcrab.vis.ui.util.adapter.ListAdapter;
 import com.kotcrab.vis.ui.widget.CollapsibleWidget;
+import com.kotcrab.vis.ui.widget.ListView;
+import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
+import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
+import net.dermetfan.utils.Pair;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,22 +43,21 @@ import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
-import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
-import de.felixperko.fractals.system.Numbers.DoubleNumber;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
+import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 
 public class MainStage extends Stage {
 
-    private VisTable collapsibleTable;
-
     AbstractRenderer renderer;
+
+    private VisTable collapsibleTable;
 
     CollapsibleWidget collapsibleWidget;
     VisTextButton collapseButton;
@@ -66,11 +75,12 @@ public class MainStage extends Stage {
 
     public void create(){
 
-        Gdx.graphics.setContinuousRendering(false);
+//        Gdx.graphics.setContinuousRendering(false);
 
         renderer = new RemoteRenderer();
         renderer.init();
 
+        renderer.setFillParent(true);
 
         VisTable ui = new VisTable();
         ui.align(Align.topLeft);
@@ -100,10 +110,19 @@ public class MainStage extends Stage {
                 openJumpToWindow();
             }
         });
+        VisTextButton setWindowSize = new VisTextButton("Window", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openWindowMenu();
+            }
+        });
 
-        topButtons.add(connect).pad(2);
+                topButtons.add(connect).pad(2);
         topButtons.add(screenshot).pad(2);
         topButtons.add(positions).pad(2);
+        topButtons.add(setWindowSize).pad(2);
+
+        ui.add(topButtons).align(Align.top).expandX().colspan(3).row();
 
         //collapsible left
         collapsibleTable.add().expand(false, true).fill(false, true);
@@ -126,17 +145,18 @@ public class MainStage extends Stage {
             }
         });
 
+        collapsibleTable.row();
+
+        //add
+        ui.add(collapseButton).align(Align.left);
+        ui.add(collapsibleWidget).align(Align.left).expandY();
+
+        ui.add().expandX().row();
+
         stateBar = new Table();
         stateBar.align(Align.left);
 
-        //add
-        ui.add(topButtons).align(Align.top).expandX().colspan(3).row();
-        ui.add(collapseButton).align(Align.left);
-        ui.add(collapsibleWidget).align(Align.left).expandY();
-        ui.add().expandX().row();
         ui.add(stateBar).align(Align.bottomLeft).colspan(3);
-
-        collapsibleTable.row();
 
         addActor(renderer);
         addActor(ui);
@@ -175,10 +195,15 @@ public class MainStage extends Stage {
                 ClientSystem clientSystem = systemInterface.getClientSystem();
                 ParamContainer container = params.get(selection.getSelected());
                 if (container != null) {
-                    boolean update = systemContext.setParameters(container);
-                    if (update)
-                        systemContext.incrementViewId();
-                    renderer.reset();
+                    Integer viewId = systemContext.getViewId();
+                    Integer newViewId = viewId + 1;
+                    ParamContainer newContainer = new ParamContainer(container, true);
+                    newContainer.addClientParameter(new StaticParamSupplier("view", newViewId));
+                    boolean reset = systemContext.setParameters(newContainer);
+                    if (reset) {
+//                        systemContext.setViewId(newViewId);
+                        renderer.reset();
+                    }
                     clientSystem.updateConfiguration();
                     clientSystem.resetAnchor();
                     setParameterConfiguration(systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration());//TODO put in updateConfiguration()?
@@ -192,6 +217,120 @@ public class MainStage extends Stage {
         addActor(window);
         window.pack();
         ((VisWindow) window).centerWindow();
+    }
+
+    private void openWindowMenu(){
+
+        Window window = new VisWindow("Window settings");
+        ((VisWindow) window).addCloseButton();
+
+        VisRadioButton fullscreenBtn = new VisRadioButton("Fullscreen");
+
+        VisSelectBox<String> displayModeSelect = new VisSelectBox();
+        Map<Graphics.DisplayMode, String> names = new HashMap<>();
+        Map<String, Graphics.DisplayMode> modes = new HashMap<>();
+        Map<String, Graphics.DisplayMode> modePerResolution = new HashMap<>();
+        for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes()){
+            String res = mode.width+"x"+mode.height;
+            Graphics.DisplayMode oldMode = modePerResolution.get(res);
+            if (oldMode == null || oldMode.refreshRate < mode.refreshRate)
+                modePerResolution.put(res, mode);
+        }
+        List<Graphics.DisplayMode> items = new ArrayList<>();
+        nextResolution:
+        for (Graphics.DisplayMode mode : modePerResolution.values()){
+            String name = mode.width+"x"+mode.height+" @"+mode.refreshRate+"hz";
+            names.put(mode, name);
+            modes.put(name, mode);
+            for (int i = 0 ; i < items.size() ; i++) {
+                Graphics.DisplayMode other = items.get(i);
+                if (mode.width > other.width) {
+                    items.add(i, mode);
+                    continue nextResolution;
+                }
+            }
+            items.add(mode);
+        }
+        String[] itemArray = new String[items.size()];
+        for (int i = 0 ; i < itemArray.length ; i++)
+            itemArray[i] = names.get(items.get(i));
+        displayModeSelect.setItems(itemArray);
+        Graphics.DisplayMode current = Gdx.graphics.getDisplayMode();
+        displayModeSelect.setSelected(names.get(modePerResolution.get(current.width+"x"+current.height)));
+
+        int resolutionWidthPx = 50;
+        VisRadioButton windowedBtn = new VisRadioButton("Windowed");
+        VisTextField xResultionField = new VisTextField(""+(int)Gdx.graphics.getWidth())
+//        {
+//            @Override
+//            public float getPrefWidth() {
+//                return resolutionWidthPx;
+//            }
+//        }
+        ;
+        VisLabel resultionMultLbl = new VisLabel("x");
+        VisTextField yResultionField = new VisTextField(""+(int)Gdx.graphics.getHeight())
+//        {
+//            @Override
+//            public float getPrefWidth() {
+//                return resolutionWidthPx;
+//            }
+//        }
+        ;
+        yResultionField.setWidth(5);
+
+        VisTextButton applyBtn = new VisTextButton("Apply");
+        VisTextButton cancelBtn = new VisTextButton("Cancel");
+
+        VisTable fullscreenRow = new VisTable();
+        fullscreenRow.add(fullscreenBtn).pad(2);
+        fullscreenRow.add(displayModeSelect).pad(2);
+        window.add(fullscreenRow).left().row();
+
+        VisTable windowedRow = new VisTable();
+        windowedRow.add(windowedBtn).left().pad(2);
+        windowedRow.add(xResultionField).pad(2);
+        windowedRow.add(resultionMultLbl).pad(2);
+        windowedRow.add(yResultionField).pad(2);
+        window.add(windowedRow).left().row();
+
+        VisTable btnRow = new VisTable();
+        btnRow.add(applyBtn).pad(2).center();
+        btnRow.add(cancelBtn).pad(2).center();
+        window.add(btnRow);
+
+        ButtonGroup group = new ButtonGroup();
+        group.add(fullscreenBtn);
+        group.add(windowedBtn);
+
+        fullscreenBtn.setChecked(Gdx.graphics.isFullscreen());
+        windowedBtn.setChecked(!Gdx.graphics.isFullscreen());
+
+        applyBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                boolean setFullscreen = fullscreenBtn.isChecked();
+                int width = Integer.parseInt(xResultionField.getText());
+                int height = Integer.parseInt(yResultionField.getText());
+                if (setFullscreen){
+                    Gdx.graphics.setFullscreenMode(modes.get(displayModeSelect.getSelected()));
+                }
+                else if (Gdx.graphics.isFullscreen() || width != Gdx.graphics.getWidth() ||  height != Gdx.graphics.getHeight()){
+                    Gdx.graphics.setWindowedMode(width, height);
+                }
+                window.remove();
+            }
+        });
+        cancelBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                window.remove();
+            }
+        });
+
+        addActor(window);
+        window.pack();
+        ((VisWindow)window).centerWindow();
     }
 
     private void updateParamSelectBox(VisSelectBox selection) {
@@ -234,8 +373,8 @@ public class MainStage extends Stage {
         saveBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                ParamContainer data = ((RemoteRenderer)renderer).getSystemInterface().getSystemClientData();
-                ParamContainer container = new ParamContainer(data.getClientParameters());
+                ParamContainer data = ((RemoteRenderer)renderer).getSystemInterface().getParamContainer();
+                ParamContainer container = new ParamContainer(data, true);
                 container.getClientParameters().remove("view");
                 params.put(nameFld.getText(), container);
                 updateParamSelectBox(selection);
@@ -303,7 +442,7 @@ public class MainStage extends Stage {
                 for (AbstractPropertyEntry entry : propertyEntryList){
                     entry.applyValue();
                 }
-                if (((SystemClientData)paramContainer).needsReset(clientSystem.getOldParams())) {
+                if (paramContainer.needsReset(clientSystem.getOldParams())) {
                     clientSystem.incrementJobId();
                     renderer.reset();
                 }
@@ -327,7 +466,7 @@ public class MainStage extends Stage {
         try {
             SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
             stateBar.clear();
-            ComplexNumber midpoint = systemInterface.getSystemClientData().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+            ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
             ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
             ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
             ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);

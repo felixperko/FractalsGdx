@@ -12,7 +12,7 @@ import de.felixperko.fractals.data.shareddata.MappedSharedDataUpdate;
 import de.felixperko.fractals.data.shareddata.SharedDataUpdate;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
-import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
@@ -47,12 +47,13 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
                         TaskStateUpdate update = (TaskStateUpdate) item;
                         SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) getSystemInterface(update.getSystemId());
                         if (systemInterface != null) {
-                            ChunkContainer chunkContainer = systemInterface.getChunkData().getChunkContainer(update.getTaskId());
-                            if (chunkContainer != null) {
-                                chunkContainer.setTaskState(update.getTaskState());
-                                chunkContainer.setProgress(update.getProgress());
-                                chunkContainer.setLayerId(update.getLayerId());
-                            }
+                            //TODO
+//                            ChunkContainer chunkContainer = systemInterface.getChunkData().getChunkContainer(update.getTaskId());
+//                            if (chunkContainer != null) {
+//                                chunkContainer.setTaskState(update.getTaskState());
+//                                chunkContainer.setProgress(update.getProgress());
+//                                chunkContainer.setLayerId(update.getLayerId());
+//                            }
                         }
                     }
 //                    System.out.println(update.getTaskId()+" "+update.getTaskState().toString()+" "+update.getLayerId()+" "+update.getProgress());
@@ -110,10 +111,10 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         height /= chunkSize;
         systemInterface.addChunkCount((width)*(height));//TODO remove
         client.clientConfiguration = clientConfiguration;
-        SystemClientData systemClientData = clientConfiguration.getSystemClientData(systemId);
-        systemInterface.setSystemClientData(systemClientData);
+        ParamContainer paramContainer = clientConfiguration.getParamContainer(systemId);
+        systemInterface.setParamContainer(paramContainer);
         client.createdSystem(clientConfiguration, systemInterface);
-        systemInterface.getClientSystem().setSystemClientData(systemClientData);
+        systemInterface.getClientSystem().setParamContainer(paramContainer);
         addSystemInterface(systemId, systemInterface);
         systemInterface.updateParameterConfiguration(client.getFocusedClientSystem().getParamContainer(), parameterConfiguration);
 

@@ -9,17 +9,19 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.MainStage;
 import de.felixp.fractalsgdx.RemoteRenderer;
 import de.felixperko.fractals.data.AbstractArrayChunk;
+import de.felixperko.fractals.data.BorderAlignment;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.Number;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.CategoryLogger;
 import de.felixperko.fractals.util.ColorContainer;
@@ -30,6 +32,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
     static CategoryLogger log = new CategoryLogger("systemInterface", new ColorContainer(1f,0.5f,0.5f));
 
     ClientSystem clientSystem;
+    BFSystemContext systemContext;
 
 //    BufferedImage image = null;
     int imgWidth;
@@ -39,7 +42,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
     RemoteRenderer renderer;
 
-    ChunkData chunkData = new ChunkData();
+    //ChunkData chunkData = new ChunkData();
 
 
     MessageInterfaceGdx messageInterface;
@@ -55,7 +58,12 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         this.renderer = ((MainStage)FractalsGdxMain.stage).getRenderer();
     }
 
-    public void setSystemClientData(ParamContainer systemClientData) {
+    @Override
+    public UUID getSystemId(){
+        return systemId;
+    }
+
+    public void setParamContainer(ParamContainer systemClientData) {
         int newImgWidth = systemClientData.getClientParameter("width").getGeneral(Integer.class);
         int newImgHeight = systemClientData.getClientParameter("height").getGeneral(Integer.class);
 
@@ -64,12 +72,12 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
             imgHeight = newImgHeight;
 //            image = new BufferedImage(imgWidth, imgHeight, BufferedImage.TYPE_INT_RGB);
         }
-        chunkData.clientData = systemClientData;
+        //chunkData.clientData = systemClientData;
         renderer.setSystemInterface(this);
     }
 
-    public ParamContainer getSystemClientData(){
-        return chunkData.clientData;
+    public ParamContainer getParamContainer(){
+        return systemContext.getParamContainer();
     }
 
     ParameterConfiguration parameterConfiguration;
@@ -87,7 +95,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
         int chunkX = (int)(long)compressedChunk.getChunkX();
         int chunkY = (int)(long)compressedChunk.getChunkY();
-        chunkData.addCompressedChunk(compressedChunk, chunkX, chunkY);
+        //chunkData.addCompressedChunk(compressedChunk, chunkX, chunkY);
 
         drawPixmap(compressedChunk);
     }
@@ -98,12 +106,13 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         if (jobId != clientSystem.systemContext.getViewId())
             return;
         int upsample = compressedChunk.getUpsample();
-        chunkData.chunkSize = compressedChunk.getDimensionSize();
+        int chunkSize = systemContext.getChunkSize();
+        //chunkData.chunkSize = compressedChunk.getDimensionSize();
 
         AbstractArrayChunk chunk = compressedChunk.decompressPacked();
-        Pixmap pixmap = new Pixmap(chunkData.chunkSize/upsample, chunkData.chunkSize/upsample, Pixmap.Format.RGBA8888);
+        Pixmap pixmap = new Pixmap(chunkSize/upsample, chunkSize/upsample, Pixmap.Format.RGBA8888);
 
-        ComplexNumber chunkCoords = chunkData.getScreenCoords(compressedChunk.getChunkPos(), clientSystem);
+        ComplexNumber chunkCoords = getScreenCoords(compressedChunk.getChunkPos(), clientSystem);
         int chunkImgX = (int)Math.round(chunkCoords.getReal().toDouble());
         int chunkImgY = (int)Math.round(chunkCoords.getImag().toDouble());
 
@@ -111,42 +120,46 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         boolean inside = false;
         com.badlogic.gdx.graphics.Color color = new com.badlogic.gdx.graphics.Color();
 
-        int scaledChunkSize = chunkData.chunkSize/upsample;
+        int scaledChunkSize = chunkSize/upsample;
 
         for (int i = 0 ; i < chunk.getArrayLength()/(upsample*upsample) ; i++) {
             int x = (int) (i / (scaledChunkSize));
             int y = (int) (i % (scaledChunkSize));
             float value = (float)chunk.getValue(i);
             inside = true;
-            /*
 
 
-            BorderAlignment alignment = null;
-            boolean horizontal = false;
-            if (x < 0){
-                alignment = BorderAlignment.LEFT;
-                horizontal = true;
-            } else if (x == scaledChunkSize-1){
-                alignment = BorderAlignment.RIGHT;
-                horizontal = true;
-            }
-            if (y < 0){
-                alignment = BorderAlignment.UP;
-            } else if (y == scaledChunkSize-1){
-                alignment = BorderAlignment.DOWN;
-            }
 
-            if (alignment != null){
-                if (chunk.getNeighbourBorderData(alignment).isSet(horizontal ? y : x))
-                    value = 500;
-                else
-                    value = 5000;
-            }
-            */
+//            BorderAlignment alignment = null;
+//            boolean horizontal = false;
+//            if (x == 0){
+//                alignment = BorderAlignment.LEFT;
+//                horizontal = true;
+//            }
+//            else
+//            if (x == scaledChunkSize-1){
+//                alignment = BorderAlignment.RIGHT;
+//                horizontal = true;
+//            }
+//            if (y == 0){
+//                alignment = BorderAlignment.UP;
+//            }
+//            else
+//            if (y == scaledChunkSize-1){
+//                alignment = BorderAlignment.DOWN;
+//            }
+//
+//            if (alignment != null){
+//                if (chunk.getNeighbourBorderData() != null && chunk.getNeighbourBorderData(alignment).isSet(horizontal ? y : x))
+//                    value = 500;
+//                else
+//                    value = 5000;
+//            }
 
 
-            if (value < 0 && value != -2)
-                value = -value;
+
+//            if (value < 0 && value != -2)
+//                value = -value;
 //            if (value == -2)
 //                value = 2;
             if (value > 0) {
@@ -181,14 +194,14 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         return parameterConfiguration;
     }
 
+    @Deprecated
     public ComplexNumber getWorldCoords(ComplexNumber screenCoords){
 
-        Map<String, ParamSupplier> parameters = chunkData.clientData.getClientParameters();
-        NumberFactory nf = parameters.get("numberFactory").getGeneral(NumberFactory.class);
-        double width = parameters.get("width").getGeneral(Integer.class);
-        double height = parameters.get("height").getGeneral(Integer.class);
-        Number zoom = parameters.get("zoom").getGeneral(Number.class);
-        ComplexNumber midpoint = parameters.get("midpoint").getGeneral(ComplexNumber.class);
+        NumberFactory nf = systemContext.getNumberFactory();
+        int width = systemContext.getParamValue("width", Integer.class);
+        int height = systemContext.getParamValue("height", Integer.class);
+        Number zoom = systemContext.getZoom();
+        ComplexNumber midpoint = systemContext.getMidpoint();
 
         ComplexNumber worldCoords = screenCoords.copy();
         worldCoords.sub(nf.createComplexNumber(nf.createNumber(width/2), nf.createNumber(height/2)));
@@ -198,13 +211,13 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         return worldCoords;
     }
 
+    @Deprecated
     public ComplexNumber getChunkGridCoords(ComplexNumber worldCoords){
 
-        Map<String, ParamSupplier> parameters = chunkData.clientData.getClientParameters();
-        NumberFactory nf = parameters.get("numberFactory").getGeneral(NumberFactory.class);
-        int width = parameters.get("width").getGeneral(Integer.class);
-        int height = parameters.get("height").getGeneral(Integer.class);
-        Number zoom = parameters.get("zoom").getGeneral(Number.class);
+        NumberFactory nf = systemContext.getNumberFactory();
+        int width = systemContext.getParamValue("width", Integer.class);
+        int height = systemContext.getParamValue("height", Integer.class);
+        Number zoom = systemContext.getZoom();
         //ComplexNumber anchor = getWorldCoords(nf.createComplexNumber(renderer.getXShift(), renderer.getYShift()));
         ComplexNumber anchor = clientSystem.anchor;
 
@@ -213,11 +226,31 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         gridPos.divNumber(zoom);
 //        ComplexNumber shift = nf.createComplexNumber(width/height/2f, 1/2f);
 //        gridPos.sub(shift);
-        gridPos.multNumber(nf.createNumber(chunkData.chunkSize));
+        gridPos.multNumber(nf.createNumber(systemContext.getChunkSize()));
         gridPos.divNumber(nf.createNumber(30.4));
         //gridPos.divNumber(nf.createNumber(64*4));
         //gridPos.add(nf.createComplexNumber(0, 1));
         return gridPos;
+    }
+
+    public ComplexNumber getScreenCoords(ComplexNumber worldCoords, ClientSystem clientSystem){
+
+        NumberFactory nf = systemContext.getNumberFactory();
+        int height = systemContext.getParamValue("height", Integer.class);
+        Number zoom = systemContext.getZoom();
+        int chunkSize = systemContext.getChunkSize();
+
+        //((x-anchorX)*height/zoom, -((y-anchorY)*height/zoom + chunkSize)
+
+        ComplexNumber pos = worldCoords.copy();
+        pos.sub(clientSystem.getAnchor());
+        pos.divNumber(zoom);
+        pos.multNumber(nf.createNumber(height)); //TODO buffer wrapped values?
+
+        Number screenY = pos.getImag();
+        screenY.add(nf.createNumber(chunkSize));
+        screenY.mult(nf.createNumber(-1));
+        return nf.createComplexNumber(pos.getReal(), screenY);
     }
 
     public ComplexNumber getCurrentMidpoint(){
@@ -229,13 +262,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
     }
 
     public ComplexNumber toComplex(double x, double y) {
-        Map<String, ParamSupplier> parameters = chunkData.clientData.getClientParameters();
-        NumberFactory nf = parameters.get("numberFactory").getGeneral(NumberFactory.class);
-        return nf.createComplexNumber(x, y);
-    }
-
-    public ChunkData getChunkData(){
-        return chunkData;
+        return systemContext.getNumberFactory().createComplexNumber(x, y);
     }
 
     public ClientSystem getClientSystem(){
@@ -244,6 +271,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 
     public void setClientSystem(ClientSystem clientSystem){
         this.clientSystem = clientSystem;
+        this.systemContext = (BFSystemContext)clientSystem.getSystemContext();
     }
 
     public SystemContext getSystemContext() {

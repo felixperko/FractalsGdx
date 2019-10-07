@@ -8,14 +8,14 @@ import java.util.List;
 
 import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.LayerConfiguration;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamValueField;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
 
 public class PropertyEntryFactory {
 
@@ -43,7 +43,7 @@ public class PropertyEntryFactory {
             for (ParamValueField field : type.getSubTypes()){
                 ParamValueType subType =  field.getType();
                 //ParameterDefinition subDefinition = config.getParameters().stream().filter(def -> def.getName().equalsIgnoreCase(subType.getName())).findFirst().get();
-                ParameterDefinition subDefinition = new ParameterDefinition(field.getName(), StaticParamSupplier.class);
+                ParameterDefinition subDefinition = new ParameterDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
                 subDefinition.setConfiguration(parameterDefinition.getConfiguration());
                 AbstractPropertyEntry entry = getByType(subType, paramContainer, subDefinition);
                 if (entry != null) {

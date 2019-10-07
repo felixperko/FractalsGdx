@@ -31,14 +31,13 @@ import java.util.Map;
 import de.felixp.fractalsgdx.client.ChunkContainer;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
 import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.Number;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
-import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
 
 public class RemoteRenderer extends AbstractRenderer {
 
@@ -69,7 +68,8 @@ public class RemoteRenderer extends AbstractRenderer {
 
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
 
-        setBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+//        setBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        setFillParent(true);
 
         shapeRenderer = new ShapeRenderer();
 
@@ -102,9 +102,23 @@ public class RemoteRenderer extends AbstractRenderer {
     }
 
     @Override
+    public float getPrefWidth() {
+        return Gdx.graphics.getWidth();
+    }
+
+    @Override
+    public float getPrefHeight() {
+        return Gdx.graphics.getHeight();
+    }
+
+    @Override
     public void reset() {
         xPos = 0;
         yPos = 0;
+        prevWidth = getWidth();
+        prevHeight = getHeight();
+        scaleX = 1;
+        scaleY = 1;
         //systemInterface.getClientSystem().incrementJobId();
         synchronized (newPixmaps) {
             newPixmaps.forEach((x2, xMap) -> xMap.forEach((y2, pixmap) -> pixmap.dispose()));
@@ -131,6 +145,14 @@ public class RemoteRenderer extends AbstractRenderer {
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
+//        getStage().getViewport().apply();
+
+        setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        if (prevWidth == -1){
+            prevWidth = getWidth();
+            prevHeight = getHeight();
+        }
+
         if (systemInterface == null || systemInterface.getClientSystem() == null)
             return;
 
@@ -145,8 +167,8 @@ public class RemoteRenderer extends AbstractRenderer {
 
         for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()) {
             for (Map.Entry<Integer, Texture> e2 : e.getValue().entrySet()) {
-                float x = (e.getKey() - 0.0f * chunkSize) + (float) xPos + Gdx.graphics.getWidth() / 2;
-                float y = (e2.getKey() - 0.0f * chunkSize) + (float) yPos + Gdx.graphics.getHeight() / 2;
+                float x = ((e.getKey() - 0.0f * chunkSize) + (float) xPos) + getWidth() / 2;
+                float y = ((e2.getKey() - 0.0f * chunkSize) + (float) yPos) + getHeight() / 2;
                 batch.draw(e2.getValue(), x, y, chunkSize, chunkSize);
             }
         }
@@ -160,13 +182,13 @@ public class RemoteRenderer extends AbstractRenderer {
         batch.setShader(shader);
         shader.setUniformMatrix("u_projTrans", matrix);
         shader.setUniformf("colorShift", 0);
-        shader.setUniformf("resolution", (float) Gdx.graphics.getWidth(), (float) Gdx.graphics.getHeight());
+        shader.setUniformf("resolution", (float) getWidth(), (float) getHeight());
 
         //draw flipped framebuffer on screen
         Texture texture = fbo.getColorBufferTexture();
         TextureRegion textureRegion = new TextureRegion(texture);
         textureRegion.flip(false, true);
-        batch.draw(textureRegion, 0, 0);
+        batch.draw(textureRegion, getX(), getY(), getWidth(), getHeight());
         batch.end();
 
         shader.end();
@@ -175,9 +197,9 @@ public class RemoteRenderer extends AbstractRenderer {
             makeScreenshot();
         }
 
-        if (outlineChunkBorders || Gdx.input.isKeyPressed(Input.Keys.O)) {
-            drawOutline(chunkSize);
-        }
+//        if (outlineChunkBorders || Gdx.input.isKeyPressed(Input.Keys.O)) {
+//            drawOutline(chunkSize);
+//        }
 
         batch.begin();
         batch.setShader(null);
@@ -211,100 +233,97 @@ public class RemoteRenderer extends AbstractRenderer {
         }
     }
 
-    private void drawOutline(int chunkSize) {
-        if (systemInterface == null)
-            return;
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        int width = Gdx.graphics.getWidth();
-        int height = Gdx.graphics.getHeight();
-        float subX = 1;
-        float subY = 1;
-//        subX = chunkSize/2f;
-//        subY = -chunkSize*9/32f;
-        float startX = (float)(xPos+width/2f-subX) % chunkSize;
-        float startY = (float)(yPos-height/2f+subY) % chunkSize;
-
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-        //ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
-        ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(width*0.5, height*0.5));
-        //ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
-        BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
-        ComplexNumber startChunkPos = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(startWorldPos), systemContext.getChunkY(startWorldPos));
-        startChunkPos.add(systemInterface.toComplex(-width*0.5/chunkSize, height*0.5/chunkSize));
-//        ComplexNumber endWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(Gdx.graphics.getWidth(), 0));
-//        ComplexNumber endChunkPos = systemInterface.getChunkGridCoords(endWorldPos);
-//        System.out.println("startWorldPos: "+startWorldPos.toString()+" startChunkPos: "+startChunkPos.toString());
-
-        long startChunkX = (long)Math.floor(startChunkPos.getReal().toDouble());
-        long startChunkY = (long)Math.ceil(startChunkPos.getImag().toDouble());
-        long chunkX = startChunkX;
-        for (float x = startX-chunkSize ; x < width ; x += chunkSize){
-            long chunkY = startChunkY;
-            for (float y = startY-chunkSize ; y < height ; y += chunkSize){
-                ChunkContainer chunkContainer = getChunkContainer(chunkX, chunkY);
-                shapeRenderer.setColor(getChunkStateColor(chunkContainer == null ? null : chunkContainer.getTaskState()));
-                if (chunkContainer != null && chunkContainer.getTaskState() == TaskState.STARTED) {
-                    float progress = (float)chunkContainer.getProgress();
-                    float height1 = progress*chunkSize;
-                    float height2 = chunkSize-height1;
-                    shapeRenderer.rect(x, y+height2, chunkSize, height1);
-                    shapeRenderer.setColor(getChunkStateColor(TaskState.PLANNED));
-                    shapeRenderer.rect(x, y, chunkSize, height2);
-                } else {
-                    shapeRenderer.rect(x, y, chunkSize, chunkSize);
-                }
-                chunkY--;
-            }
-            chunkX++;
-        }
-
-
-//        shapeRenderer.flush();
-//        shapeRenderer.end();
-//        Gdx.gl.glDisable(GL20.GL_BLEND);
+    //TODO outline
+//    private void drawOutline(int chunkSize) {
+//        if (systemInterface == null)
+//            return;
 //        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        shapeRenderer.setColor(Color.RED);
-        shapeRenderer.circle(width/2f + (float)xPos, height/2f + (float)yPos, 3);
-
-        ComplexNumber currentMidpoint = systemInterface.getCurrentMidpoint();
-        if (currentMidpoint != null) {
-            ParamContainer systemClientData = systemInterface.getSystemClientData();
-            int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
-            int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
-            NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
-
-            ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
-            ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);
-            screenPos.sub(currentMidpoint);
-            screenPos.divNumber(systemClientData.getClientParameter("zoom").getGeneral(Number.class));
-            //screenPos.add(screenMid);
-//            screenPos.divNumber(nf.createNumber(30.4));
-//            screenPos.sub(screenMid);
-//            ComplexNumber screenPos = systemInterface.getChunkData().getScreenCoords(currentMidpoint);
-//            screenPos.multNumber(nf.createNumber(-1.));
-
-            System.out.println(currentMidpoint.toString()+" -> "+screenPos.toString());
-            shapeRenderer.setColor(Color.GREEN);
-            shapeRenderer.circle((float) screenPos.getReal().toDouble(), (float) screenPos.getImag().toDouble(), 3);
-        }
-
-        shapeRenderer.setColor(Color.GRAY);
-        for (float x = startX ; x < width ; x += chunkSize){
-            shapeRenderer.line(x, 0, x, height);
-        }
-        for (float y = startY; y < height ; y += chunkSize){
-            shapeRenderer.line(0, y, width, y);
-        }
-
-        shapeRenderer.end();
-    }
-
-    private ChunkContainer getChunkContainer(long chunkX, long chunkY){
-        return systemInterface.getChunkData().getChunkContainer((int)chunkX, (int)chunkY);
-    }
+//        int width = Gdx.graphics.getWidth();
+//        int height = Gdx.graphics.getHeight();
+//        float subX = 1;
+//        float subY = 1;
+////        subX = chunkSize/2f;
+////        subY = -chunkSize*9/32f;
+//        float startX = (float)(xPos+width/2f-subX) % chunkSize;
+//        float startY = (float)(yPos-height/2f+subY) % chunkSize;
+//
+//        Gdx.gl.glEnable(GL20.GL_BLEND);
+//        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//
+//        //ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(startX, Gdx.graphics.getHeight()-startY));
+//        ComplexNumber startWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(width*0.5, height*0.5));
+//        //ComplexNumber startChunkPos = systemInterface.getChunkGridCoords(startWorldPos);
+//        BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
+//        ComplexNumber startChunkPos = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(startWorldPos), systemContext.getChunkY(startWorldPos));
+//        startChunkPos.add(systemInterface.toComplex(-width*0.5/chunkSize, height*0.5/chunkSize));
+////        ComplexNumber endWorldPos = systemInterface.getWorldCoords(systemInterface.toComplex(Gdx.graphics.getWidth(), 0));
+////        ComplexNumber endChunkPos = systemInterface.getChunkGridCoords(endWorldPos);
+////        System.out.println("startWorldPos: "+startWorldPos.toString()+" startChunkPos: "+startChunkPos.toString());
+//
+//        long startChunkX = (long)Math.floor(startChunkPos.getReal().toDouble());
+//        long startChunkY = (long)Math.ceil(startChunkPos.getImag().toDouble());
+//        long chunkX = startChunkX;
+//        for (float x = startX-chunkSize ; x < width ; x += chunkSize){
+//            long chunkY = startChunkY;
+//            for (float y = startY-chunkSize ; y < height ; y += chunkSize){
+//                ChunkContainer chunkContainer = getChunkContainer(chunkX, chunkY);
+//                shapeRenderer.setColor(getChunkStateColor(chunkContainer == null ? null : chunkContainer.getTaskState()));
+//                if (chunkContainer != null && chunkContainer.getTaskState() == TaskState.STARTED) {
+//                    float progress = (float)chunkContainer.getProgress();
+//                    float height1 = progress*chunkSize;
+//                    float height2 = chunkSize-height1;
+//                    shapeRenderer.rect(x, y+height2, chunkSize, height1);
+//                    shapeRenderer.setColor(getChunkStateColor(TaskState.PLANNED));
+//                    shapeRenderer.rect(x, y, chunkSize, height2);
+//                } else {
+//                    shapeRenderer.rect(x, y, chunkSize, chunkSize);
+//                }
+//                chunkY--;
+//            }
+//            chunkX++;
+//        }
+//
+//
+////        shapeRenderer.flush();
+////        shapeRenderer.end();
+////        Gdx.gl.glDisable(GL20.GL_BLEND);
+////        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+//
+//        shapeRenderer.setColor(Color.RED);
+//        shapeRenderer.circle(width/2f + (float)xPos, height/2f + (float)yPos, 3);
+//
+//        ComplexNumber currentMidpoint = systemInterface.getCurrentMidpoint();
+//        if (currentMidpoint != null) {
+//            ParamContainer systemClientData = systemInterface.getParamContainer();
+//            int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
+//            int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
+//            NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+//
+//            ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
+//            ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);
+//            screenPos.sub(currentMidpoint);
+//            screenPos.divNumber(systemClientData.getClientParameter("zoom").getGeneral(Number.class));
+//            //screenPos.add(screenMid);
+////            screenPos.divNumber(nf.createNumber(30.4));
+////            screenPos.sub(screenMid);
+////            ComplexNumber screenPos = systemInterface.getChunkData().getScreenCoords(currentMidpoint);
+////            screenPos.multNumber(nf.createNumber(-1.));
+//
+//            System.out.println(currentMidpoint.toString()+" -> "+screenPos.toString());
+//            shapeRenderer.setColor(Color.GREEN);
+//            shapeRenderer.circle((float) screenPos.getReal().toDouble(), (float) screenPos.getImag().toDouble(), 3);
+//        }
+//
+//        shapeRenderer.setColor(Color.GRAY);
+//        for (float x = startX ; x < width ; x += chunkSize){
+//            shapeRenderer.line(x, 0, x, height);
+//        }
+//        for (float y = startY; y < height ; y += chunkSize){
+//            shapeRenderer.line(0, y, width, y);
+//        }
+//
+//        shapeRenderer.end();
+//    }
 
     private Color getChunkStateColor(TaskState taskState){
         float alpha = 0.5f;
@@ -355,8 +374,32 @@ public class RemoteRenderer extends AbstractRenderer {
         pixmap.dispose();
     }
 
+    float prevWidth = -1, prevHeight = -1;
+    float scaleX = 1, scaleY = 1;
+
+    @Override
+    public void setSize(float width, float height) {
+
+        super.setSize(width, height);
+
+        if (prevWidth != -1){
+            scaleX /= getWidth() / prevWidth;
+            scaleY /= getHeight() / prevHeight;
+        }
+    }
+
     @Override
     protected void sizeChanged() {
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getWidth(), (int)getHeight(), false);
+
+        if (systemInterface == null)
+            return;
+
+        SystemContext context = systemInterface.getSystemContext();
+        context.getParamContainer().addClientParameter(new StaticParamSupplier("width", (int)getWidth()));
+        context.getParamContainer().addClientParameter(new StaticParamSupplier("height", (int)getHeight()));
+        context.setParameters(context.getParamContainer());
+
         setRefresh();
         super.sizeChanged();
     }

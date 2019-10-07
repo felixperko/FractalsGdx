@@ -23,6 +23,7 @@ public abstract class AbstractPropertyEntry {
     ParamContainer paramContainer;
 
     String propertyName;
+    ParameterDefinition parameterDefinition;
 
     Map<String, EntryView> views = new HashMap<>();
 
@@ -31,6 +32,7 @@ public abstract class AbstractPropertyEntry {
     List<AbstractPropertyEntry> subEntries = null;
 
     public AbstractPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
+        this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
         this.table = table;
         this.paramContainer = paramContainer;

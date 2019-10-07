@@ -3,6 +3,7 @@ package de.felixp.fractalsgdx.client;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 
+@Deprecated
 public class ChunkContainer {
 
     CompressedChunk compressedChunk;

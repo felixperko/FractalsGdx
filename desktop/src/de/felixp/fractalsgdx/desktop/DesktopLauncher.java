@@ -22,13 +22,15 @@ public class DesktopLauncher {
 //		config.width = 1280;
 //		config.height = 720;
 
+//		config.width = 1920;
+//		config.height = 1080;
+
 //		config.width = 500;
 //		config.height = 500;
 
 //		config.fullscreen = false;
-//
-		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
 
+		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
 		config.fullscreen = true;
 
 		config.vSyncEnabled = true;

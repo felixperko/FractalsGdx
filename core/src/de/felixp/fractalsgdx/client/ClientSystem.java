@@ -12,24 +12,22 @@ import de.felixperko.fractals.data.ReducedNaiveChunk;
 import de.felixperko.fractals.manager.common.Managers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
-import de.felixperko.fractals.network.infra.connection.ServerConnection;
-import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
-import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.network.messages.UpdateConfigurationMessage;
-import de.felixperko.fractals.system.Numbers.DoubleComplexNumber;
-import de.felixperko.fractals.system.Numbers.DoubleNumber;
-import de.felixperko.fractals.system.Numbers.infra.ComplexNumber;
-import de.felixperko.fractals.system.Numbers.infra.Number;
-import de.felixperko.fractals.system.Numbers.infra.NumberFactory;
+import de.felixperko.fractals.system.LayerConfiguration;
+import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
+import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.PadovanLayerConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.LayerConfiguration;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
+import de.felixperko.fractals.system.task.Layer;
 
 public class ClientSystem {
 
@@ -45,7 +43,7 @@ public class ClientSystem {
     SystemInterfaceGdx systemInterface;
 
     BFSystemContext systemContext;
-    public Integer chunkSize = 128*2;
+    public Integer chunkSize = 128*2*2;
 
     ComplexNumber anchor;
 
@@ -53,8 +51,8 @@ public class ClientSystem {
         return systemContext.getParamContainer();
     }
 
-    public void setSystemClientData(SystemClientData systemClientData){
-        this.systemContext.setParameters(systemClientData);
+    public void setParamContainer(ParamContainer paramContainer){
+        this.systemContext.setParameters(paramContainer);
     }
 
     private BFSystemContext createDefaultSystemConfiguration() {
@@ -74,19 +72,21 @@ public class ClientSystem {
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)5000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
 
-        List<BreadthFirstLayer> layers = new ArrayList<>();
-        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
+        List<Layer> layers = new ArrayList<>();
+//        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
         layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(0));
         layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
         layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
         layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
         layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
         layers.add(new BreadthFirstLayer().with_samples(1).with_rendering(true).with_priority_shift(90));
-        layers.add(new BreadthFirstLayer().with_samples(9).with_rendering(true).with_priority_shift(110));
-        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(130));
-        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(150));
+        layers.add(new BreadthFirstLayer().with_samples(4).with_rendering(true).with_priority_shift(110));
+        layers.add(new BreadthFirstLayer().with_samples(9).with_rendering(true).with_priority_shift(130));
+        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(150));
+//        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(170));
 
-        LayerConfiguration layerConfiguration = new LayerConfiguration(layers, 0.05D, 20, 42L);
+        LayerConfiguration layerConfiguration = new PadovanLayerConfiguration(layers);
+//        LayerConfiguration layerConfiguration = new LayerConfiguration(layers, 0.025, 20, 42);
         layerConfiguration.prepare(numberFactory);
 
         params.put("layerConfiguration", new StaticParamSupplier("layerConfiguration", layerConfiguration));
@@ -115,7 +115,7 @@ public class ClientSystem {
         params.put("view", new StaticParamSupplier("view", 0));
 
         BFSystemContext systemContext = new BFSystemContext(null);
-        systemContext.setParameters(new SystemClientData(params, 0));
+        systemContext.setParameters(new ParamContainer(params));
         return systemContext;
 
     }
@@ -170,11 +170,12 @@ public class ClientSystem {
     }
 
     public void updateConfiguration(){
-
-        UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(new ClientConfiguration(client.clientConfiguration));
+//        ClientConfiguration newConfiguration = new ClientConfiguration(client.clientConfiguration);
+        client.clientConfiguration.setParamContainer(systemInterface.getSystemId(), systemContext.getParamContainer());
+        UpdateConfigurationMessage updateConfigurationMessage = new UpdateConfigurationMessage(client.clientConfiguration);
         client.serverConnection.writeMessage(updateConfigurationMessage);
 
-        systemInterface.setSystemClientData(systemContext.getParamContainer()); //TODO remove
+        systemInterface.setParamContainer(systemContext.getParamContainer()); //TODO remove
         systemInterface.updateParameterConfiguration(systemContext.getParamContainer(), null);
     }
 
@@ -188,7 +189,7 @@ public class ClientSystem {
 
     public void createdSystem(SystemInterfaceGdx systemInterface, ClientConfiguration clientConfiguration) {
         this.systemInterface = systemInterface;
-        setSystemClientData(clientConfiguration.getSystemClientData(systemInterface.systemId));
+        setParamContainer(clientConfiguration.getParamContainer(systemInterface.systemId));
         systemInterface.setClientSystem(this);
     }
 

@@ -43,8 +43,8 @@ vec3 hsv2rgb(vec3 c) {
 
 float decode(in vec4 pixel){
     float value = DecodeExpV3Fast(vec3(pixel));
-    //float value = Decode1(pixel);
     return log(value+1.0);
+    //return value;
 }
 
 void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
@@ -76,20 +76,20 @@ void main(void){
     float sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
 
     float s = sobel;
-    //s = log(s+1.0);
+    s = log(s+1.0);
     float d = decode(texture2D(u_texture, v_texCoords.xy));
     if (d > 0.0){
         //d = log(d+1.0);
         //s = min(1.0, s);
         s = fract(s*0.5)*2.0;
         s = 1.0 - abs(1.0 - s);
-        vec3 hsv = vec3(d/5.0+colorShift,0.6,1.0);
+        vec3 hsv = vec3(d/3.0+colorShift,0.6,1.0);
         vec4 rgb = vec4(hsv2rgb(hsv), 1.0);
         float brightness = sobel_ambient + sobel_magnitude*s;
         //float chance = fract(brightness * 256.0);
         //if (rand(v_texCoords.xy) < chance)
         //    brightness += 1.0/256.0;
-        //gl_FragColor = rgb;
+        gl_FragColor = rgb;
         gl_FragColor = vec4(brightness, brightness, brightness, 1) * rgb;
     }
     else {
