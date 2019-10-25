@@ -83,3 +83,8 @@ sourceSets.main.java.srcDirs = [ "src/" ]
 eclipse.project {
     name = appName + "-html"
 }
+
+
+dependencies {
+    implementation files('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
+}

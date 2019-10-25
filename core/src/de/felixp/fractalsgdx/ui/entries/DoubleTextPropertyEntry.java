@@ -16,8 +16,13 @@ public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), Double.parseDouble(text));
+    public ParamSupplier getSupplier() {
+        Double val = 0.D;
+        try {
+            val = Double.parseDouble(text);
+        } catch (NumberFormatException e){
+        }
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
         supplier.setLayerRelevant(true);
         return supplier;
     }

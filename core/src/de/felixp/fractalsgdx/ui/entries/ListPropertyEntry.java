@@ -24,6 +24,7 @@ import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class ListPropertyEntry extends AbstractPropertyEntry {
 
@@ -145,9 +146,19 @@ class ListPropertyEntry extends AbstractPropertyEntry {
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
+    public ParamSupplier getSupplier() {
         List<?> list = new ArrayList<>();
         //TODO add values to list
         return new StaticParamSupplier(propertyName, list);
+    }
+
+    @Override
+    public void addChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void removeChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
     }
 }

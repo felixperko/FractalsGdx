@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
@@ -16,6 +17,7 @@ import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class PropertyEntryFactory {
 
@@ -30,8 +32,6 @@ public class PropertyEntryFactory {
     static int ID_COUNTER_SUB_DEFINITIONS = 0;
 
     public AbstractPropertyEntry getPropertyEntry(ParameterDefinition parameterDefinition, ParamContainer paramContainer){
-        if (!(paramContainer.getClientParameter(parameterDefinition.getName()) instanceof StaticParamSupplier))
-            return null;
 
         ParameterConfiguration config = parameterDefinition.getConfiguration();
 
@@ -72,6 +72,10 @@ public class PropertyEntryFactory {
             case ("integer"):
                 return new IntTextPropertyEntry(table, paramContainer, parameterDefinition);
             case ("double"):
+                if (parameterDefinition.getHintValue("ui-element[default]:field", false) != null)
+                    return new DoubleTextPropertyEntry(table, paramContainer, parameterDefinition);
+                if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
+                    return new DoubleSliderPropertyEntry(table, paramContainer, parameterDefinition);
                 return new DoubleTextPropertyEntry(table, paramContainer, parameterDefinition);
             case ("number"):
                 return new NumberTextPropertyEntry(table, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
@@ -99,13 +103,23 @@ public class PropertyEntryFactory {
                     }
 
                     @Override
-                    protected ParamSupplier getSupplier() {
+                    public ParamSupplier getSupplier() {
 //                        List<BreadthFirstLayer> layers = subEntries.get(0).getSupplier().getGeneral(List.class);
 //                        double simStep = subEntries.get(1).getSupplier().getGeneral(Double.class);
 //                        int simCount = subEntries.get(2).getSupplier().getGeneral(Integer.class);
 //                        long seed = subEntries.get(3).getSupplier().getGeneral(Long.class);
 //                        return new StaticParamSupplier(getPropertyName(), new LayerConfiguration(layers, simStep, simCount, seed));
                         return null;
+                    }
+
+                    @Override
+                    public void addChangeListener(ChangeListener changeListener) {
+                        throw new NotImplementedException();
+                    }
+
+                    @Override
+                    public void removeChangeListener(ChangeListener changeListener) {
+                        throw new NotImplementedException();
                     }
                 };
             default:

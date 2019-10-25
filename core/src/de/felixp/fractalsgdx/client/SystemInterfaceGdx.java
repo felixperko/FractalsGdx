@@ -87,7 +87,7 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
         if (parameterConfiguration != null)
             this.parameterConfiguration = parameterConfiguration;
         if (this.parameterConfiguration != null)
-            ((MainStage)FractalsGdxMain.stage).setParameterConfiguration(systemClientData, this.parameterConfiguration);
+            ((MainStage)FractalsGdxMain.stage).setServerParameterConfiguration(systemClientData, this.parameterConfiguration);
     }
 
     @Override
@@ -150,22 +150,24 @@ public class SystemInterfaceGdx implements ClientSystemInterface {
 //            }
 //
 //            if (alignment != null){
-//                if (chunk.getNeighbourBorderData() != null && chunk.getNeighbourBorderData(alignment).isSet(horizontal ? y : x))
-//                    value = 500;
+//                if (chunk.getNeighbourBorderData() != null && chunk.getNeighbourBorderData().get(alignment).isSet(horizontal ? y*upsample : x*upsample))
+//                    value = 100;
 //                else
-//                    value = 5000;
+//                    value = 10000;
 //            }
 
 
 
 //            if (value < 0 && value != -2)
 //                value = -value;
+
 //            if (value == -2)
 //                value = 2;
+
             if (value > 0) {
-               getColor(color, value);
-               pixmap.setColor(color);
-               pixmap.drawPixel(x, y);
+                getColor(color, value);
+                pixmap.setColor(color);
+                pixmap.drawPixel(x, y);
             }
         }
         if (inside)

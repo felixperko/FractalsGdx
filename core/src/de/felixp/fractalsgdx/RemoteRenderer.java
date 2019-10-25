@@ -28,14 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.client.ChunkContainer;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
-import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
-import de.felixperko.fractals.system.numbers.Number;
-import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 
@@ -79,6 +73,7 @@ public class RemoteRenderer extends AbstractRenderer {
 
                 boolean changed = false;
                 if (button == Input.Buttons.LEFT) {
+                    systemInterface.getClientSystem().updatePosition(getWidth()*0.5f-x, getHeight()*0.5f-y);
                     systemInterface.getClientSystem().updateZoom(0.5f);
                     changed = true;
                 }else if (button == Input.Buttons.RIGHT){
@@ -142,6 +137,9 @@ public class RemoteRenderer extends AbstractRenderer {
 
     Color tintColor = new Color(1f,1f,1f,0.5f);
 
+
+    float timeCounter = 0;
+
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
@@ -181,7 +179,20 @@ public class RemoteRenderer extends AbstractRenderer {
 
         batch.setShader(shader);
         shader.setUniformMatrix("u_projTrans", matrix);
-        shader.setUniformf("colorShift", 0);
+        timeCounter += (float)Gdx.graphics.getDeltaTime();
+
+        MainStage stage = (MainStage)getStage();
+
+        shader.setUniformf("colorAdd", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Double.class));
+        shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Double.class));
+        shader.setUniformf("sobelLuminance", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_FACTOR).getGeneral(Double.class));
+        shader.setUniformf("sobel_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_GLOW).getGeneral(Double.class));
+        shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Double.class));
+        shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Double.class));
+//        shader.setUniformf("colorAdd", (float)(double)stage.colorAddSupplier.getGeneral(Double.class) + timeCounter*-0.2f);
+//        shader.setUniformf("colorMult", (float)(double)stage.colorMultSupplier.getGeneral(Double.class));
+//        shader.setUniformf("sobelLuminance", (float)(double)stage.glowFactorSupplier.getGeneral(Double.class));
+
         shader.setUniformf("resolution", (float) getWidth(), (float) getHeight());
 
         //draw flipped framebuffer on screen

@@ -42,14 +42,14 @@ public class Client {
 //		  managers.getClientNetworkManager().connectToServer("192.168.0.13", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.0.11", 3141);
 //        managers.getClientNetworkManager().connectToServer("192.168.137.1", 3141);
-//        managers.getClientNetworkManager().connectToServer("localhost", 3141);
-        managers.getClientNetworkManager().connectToLocalServer(messageable, true);
+        managers.getClientNetworkManager().connectToServer("localhost", 3141);
+//        managers.getClientNetworkManager().connectToLocalServer(messageable, true);
 
 
         serverConnection.getWriteToServer().setConnection(serverConnection);
         messageable.setServerConnection(serverConnection);
 
-        messageable.writeMessage(new ConnectedMessage((ClientConnection)messageable.getConnection()));
+//        messageable.writeMessage(new ConnectedMessage((ClientConnection)messageable.getConnection()));
 
         while (serverConnection.getClientInfo() == null) {
             try {

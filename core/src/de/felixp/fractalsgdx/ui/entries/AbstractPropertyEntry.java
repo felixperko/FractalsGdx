@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisTable;
 
 import java.util.HashMap;
@@ -75,17 +76,18 @@ public abstract class AbstractPropertyEntry {
         return propertyName;
     }
 
-    public void applyValue() {
+    public void applyClientValue() {
         ParamSupplier supplier = getSupplier();
-//        if (supplier.isSystemRelevant())
-//            FractalsGdxMain.client.jobId = 0;
         if (supplier != null)
             getParamContainer().getClientParameters().put(getPropertyName(), supplier);
     }
 
-    protected abstract ParamSupplier getSupplier();
+    public abstract ParamSupplier getSupplier();
 
     public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
         this.subEntries = subEntries;
     }
+
+    public abstract void addChangeListener(ChangeListener changeListener);
+    public abstract void removeChangeListener(ChangeListener changeListener);
 }

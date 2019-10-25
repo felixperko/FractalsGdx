@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -14,11 +15,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.kotcrab.vis.ui.util.adapter.ArrayListAdapter;
-import com.kotcrab.vis.ui.util.adapter.ListAdapter;
-import com.kotcrab.vis.ui.widget.CollapsibleWidget;
-import com.kotcrab.vis.ui.widget.ListView;
-import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
@@ -27,10 +23,8 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
-import net.dermetfan.utils.Pair;
-
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,36 +32,60 @@ import java.util.NoSuchElementException;
 
 import de.felixp.fractalsgdx.client.ClientSystem;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 
+import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_NAME;
+import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_SCALE;
+
 public class MainStage extends Stage {
+
+    final static String POSITIONS_PREFS_NAME = "de.felixp.fractalsgdx.MainStage.positions";
+
+    public final static String PARAMS_COLOR_ADD = "color shift";
+    public final static String PARAMS_COLOR_MULT = "color period";
+    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
+    public final static String PARAMS_SOBEL_GLOW_LIMIT = "glow brightness";
+    public final static String PARAMS_SOBEL_DIM_PERIOD = "glow dim period";
+    public final static String PARAMS_AMBIENT_GLOW = "ambient light";
+
 
     AbstractRenderer renderer;
 
-    private VisTable collapsibleTable;
+//    private VisTable collapsibleTable;
 
-    CollapsibleWidget collapsibleWidget;
-    VisTextButton collapseButton;
+//    CollapsibleWidget collapsibleWidget;
+//    VisTextButton collapseButton;
 
-    VisTextButton submitButton;
+//    VisTextButton submitButton;
 
-    PropertyEntryFactory propertyEntryFactory;
-    List<AbstractPropertyEntry> propertyEntryList = new ArrayList<>();
+    CollapsiblePropertyList serverParamsSideMenu;
+    PropertyEntryFactory serverPropertyEntryFactory;
+//    List<AbstractPropertyEntry> propertyEntryList = new ArrayList<>();
+
+    CollapsiblePropertyList clientParamsSideMenu;
+    PropertyEntryFactory clientPropertyEntryFactory;
+    ParamContainer clientParams;
 
     Table stateBar;
+
+    Preferences positions_prefs;
+    Map<String, ParamContainer> locations = new HashMap<>();
+
 
     public MainStage(Viewport viewport, Batch batch){
         super(viewport, batch);
@@ -82,14 +100,67 @@ public class MainStage extends Stage {
 
         renderer.setFillParent(true);
 
+        positions_prefs = Gdx.app.getPreferences(POSITIONS_PREFS_NAME);
+        Map<String, ?> map = positions_prefs.get();
+        for (Map.Entry<String, ?> e : map.entrySet()) {
+            if (!(e.getValue() instanceof String))
+                throw new IllegalStateException("Preferences "+POSITIONS_PREFS_NAME+" contain non-String objects.");
+            String name = e.getKey();
+
+            ParamContainer paramContainer = null;
+            try {
+                paramContainer = ParamContainer.deserializeBase64((String)e.getValue());
+            } catch (IOException | ClassNotFoundException e1) {
+                e1.printStackTrace();
+                throw new IllegalStateException("Exception: \n"+e1.getMessage());
+            }
+            locations.put(name, paramContainer);
+        }
+
         VisTable ui = new VisTable();
         ui.align(Align.topLeft);
         ui.setFillParent(true);
-//        addActor(ui);
 
-        collapsibleTable = new VisTable();
+        //init menus at sides
+        //
+        serverParamsSideMenu = new CollapsiblePropertyList();
+        clientParamsSideMenu = new CollapsiblePropertyList();
+        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCollapsibleTable(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
+        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCollapsibleTable(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
 
-        propertyEntryFactory = new PropertyEntryFactory(collapsibleTable, new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
+        //ParameterConfiguration for client parameters:
+        ParameterConfiguration clientParameterConfiguration = new ParameterConfiguration();
+
+        ParamValueType doubleType = new ParamValueType("double");
+        clientParameterConfiguration.addValueType(doubleType);
+
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_COLOR_MULT, "coloring", StaticParamSupplier.class, doubleType)
+                .withHints("ui-element[default]:slider min=0.02 max=10"));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_COLOR_ADD, "coloring", StaticParamSupplier.class, doubleType)
+                .withHints("ui-element[default]:slider min=0 max=1"));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, doubleType));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, doubleType));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, doubleType));
+
+        //create suppliers
+        clientParams = new ParamContainer();
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, 3.));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, 0.));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, 0.2));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 0.8));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 1.));
+
+        clientParamsSideMenu.setParameterConfiguration(clientParams, clientParameterConfiguration, clientPropertyEntryFactory);
+        ChangeListener listener = new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                for (AbstractPropertyEntry e : clientParamsSideMenu.getPropertyEntries())
+                    e.applyClientValue();
+            }
+        };
+        clientParamsSideMenu.addAllListener(listener);
 
         //Topline
         VisTable topButtons = new VisTable();
@@ -117,41 +188,45 @@ public class MainStage extends Stage {
             }
         });
 
-                topButtons.add(connect).pad(2);
+        topButtons.add(connect).pad(2);
         topButtons.add(screenshot).pad(2);
         topButtons.add(positions).pad(2);
         topButtons.add(setWindowSize).pad(2);
 
         ui.add(topButtons).align(Align.top).expandX().colspan(3).row();
 
+        serverParamsSideMenu.addToTable(ui, Align.left);
+        ui.add().expandX();
+        clientParamsSideMenu.addToTable(ui, Align.right);
+        ui.row();
+
         //collapsible left
-        collapsibleTable.add().expand(false, true).fill(false, true);
-        collapsibleWidget = new CollapsibleWidget(collapsibleTable, true);
+//        collapsibleTable.add().expand(false, true).fill(false, true);
+//        collapsibleWidget = new CollapsibleWidget(collapsibleTable, true);
+//
+//        collapseButton = new VisTextButton(">", new ChangeListener() {
+//            @Override
+//            public void changed(ChangeEvent event, Actor actor) {
+//                collapsibleWidget.setCollapsed(!collapsibleWidget.isCollapsed());
+//                collapsibleWidget.pack();
+//                collapseButton.layout();
+//                if (collapsibleWidget.isCollapsed()){
+////                    collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
+//                    collapseButton.setText(">");
+//                } else {
+////                    collapseButton.setPosition(collapsibleWidget.getWidth(), Gdx.graphics.getHeight()/2, Align.left);
+//                    collapseButton.setText("<");
+//////                    collapsibleWidget.setPosition(0, (Gdx.graphics.getHeight())*0.5f, Align.left);
+//                }
+//            }
+//        });
+//
+//        collapsibleTable.row();
+//
+//        //add
+//        ui.add(collapseButton).align(Align.left);
+//        ui.add(collapsibleWidget).align(Align.left).expandY();
 
-        collapseButton = new VisTextButton(">", new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                collapsibleWidget.setCollapsed(!collapsibleWidget.isCollapsed());
-                collapsibleWidget.pack();
-                collapseButton.layout();
-                if (collapsibleWidget.isCollapsed()){
-//                    collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
-                    collapseButton.setText(">");
-                } else {
-//                    collapseButton.setPosition(collapsibleWidget.getWidth(), Gdx.graphics.getHeight()/2, Align.left);
-                    collapseButton.setText("<");
-////                    collapsibleWidget.setPosition(0, (Gdx.graphics.getHeight())*0.5f, Align.left);
-                }
-            }
-        });
-
-        collapsibleTable.row();
-
-        //add
-        ui.add(collapseButton).align(Align.left);
-        ui.add(collapsibleWidget).align(Align.left).expandY();
-
-        ui.add().expandX().row();
 
         stateBar = new Table();
         stateBar.align(Align.left);
@@ -161,8 +236,6 @@ public class MainStage extends Stage {
         addActor(renderer);
         addActor(ui);
     }
-
-    Map<String, ParamContainer> params = new HashMap<>();
 
     private void openJumpToWindow(){
         Window window = new VisWindow("Jump to...");
@@ -193,7 +266,7 @@ public class MainStage extends Stage {
                 SystemInterfaceGdx systemInterface = ((RemoteRenderer)renderer).getSystemInterface();
                 SystemContext systemContext = systemInterface.getSystemContext();
                 ClientSystem clientSystem = systemInterface.getClientSystem();
-                ParamContainer container = params.get(selection.getSelected());
+                ParamContainer container = locations.get(selection.getSelected());
                 if (container != null) {
                     Integer viewId = systemContext.getViewId();
                     Integer newViewId = viewId + 1;
@@ -206,7 +279,7 @@ public class MainStage extends Stage {
                     }
                     clientSystem.updateConfiguration();
                     clientSystem.resetAnchor();
-                    setParameterConfiguration(systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration());//TODO put in updateConfiguration()?
+                    setParameterConfiguration(serverParamsSideMenu, systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration(), serverPropertyEntryFactory);//TODO put in updateConfiguration()?
                 }
             }
         });
@@ -217,6 +290,8 @@ public class MainStage extends Stage {
         addActor(window);
         window.pack();
         ((VisWindow) window).centerWindow();
+
+
     }
 
     private void openWindowMenu(){
@@ -260,6 +335,14 @@ public class MainStage extends Stage {
 
         int resolutionWidthPx = 50;
         VisRadioButton windowedBtn = new VisRadioButton("Windowed");
+
+        ButtonGroup group = new ButtonGroup();
+        group.add(fullscreenBtn);
+        group.add(windowedBtn);
+
+        fullscreenBtn.setChecked(Gdx.graphics.isFullscreen());
+        windowedBtn.setChecked(!Gdx.graphics.isFullscreen());
+
         VisTextField xResultionField = new VisTextField(""+(int)Gdx.graphics.getWidth())
 //        {
 //            @Override
@@ -279,36 +362,50 @@ public class MainStage extends Stage {
         ;
         yResultionField.setWidth(5);
 
+        //
+        // UI scale
+        //
+
+        Preferences uiPrefs = Gdx.app.getPreferences(UI_PREFS_NAME);
+        int scale = 1;
+        if (uiPrefs.contains(UI_PREFS_SCALE)){
+            scale = uiPrefs.getInteger(UI_PREFS_SCALE);
+        }
+
+        VisLabel scaleDescLbl = new VisLabel("Interface scale (requires restart)");
+
+        VisRadioButton scale1Btn = new VisRadioButton("100%");
+        VisRadioButton scale2Btn = new VisRadioButton("200%");
+        scale1Btn.setChecked(scale != 2);
+        scale2Btn.setChecked(scale == 2);
+        scale1Btn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                uiPrefs.putInteger(UI_PREFS_SCALE, 1);
+            }
+        });
+        scale2Btn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                uiPrefs.putInteger(UI_PREFS_SCALE, 2);
+            }
+        });
+
+        ButtonGroup group2 = new ButtonGroup();
+        group2.add(scale1Btn);
+        group2.add(scale2Btn);
+
+        //
+        // Actions
+        //
+
         VisTextButton applyBtn = new VisTextButton("Apply");
         VisTextButton cancelBtn = new VisTextButton("Cancel");
-
-        VisTable fullscreenRow = new VisTable();
-        fullscreenRow.add(fullscreenBtn).pad(2);
-        fullscreenRow.add(displayModeSelect).pad(2);
-        window.add(fullscreenRow).left().row();
-
-        VisTable windowedRow = new VisTable();
-        windowedRow.add(windowedBtn).left().pad(2);
-        windowedRow.add(xResultionField).pad(2);
-        windowedRow.add(resultionMultLbl).pad(2);
-        windowedRow.add(yResultionField).pad(2);
-        window.add(windowedRow).left().row();
-
-        VisTable btnRow = new VisTable();
-        btnRow.add(applyBtn).pad(2).center();
-        btnRow.add(cancelBtn).pad(2).center();
-        window.add(btnRow);
-
-        ButtonGroup group = new ButtonGroup();
-        group.add(fullscreenBtn);
-        group.add(windowedBtn);
-
-        fullscreenBtn.setChecked(Gdx.graphics.isFullscreen());
-        windowedBtn.setChecked(!Gdx.graphics.isFullscreen());
 
         applyBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
+                uiPrefs.flush();
                 boolean setFullscreen = fullscreenBtn.isChecked();
                 int width = Integer.parseInt(xResultionField.getText());
                 int height = Integer.parseInt(yResultionField.getText());
@@ -328,6 +425,32 @@ public class MainStage extends Stage {
             }
         });
 
+        //
+        // add all
+        //
+        VisTable fullscreenRow = new VisTable();
+        fullscreenRow.add(fullscreenBtn).pad(2);
+        fullscreenRow.add(displayModeSelect).pad(2);
+        window.add(fullscreenRow).left().row();
+
+        VisTable windowedRow = new VisTable();
+        windowedRow.add(windowedBtn).left().pad(2);
+        windowedRow.add(xResultionField).pad(2);
+        windowedRow.add(resultionMultLbl).pad(2);
+        windowedRow.add(yResultionField).pad(2);
+        window.add(windowedRow).left().row();
+
+        window.add().row();
+        window.add(scaleDescLbl).left().row();
+        window.add(scale1Btn).left().row();
+        window.add(scale2Btn).left().row();
+
+        window.add().row();
+        VisTable btnRow = new VisTable();
+        btnRow.add(applyBtn).pad(2).center();
+        btnRow.add(cancelBtn).pad(2).center();
+        window.add(btnRow);
+
         addActor(window);
         window.pack();
         ((VisWindow)window).centerWindow();
@@ -335,7 +458,7 @@ public class MainStage extends Stage {
 
     private void updateParamSelectBox(VisSelectBox selection) {
         Array array = new Array();
-        for (String name : params.keySet())
+        for (String name : locations.keySet())
             array.add(name);
         selection.setItems(array);
     }
@@ -351,7 +474,7 @@ public class MainStage extends Stage {
 
         for (int i = 1 ; i < 1000 ; i++){
             String generated_name = "location "+i;
-            if (!params.containsKey(generated_name)){
+            if (!locations.containsKey(generated_name)){
                 nameFld.setText(generated_name);
                 break;
             }
@@ -359,7 +482,7 @@ public class MainStage extends Stage {
         nameFld.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                boolean disable = nameFld.isEmpty() || params.containsKey(nameFld.getText());
+                boolean disable = nameFld.isEmpty() || locations.containsKey(nameFld.getText());
                 saveBtn.setDisabled(disable);
             }
         });
@@ -369,14 +492,21 @@ public class MainStage extends Stage {
                 window.remove();
             }
         });
-        saveBtn.setDisabled(nameFld.isEmpty() || params.containsKey(nameFld.getText()));
+        saveBtn.setDisabled(nameFld.isEmpty() || locations.containsKey(nameFld.getText()));
         saveBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 ParamContainer data = ((RemoteRenderer)renderer).getSystemInterface().getParamContainer();
                 ParamContainer container = new ParamContainer(data, true);
                 container.getClientParameters().remove("view");
-                params.put(nameFld.getText(), container);
+                locations.put(nameFld.getText(), container);
+
+                try {
+                    positions_prefs.putString(nameFld.getText(), container.serializeBase64());
+                    positions_prefs.flush();
+                } catch (IOException e) {
+                    throw new IllegalStateException("couldn't serialize locations");
+                }
                 updateParamSelectBox(selection);
                 window.remove();
             }
@@ -401,61 +531,98 @@ public class MainStage extends Stage {
         return true;
     }
 
-    public void addEntry(AbstractPropertyEntry entry){
-        propertyEntryList.add(entry);
+//    public void addEntry(AbstractPropertyEntry entry){
+//        propertyEntryList.add(entry);
+//    }
+
+    public void setServerParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration){
+        setParameterConfiguration(serverParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
     }
 
-    public void setParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration){
-        for (AbstractPropertyEntry entry : propertyEntryList) {
-            entry.closeView(AbstractPropertyEntry.VIEW_LIST);
-        }
-        propertyEntryList.clear();
-
-        collapsibleTable.clear();
-
-        //NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-
-        //addEntry(new IntTextPropertyEntry(collapsibleTable, systemClientData, "iterations"));
-        //addEntry(new ComplexNumberPropertyEntry(collapsibleTable, systemClientData, "pow", numberFactory));
-
-        if (submitButton != null)
-            submitButton.remove();
-
-        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
-        List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
-        parameterDefinitions.addAll(calculatorParameterDefinitions);
-        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
-            AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
-            if (entry != null) {
-                entry.init();
-                entry.openView(AbstractPropertyEntry.VIEW_LIST, collapsibleTable);
-                addEntry(entry);
-            }
-        }
-
+    public void submitServer(ParamContainer paramContainer){
         ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
+        clientSystem.setOldParams(paramContainer.getClientParameters());
+        for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
+            entry.applyClientValue();
+        }
+        if (paramContainer.needsReset(clientSystem.getOldParams())) {
+            clientSystem.incrementJobId();
+            renderer.reset();
+        }
+        clientSystem.updateConfiguration();
+    }
 
-        submitButton = new VisTextButton("Submit", new ChangeListener() {
+    public void setParameterConfiguration(CollapsiblePropertyList list, ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
+
+        ChangeListener submitListener = new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                clientSystem.setOldParams(paramContainer.getClientParameters());
-                for (AbstractPropertyEntry entry : propertyEntryList){
-                    entry.applyValue();
-                }
-                if (paramContainer.needsReset(clientSystem.getOldParams())) {
-                    clientSystem.incrementJobId();
-                    renderer.reset();
-                }
-                clientSystem.updateConfiguration();
+                submitServer(paramContainer);
 //                }
             }
-        });
+        };
 
-        collapsibleTable.add();
-        collapsibleTable.add(submitButton).row();
+        list.setParameterConfiguration(paramContainer, parameterConfiguration, propertyEntryFactory);
+        list.addSubmitListener(submitListener);
 
         renderer.setRefresh();
         updateStateBar();
+//        for (AbstractPropertyEntry entry : propertyEntryList) {
+//            entry.closeView(AbstractPropertyEntry.VIEW_LIST);
+//        }
+//        propertyEntryList.clear();
+//
+//        VisTable collapsibleTable = serverParamsSideMenu.getCollapsibleTable();
+//
+//        collapsibleTable.clear();
+//
+//        //NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
+//
+//        //addEntry(new IntTextPropertyEntry(collapsibleTable, systemClientData, "iterations"));
+//        //addEntry(new ComplexNumberPropertyEntry(collapsibleTable, systemClientData, "pow", numberFactory));
+//
+//        if (submitButton != null)
+//            submitButton.remove();
+//
+//        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
+//        List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
+//        parameterDefinitions.addAll(calculatorParameterDefinitions);
+//        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
+//            AbstractPropertyEntry entry = serverPropertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
+//            if (entry != null) {
+//                entry.init();
+//                entry.openView(AbstractPropertyEntry.VIEW_LIST, collapsibleTable);
+//                addEntry(entry);
+//            }
+//        }
+//
+//        ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
+//
+//        submitButton = new VisTextButton("Submit", new ChangeListener() {
+//            @Override
+//            public void changed(ChangeEvent event, Actor actor) {
+//                clientSystem.setOldParams(paramContainer.getClientParameters());
+//                for (AbstractPropertyEntry entry : propertyEntryList){
+//                    entry.applyClientValue();
+//                }
+//                if (paramContainer.needsReset(clientSystem.getOldParams())) {
+//                    clientSystem.incrementJobId();
+//                    renderer.reset();
+//                }
+//                clientSystem.updateConfiguration();
+////                }
+//            }
+//        });
+//
+//        collapsibleTable.add();
+//        collapsibleTable.add(submitButton).row();
+//
+//        renderer.setRefresh();
+//        updateStateBar();
+    }
+
+    public ParamSupplier getClientParameter(String name){
+        return clientParams.getClientParameter(name);
     }
 
     public void updateStateBar(){

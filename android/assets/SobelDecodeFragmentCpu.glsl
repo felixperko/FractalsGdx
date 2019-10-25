@@ -3,9 +3,12 @@ precision highp float;
 #endif
 uniform sampler2D u_texture;
 varying vec2 v_texCoords;
-const float sobel_ambient = 0.2;
-const float sobel_magnitude = 0.8;
-uniform float colorShift;
+uniform float sobel_ambient;
+uniform float sobel_magnitude;
+uniform float colorAdd;
+uniform float colorMult;
+uniform float sobelLuminance;
+uniform float sobelPeriod;
 uniform vec2 resolution;
 
 float rand(vec2 co){
@@ -81,16 +84,19 @@ void main(void){
     if (d > 0.0){
         //d = log(d+1.0);
         //s = min(1.0, s);
-        s = fract(s*0.5)*2.0;
+        s = fract(s*0.5/sobelPeriod)*2.0;
         s = 1.0 - abs(1.0 - s);
-        vec3 hsv = vec3(d/3.0+colorShift,0.6,1.0);
+        s *= sobelLuminance;
+        vec3 hsv = vec3(d/colorMult+colorAdd,0.6,1.0);
         vec4 rgb = vec4(hsv2rgb(hsv), 1.0);
         float brightness = sobel_ambient + sobel_magnitude*s;
         //float chance = fract(brightness * 256.0);
         //if (rand(v_texCoords.xy) < chance)
         //    brightness += 1.0/256.0;
-        gl_FragColor = rgb;
+
+        //gl_FragColor = rgb;
         gl_FragColor = vec4(brightness, brightness, brightness, 1) * rgb;
+        //gl_FragColor = vec4(1.0,1.0,1.0,1.0);
     }
     else {
         gl_FragColor = vec4(0.0,0.0,0.0,1.0);

@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextField;
@@ -15,6 +16,7 @@ import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
 
@@ -74,7 +76,7 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
+    public ParamSupplier getSupplier() {
         int samples;
         double priority_shift;
         double priority_multiplier;
@@ -88,6 +90,16 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
             return null;
         }
         return new StaticParamSupplier("layer_"+id, new BreadthFirstLayer().with_samples(samples).with_priority_shift(priority_shift).with_priority_multiplier(priority_multiplier));
+    }
+
+    @Override
+    public void addChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void removeChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
     }
 
 }

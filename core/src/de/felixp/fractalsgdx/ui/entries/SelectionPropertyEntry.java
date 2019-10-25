@@ -8,6 +8,9 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
@@ -27,6 +30,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
     }
 
     String selectedValue = null;
+
+    List<Actor> contentFields = new ArrayList<Actor>();
+    List<ChangeListener> listeners = new ArrayList<>();
 
     @Override
     protected void generateViews() {
@@ -61,8 +67,12 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                         selectedValue = (String)box.getSelected();
                     }
                 });
+                for (ChangeListener listener : listeners)
+                    box.addListener(listener);
+                contentFields.add(box);
 
                 table.add(label);
+                table.add();
                 table.add(box).padBottom(2).row();
             }
 
@@ -70,14 +80,29 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
             public void removeFromTable() {
                 label.remove();
                 box.remove();
+                contentFields.remove(box);
             }
         });
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
+    public ParamSupplier getSupplier() {
         StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyName, selection.getOption(selectedValue));
         staticParamSupplier.setSystemRelevant(true); //TODO only set system relevant if it really is!
         return staticParamSupplier;
+    }
+
+    @Override
+    public void addChangeListener(ChangeListener changeListener) {
+        listeners.add(changeListener);
+        for (Actor field : contentFields)
+            field.addListener(changeListener);
+    }
+
+    @Override
+    public void removeChangeListener(ChangeListener changeListener) {
+        listeners.remove(changeListener);
+        for (Actor field : contentFields)
+            field.removeListener(changeListener);
     }
 }

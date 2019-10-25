@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -17,6 +18,7 @@ import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
 
@@ -82,7 +84,7 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
+    public ParamSupplier getSupplier() {
         int upsample;
         boolean culling;
         double priority_shift;
@@ -99,6 +101,16 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
         }
         int chunkSize = paramContainer.getClientParameter("chunkFactory").getGeneral(ArrayChunkFactory.class).getChunkSize();
         return new StaticParamSupplier("layer_"+id, new BreadthFirstUpsampleLayer(upsample, chunkSize).with_priority_shift(priority_shift).with_priority_multiplier(priority_multiplier).with_culling(culling));
+    }
+
+    @Override
+    public void addChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void removeChangeListener(ChangeListener changeListener) {
+        throw new NotImplementedException();
     }
 
 }

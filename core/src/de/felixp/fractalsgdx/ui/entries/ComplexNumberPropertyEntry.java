@@ -8,6 +8,7 @@ import de.felixperko.fractals.network.SystemClientData;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
@@ -31,8 +32,18 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
-        ParamSupplier supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(text1, text2));
+    public ParamSupplier getSupplier() {
+        ParamSupplier supplier = null;
+
+        if (selectedSupplierClass.isAssignableFrom(CoordinateBasicShiftParamSupplier.class)){
+            supplier = new CoordinateBasicShiftParamSupplier(propertyName);
+        }
+        else {
+            String real = (text1 == null || text1.length() == 0) ? "0" : text1;
+            String imag = (text2 == null || text2.length() == 0) ? "0" : text2;
+            supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(real, imag));
+        }
+
         supplier.setLayerRelevant(true);
         return supplier;
     }

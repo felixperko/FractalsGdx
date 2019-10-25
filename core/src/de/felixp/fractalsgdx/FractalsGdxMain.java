@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Keys;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -29,6 +30,9 @@ import java.util.Map;
 import de.felixp.fractalsgdx.client.Client;
 
 public class FractalsGdxMain extends ApplicationAdapter {
+
+    public final static String UI_PREFS_NAME = "de.felixp.fractalsgdx.FractalsGdxMain.ui";
+    public final static String UI_PREFS_SCALE = "scale";
 
 	SpriteBatch batch;
 	Texture img;
@@ -102,7 +106,16 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	public void create () {
 
 
-		VisUI.load(VisUI.SkinScale.X1);
+        Preferences uiPrefs = Gdx.app.getPreferences(UI_PREFS_NAME);
+        int scale = 1;
+        if (uiPrefs.contains(UI_PREFS_SCALE)){
+            scale = uiPrefs.getInteger(UI_PREFS_SCALE);
+        }
+        if (scale == 2)
+		    VisUI.load(VisUI.SkinScale.X2);
+        else
+            VisUI.load(VisUI.SkinScale.X1);
+
 		batch = new SpriteBatch();
 
 //		viewport = new ScalingViewport(Scaling.fill, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());

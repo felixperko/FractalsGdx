@@ -16,7 +16,7 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     }
 
     @Override
-    protected ParamSupplier getSupplier() {
+    public ParamSupplier getSupplier() {
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), Integer.parseInt(text));
         supplier.setLayerRelevant(true);
         return supplier;

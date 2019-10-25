@@ -14,16 +14,16 @@ android {
 
     }
     packagingOptions {
-        exclude 'org/xerial/snappy/native/Windows/x86/snappyjava.dll'
-        exclude 'org/xerial/snappy/native/Windows/x86_64/snappyjava.dll'
-        exclude 'org/xerial/snappy/native/README'
-        exclude 'org/xerial/snappy/VERSION'
-        exclude 'org/xerial/snappy/native/Mac/x86/libsnappyjava.jnilib'
-        exclude 'org/xerial/snappy/native/Mac/x86_64/libsnappyjava.jnilib'
-        exclude 'org/xerial/snappy/native/AIX/ppc64/libsnappyjava.a'
-        exclude 'org/xerial/snappy/native/AIX/ppc/libsnappyjava.a'
-        exclude 'META-INF/robovm/ios/robovm.xml'
-        exclude 'org.xerial.snappy:snappy-java:1.1.7.1'
+        //exclude 'org/xerial/snappy/native/Windows/x86/snappyjava.dll'
+        //exclude 'org/xerial/snappy/native/Windows/x86_64/snappyjava.dll'
+        //exclude 'org/xerial/snappy/native/README'
+        //exclude 'org/xerial/snappy/VERSION'
+        //exclude 'org/xerial/snappy/native/Mac/x86/libsnappyjava.jnilib'
+        //exclude 'org/xerial/snappy/native/Mac/x86_64/libsnappyjava.jnilib'
+        //exclude 'org/xerial/snappy/native/AIX/ppc64/libsnappyjava.a'
+        //exclude 'org/xerial/snappy/native/AIX/ppc/libsnappyjava.a'
+        //exclude 'META-INF/robovm/ios/robovm.xml'
+        //exclude 'org.xerial.snappy:snappy-java:1.1.7.1'
     }
     defaultConfig {
         applicationId "de.felixp.fractalsgdx"

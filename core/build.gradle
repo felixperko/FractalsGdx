@@ -4,8 +4,8 @@ apply plugin: "java"
 sourceCompatibility = '1.8'
 
 dependencies {
-    //implementation files('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
-    compile 'com.jiechic.android.library:snappy-android:1.1.7'
+    implementation files ('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
+    //compile 'com.jiechic.android.library:snappy-android:1.1.7'
 }
 
 
