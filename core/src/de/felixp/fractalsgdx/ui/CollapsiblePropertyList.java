@@ -12,7 +12,7 @@ import de.felixp.fractalsgdx.RemoteRenderer;
 import de.felixp.fractalsgdx.client.ClientSystem;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
-import de.felixperko.fractals.network.ParamContainer;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 

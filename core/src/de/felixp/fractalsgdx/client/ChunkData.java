@@ -5,8 +5,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixperko.fractals.data.CompressedChunk;
-import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;

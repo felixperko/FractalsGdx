@@ -3,8 +3,7 @@ package de.felixp.fractalsgdx.ui.entries;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
-import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;

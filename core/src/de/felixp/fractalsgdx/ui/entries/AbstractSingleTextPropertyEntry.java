@@ -12,8 +12,7 @@ import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.felixperko.fractals.network.ParamContainer;
-import de.felixperko.fractals.network.SystemClientData;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 

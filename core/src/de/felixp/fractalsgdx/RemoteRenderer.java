@@ -19,6 +19,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 
+import net.dermetfan.utils.Pair;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,15 +75,15 @@ public class RemoteRenderer extends AbstractRenderer {
 
                 boolean changed = false;
                 if (button == Input.Buttons.LEFT) {
-                    systemInterface.getClientSystem().updatePosition(getWidth()*0.5f-x, getHeight()*0.5f-y);
+                    systemInterface.getClientSystem().updatePosition(getWidth() * 0.5f - x, getHeight() * 0.5f - y);
                     systemInterface.getClientSystem().updateZoom(0.5f);
                     changed = true;
-                }else if (button == Input.Buttons.RIGHT){
+                } else if (button == Input.Buttons.RIGHT) {
                     systemInterface.getClientSystem().updateZoom(2f);
                     changed = true;
                 }
 
-                if (changed){
+                if (changed) {
                     reset();
                 }
             }
@@ -218,6 +220,12 @@ public class RemoteRenderer extends AbstractRenderer {
 
     private void processPixmaps() {
         synchronized (newPixmaps){
+
+//            int countLeft = 2;
+//            List<Pair<Integer, Integer>> removePairs = new ArrayList<>();
+//            boolean limitReached = false;
+
+            loop:
             for (Map.Entry<Integer, Map<Integer, Pixmap>> e : newPixmaps.entrySet()){
                 int x = e.getKey();
                 Map<Integer, Texture> textureYMap = getTextureYMap(e.getKey());
@@ -237,10 +245,24 @@ public class RemoteRenderer extends AbstractRenderer {
 //                        texture.draw(pixmap, 0, 0);
 //                    }
                     pixmap.dispose();
-                    setRefresh();
+
+//                    removePairs.add(new Pair<Integer, Integer>(e.getKey(), e2.getKey()));
+//                    if (--countLeft <= 0) {
+//                        limitReached = true;
+//                        break loop;
+//                    }
                 }
             }
-            newPixmaps.clear();
+            setRefresh();
+//            if (!limitReached)
+                newPixmaps.clear();
+//            else {
+//                for (Pair<Integer, Integer> remove : removePairs){
+//                    Integer x = remove.getKey();
+//                    Integer y = remove.getValue();
+//                    newPixmaps.get(x).remove(y);
+//                }
+//            }
         }
     }
 

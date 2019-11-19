@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.data.shareddata.DataContainer;
 import de.felixperko.fractals.data.shareddata.MappedSharedDataUpdate;
 import de.felixperko.fractals.data.shareddata.SharedDataUpdate;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
-import de.felixperko.fractals.network.ParamContainer;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
@@ -84,7 +84,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
     protected SystemInterfaceGdx createSystemInterface(ClientConfiguration clientConfiguration) {
 //        if (managers == null)
 //            throw new IllegalStateException();
-//        SystemInterfaceGdx systemInterface = new EncodeSystemInterfaceGdx(this, managers);
+//        SystemInterfaceGdx systemInterface = new EncodePixmapThread(this, managers);
 //        return systemInterface;
         throw new IllegalArgumentException("not implemented");
     }
@@ -98,7 +98,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
     public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration, ParameterConfiguration parameterConfiguration) {
         if (managers == null)
             throw new IllegalStateException();
-        SystemInterfaceGdx systemInterface = new EncodeSystemInterfaceGdx(systemId, this, managers);
+        SystemInterfaceGdx systemInterface = new SystemInterfaceGdx(systemId, this, managers);
         //client.setClientConfiguration(clientConfiguration);
         int chunkSize = clientConfiguration.getParameterGeneralValue(systemId, "chunkSize", Integer.class);
         int width = clientConfiguration.getParameterGeneralValue(systemId, "width", Integer.class);
@@ -109,7 +109,6 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
             height += chunkSize;
         width /= chunkSize;
         height /= chunkSize;
-        systemInterface.addChunkCount((width)*(height));//TODO remove
         client.clientConfiguration = clientConfiguration;
         ParamContainer paramContainer = clientConfiguration.getParamContainer(systemId);
         systemInterface.setParamContainer(paramContainer);

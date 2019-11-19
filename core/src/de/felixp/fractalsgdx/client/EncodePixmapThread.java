@@ -6,7 +6,11 @@ import java.util.UUID;
 
 import de.felixperko.fractals.manager.client.ClientManagers;
 
-public class EncodeSystemInterfaceGdx extends SystemInterfaceGdx {
+public class EncodePixmapThread extends PixmapThread {
+
+    public EncodePixmapThread(SystemInterfaceGdx systemInterface) {
+        super(systemInterface);
+    }
 //    public static void printColorBits(Color color){
 //        int b1 = (int)(color.r*256);
 //        int b2 = (int)(color.g*256);
@@ -52,9 +56,9 @@ public class EncodeSystemInterfaceGdx extends SystemInterfaceGdx {
 //    }
 
     static double log2 = Math.log(2);
-    public EncodeSystemInterfaceGdx(UUID systemId, MessageInterfaceGdx messageInterface, ClientManagers managers){
-        super(systemId, messageInterface, managers);
-    }
+//    public EncodePixmapThread(UUID systemId, MessageInterfaceGdx messageInterface, ClientManagers managers){
+//        super(systemId, messageInterface, managers);
+//    }
 
     @Override
     protected void getColor(Color color, float value) {

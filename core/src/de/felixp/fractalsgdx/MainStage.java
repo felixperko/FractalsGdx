@@ -35,7 +35,7 @@ import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
-import de.felixperko.fractals.network.ParamContainer;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
@@ -46,6 +46,7 @@ import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 
@@ -112,7 +113,7 @@ public class MainStage extends Stage {
                 paramContainer = ParamContainer.deserializeBase64((String)e.getValue());
             } catch (IOException | ClassNotFoundException e1) {
                 e1.printStackTrace();
-                throw new IllegalStateException("Exception: \n"+e1.getMessage());
+//                throw new IllegalStateException("Exception: \n"+e1.getMessage());
             }
             locations.put(name, paramContainer);
         }
@@ -636,7 +637,9 @@ public class MainStage extends Stage {
             ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
             ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
             ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
-            ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
+            //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
+            BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
+            ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
             stateBar.add(new VisLabel("midpoint: "+getPrintString(midpoint, 3))).left().row();
             stateBar.add(new VisLabel("ScreenPos: "+mouseX+", "+mouseY)).left().row();
             stateBar.add(new VisLabel("WorldPos: "+getPrintString(worldCoords, 3))).left().row();
