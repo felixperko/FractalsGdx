@@ -165,7 +165,8 @@ public abstract class PixmapThread extends Thread {
 //        Gdx.app.postRunnable(new Runnable() {
 //            @Override
 //            public void run() {
-                systemInterface.messageInterface.getFractalsGdxMain().drawPixmap(chunkImgX, chunkImgY, pixmap);
+        if (jobId == clientSystem.systemContext.getViewId())
+            systemInterface.messageInterface.getFractalsGdxMain().drawPixmap(chunkImgX, chunkImgY, pixmap);
 //            }
 //        });
     }

@@ -31,8 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
+import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 
 public class RemoteRenderer extends AbstractRenderer {
@@ -41,10 +43,15 @@ public class RemoteRenderer extends AbstractRenderer {
 
     SystemInterfaceGdx systemInterface;
 
+    Map<ViewData, List<RenderChunk>> chunks = new HashMap<>();
+
     public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
+    //public Map<ComplexNumber, Texture> textures = new HashMap<>();
+
     List<Texture> textureList = new ArrayList<>();
 
     public static Map<Integer, Map<Integer,Pixmap>> newPixmaps = new HashMap<>();
+//    public static Map<ComplexNumber, Pixmap> newPixmaps = new HashMap<>();
 
     ShaderProgram shader;
 

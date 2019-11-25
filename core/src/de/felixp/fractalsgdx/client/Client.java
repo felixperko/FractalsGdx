@@ -45,6 +45,23 @@ public class Client {
         managers = new ClientManagers(new NetworkInterfaceFactory(MessageInterfaceGdx.class, SystemInterfaceGdx.class));
         clientConfiguration = new ClientConfiguration();
 
+        connect(ip, port, local);
+    }
+
+    public void connectLocal(){
+        connect(null, -1, true);
+    }
+
+    public void connect(String ip, int port){
+        connect(ip, port, false);
+    }
+
+    private void connect(String ip, int port, boolean local) {
+        if (serverConnection != null){
+            managers.getClientNetworkManager().closeServerConnection(serverConnection);
+            serverConnection = null;
+        }
+
         ClientSystem clientSystem = new ClientSystem(managers, this);
         this.clientSystem = clientSystem;
         clientConfiguration.addRequest(new ParamContainer(clientSystem.getParamContainer(), false));
@@ -55,15 +72,6 @@ public class Client {
             serverConnection = managers.getClientNetworkManager().connectToLocalServer(messageable, true);
         else
             serverConnection = managers.getClientNetworkManager().connectToServer(ip, port);
-
-//        serverConnection =
-//        managers.getClientNetworkManager().connectToServer("95.168.135.138", 80);
-//		  managers.getClientNetworkManager().connectToServer("192.168.0.13", 3141);
-//        managers.getClientNetworkManager().connectToServer("192.168.0.11", 3141);
-//        managers.getClientNetworkManager().connectToServer("192.168.137.1", 3141);
-//        managers.getClientNetworkManager().connectToServer("localhost", 3141);
-//        managers.getClientNetworkManager().connectToLocalServer(messageable, true);
-
 
         serverConnection.getWriteToServer().setConnection(serverConnection);
         messageable.setServerConnection(serverConnection);
@@ -81,9 +89,7 @@ public class Client {
 
         messageInterface = (MessageInterfaceGdx) managers.getNetworkManager().getMessageInterface(serverConnection);
 
-//        if (local) {
-            serverConnection.writeMessage(new SessionInitRequestMessage(new ClientConfiguration(clientConfiguration, true)));
-//        }
+        serverConnection.writeMessage(new SessionInitRequestMessage(new ClientConfiguration(clientConfiguration, true)));
     }
 
     public void createdSystem(ClientConfiguration configuration, SystemInterfaceGdx systemInterface){

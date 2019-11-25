@@ -19,11 +19,11 @@ public class EncodePixmapThread extends PixmapThread {
 //    }
 
     public static void encode3fFast(Color color, float value){
-        int integer = Float.floatToIntBits(value);
-        int mantissa = integer & 0x007fffff;
-        float exponent = ((integer >>> 23) & 0x000000ff);
-        float mantissa1 = (integer >>> 15) & 0x000000ff;
-        float mantissa2 = (integer >>> 7) & 0x000000ff;
+        //int mantissa = integer & 0x007fffff;
+        int bits = Float.floatToIntBits(value);
+        float exponent = ((bits >>> 23) & 0x000000ff);
+        float mantissa1 = (bits >>> 15) & 0x000000ff;
+        float mantissa2 = (bits >>> 7) & 0x000000ff;
         color.set(mantissa1/256f, mantissa2/256f, exponent/256f, 1f);
     }
 
