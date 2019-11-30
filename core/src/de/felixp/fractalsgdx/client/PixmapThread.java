@@ -5,6 +5,9 @@ import com.badlogic.gdx.graphics.Pixmap;
 
 import net.dermetfan.utils.Pair;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Comparator;
 import java.util.PriorityQueue;
 
@@ -43,7 +46,10 @@ public abstract class PixmapThread extends Thread {
 
     SystemInterfaceGdx systemInterface;
 
+    Logger log = LoggerFactory.getLogger(PixmapThread.class);
+
     public PixmapThread(SystemInterfaceGdx systemInterface){
+        setName("PIXMAP_0");
         this.systemInterface = systemInterface;
     }
 
@@ -89,7 +95,7 @@ public abstract class PixmapThread extends Thread {
         ClientSystem clientSystem = systemInterface.getClientSystem();
 
         int jobId = compressedChunk.getJobId();
-        System.out.println("chunk update "+jobId+" (this:"+clientSystem.systemContext.getViewId()+")");
+        log.debug("chunk update "+jobId+" (this:"+clientSystem.systemContext.getViewId()+")");
         if (jobId != clientSystem.systemContext.getViewId())
             return;
 
@@ -105,7 +111,7 @@ public abstract class PixmapThread extends Thread {
         int chunkImgX = (int)Math.round(chunkCoords.getReal().toDouble());
         int chunkImgY = (int)Math.round(chunkCoords.getImag().toDouble());
 
-        System.out.println(chunk.getChunkX()+" / "+chunk.getChunkY()+" -> "+chunkImgX+" / "+chunkImgY);
+        log.trace(chunk.getChunkX()+" / "+chunk.getChunkY()+" -> "+chunkImgX+" / "+chunkImgY);
         boolean inside = false;
         com.badlogic.gdx.graphics.Color color = new com.badlogic.gdx.graphics.Color();
 

@@ -79,11 +79,11 @@ public class ClientSystem {
         layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
         layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
         layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
-        layers.add(new BreadthFirstLayer().with_samples(1).with_rendering(true).with_priority_shift(90));
-        layers.add(new BreadthFirstLayer().with_samples(2).with_rendering(true).with_priority_shift(100));
-        layers.add(new BreadthFirstLayer().with_samples(4).with_rendering(true).with_priority_shift(110));
-        layers.add(new BreadthFirstLayer().with_samples(9).with_rendering(true).with_priority_shift(130));
-        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(150));
+        layers.add(new BreadthFirstLayer().with_samples(1).with_rendering(true).with_priority_shift(100));
+        layers.add(new BreadthFirstLayer().with_samples(2).with_rendering(true).with_priority_shift(130));
+        layers.add(new BreadthFirstLayer().with_samples(4).with_rendering(true).with_priority_shift(160));
+        layers.add(new BreadthFirstLayer().with_samples(9).with_rendering(true).with_priority_shift(190));
+        layers.add(new BreadthFirstLayer().with_samples(25).with_priority_shift(210));
 //        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(170));
 
         LayerConfiguration layerConfiguration = new PadovanLayerConfiguration(layers);

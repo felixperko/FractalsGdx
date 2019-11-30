@@ -1,5 +1,8 @@
 package de.felixp.fractalsgdx.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import de.felixperko.fractals.network.infra.Message;
 import de.felixperko.fractals.network.infra.connection.ClientLocalConnection;
 import de.felixperko.fractals.network.infra.connection.Connection;
@@ -18,7 +21,7 @@ public class LocalMessageableGdx implements Messageable {
 
     ServerConnection serverConnection;
 
-    CategoryLogger log = new CategoryLogger("com/toLocalClient", new ColorContainer(1f, 0, 1));
+    Logger log = LoggerFactory.getLogger("com/toLocalClient");
 
     public LocalMessageableGdx(){
     }

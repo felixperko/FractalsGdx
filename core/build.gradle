@@ -5,7 +5,14 @@ sourceCompatibility = '1.8'
 
 dependencies {
     implementation files ('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
-    //compile 'com.jiechic.android.library:snappy-android:1.1.7'
+
+    // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.29'
+
+    compile group: 'ch.qos.logback', name:'logback-classic', version: '1.2.3'
+    compile group: 'ch.qos.logback', name:'logback-core', version: '1.2.3'
+
+    compile 'com.jiechic.android.library:snappy-android:1.1.7'
 }
 
 
