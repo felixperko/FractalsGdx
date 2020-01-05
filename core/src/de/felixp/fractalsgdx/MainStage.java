@@ -57,12 +57,12 @@ public class MainStage extends Stage {
 
     final static String POSITIONS_PREFS_NAME = "de.felixp.fractalsgdx.MainStage.positions";
 
-    public final static String PARAMS_COLOR_ADD = "color shift";
-    public final static String PARAMS_COLOR_MULT = "color period";
-    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_SOBEL_GLOW_LIMIT = "glow brightness";
-    public final static String PARAMS_SOBEL_DIM_PERIOD = "glow dim period";
-    public final static String PARAMS_AMBIENT_GLOW = "ambient light";
+    public final static String PARAMS_COLOR_ADD = "color offset";
+    public final static String PARAMS_COLOR_MULT = "color change rate";
+//    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
+    public final static String PARAMS_SOBEL_GLOW_LIMIT = "edge glow brightness";
+    public final static String PARAMS_SOBEL_DIM_PERIOD = "edge glow sensitivity";
+    public final static String PARAMS_AMBIENT_GLOW = "background brightness";
 
 
     AbstractRenderer renderer;
@@ -110,7 +110,7 @@ public class MainStage extends Stage {
 
             ParamContainer paramContainer = null;
             try {
-                paramContainer = ParamContainer.deserializeBase64((String)e.getValue());
+                paramContainer = ParamContainer.deserializeObjectBase64((String)e.getValue());
             } catch (IOException | ClassNotFoundException e1) {
                 e1.printStackTrace();
 //                throw new IllegalStateException("Exception: \n"+e1.getMessage());
@@ -139,16 +139,19 @@ public class MainStage extends Stage {
                 .withHints("ui-element[default]:slider min=0.02 max=10"));
         clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_COLOR_ADD, "coloring", StaticParamSupplier.class, doubleType)
                 .withHints("ui-element[default]:slider min=0 max=1"));
-        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, doubleType));
-        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, doubleType));
-        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, doubleType));
+//        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, doubleType)
+                .withHints("ui-element[default]:slider min=-1 max=1"));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, doubleType)
+                .withHints("ui-element[default]:slider min=-1 max=5"));
+        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, doubleType)
+                .withHints("ui-element[default]:slider min=0.01 max=5"));
 
         //create suppliers
         clientParams = new ParamContainer();
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, 3.));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, 0.));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.));
+//        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, 0.2));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 0.8));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 1.));
@@ -306,7 +309,7 @@ public class MainStage extends Stage {
         Map<Graphics.DisplayMode, String> names = new HashMap<>();
         Map<String, Graphics.DisplayMode> modes = new HashMap<>();
         Map<String, Graphics.DisplayMode> modePerResolution = new HashMap<>();
-        for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes()){
+        for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes(Gdx.graphics.getMonitor())){
             String res = mode.width+"x"+mode.height;
             Graphics.DisplayMode oldMode = modePerResolution.get(res);
             if (oldMode == null || oldMode.refreshRate < mode.refreshRate)
@@ -325,7 +328,7 @@ public class MainStage extends Stage {
                     continue nextResolution;
                 }
             }
-            items.add(mode);
+            items.add(mode);    
         }
         String[] itemArray = new String[items.size()];
         for (int i = 0 ; i < itemArray.length ; i++)
@@ -503,7 +506,7 @@ public class MainStage extends Stage {
                 locations.put(nameFld.getText(), container);
 
                 try {
-                    positions_prefs.putString(nameFld.getText(), container.serializeBase64());
+                    positions_prefs.putString(nameFld.getText(), container.serializeObjectBase64());
                     positions_prefs.flush();
                 } catch (IOException e) {
                     throw new IllegalStateException("couldn't serialize locations");

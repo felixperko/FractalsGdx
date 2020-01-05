@@ -7,7 +7,7 @@ uniform float sobel_ambient;
 uniform float sobel_magnitude;
 uniform float colorAdd;
 uniform float colorMult;
-uniform float sobelLuminance;
+float sobelLuminance = 1.0;
 uniform float sobelPeriod;
 uniform vec2 resolution;
 
@@ -27,7 +27,7 @@ float DecodeExpV3Fast (in vec3 pack){
     float mantissa1 = pack.r;
     float mantissa2 = pack.g / 256.0;
     //float exponent = color.b*256.0 - 127.0;
-    float value = mantissa1 + mantissa2 + 1;
+    float value = mantissa1 + mantissa2 + 1.0;
     //return value*(float)Math.pow(2, (exponent));
     //float value = 1.0 + dot(pack.rgb, 1.0 / vec3(1.0, 256.0, 256.0*256.0));
     float exponent = pack.b * 256.0 - 127.0;
@@ -95,7 +95,8 @@ void main(void){
         //    brightness += 1.0/256.0;
 
         //gl_FragColor = rgb;
-        float brightnessShift = ((int)brightness*256 % 1)/128.0;
+        int brightness256 = int(brightness)*256;
+        float brightnessShift = brightness256/128.0;
         float shiftG = 0.0;
         float shiftB = 0.0;
         if (brightnessShift >= 1.0)
