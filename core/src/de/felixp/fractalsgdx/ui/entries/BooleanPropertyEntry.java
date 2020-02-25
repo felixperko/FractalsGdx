@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -16,8 +17,8 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 
 public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
-    public BooleanPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
-        super(table, paramContainer, parameterDefinition);
+    public BooleanPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(node, paramContainer, parameterDefinition);
     }
 
     VisLabel label;
@@ -30,7 +31,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
     protected void generateViews() {
         views.put(VIEW_LIST, new EntryView() {
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 if (label == null) {
                     label = new VisLabel(getPropertyName());
                     checkBox = new VisCheckBox("enabled");

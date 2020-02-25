@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTable;
 
@@ -13,8 +14,8 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     NumberFactory numberFactory;
 
-    public NumberTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
-        super(table, paramContainer, parameterDefinition, inputValidator);
+    public NumberTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
+        super(node, paramContainer, parameterDefinition, inputValidator);
         this.numberFactory = numberFactory;
     }
 

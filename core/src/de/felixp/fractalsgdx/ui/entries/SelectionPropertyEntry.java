@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -21,9 +22,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     Selection<?> selection;
 
-    public SelectionPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+    public SelectionPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
 
-        super(table, paramContainer, parameterDefinition);
+        super(node, paramContainer, parameterDefinition);
 
         selection = parameterDefinition.getConfiguration().getSelection(propertyName);
     }
@@ -41,7 +42,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
             private VisSelectBox box;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
 
                 label = new VisLabel(propertyName);
                 box = new VisSelectBox();
@@ -70,9 +71,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                     box.addListener(listener);
                 contentFields.add(box);
 
-                table.add(label);
+                table.add(label).left().padRight(3);
                 table.add();
-                table.add(box).padBottom(2).row();
+                table.add(box).fillX().expandX().padBottom(2).row();
             }
 
             @Override

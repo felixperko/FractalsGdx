@@ -1,13 +1,10 @@
 package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
@@ -42,8 +39,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
 
-    public AbstractDoubleTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
-        super(table, paramContainer, parameterDefinition);
+    public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
+        super(node, paramContainer, parameterDefinition);
 
         this.validator1 = validator1;
         this.validator2 = validator2;
@@ -71,7 +68,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             VisTextButton optionButton;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
 
                 label = new VisLabel(propertyName);
 
@@ -121,13 +118,12 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 //                    }
 //                });
 
-                table.add(label).padRight(3);
+                table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);
-                table.add(field1).fillX().row();
+                table.add(field1).fillX().expandX().row();
                 table.add();
                 table.add();
-                table.add(field2).fillX().padBottom(2).row();
-
+                table.add(field2).fillX().expandX().padBottom(2).row();
 
                 optionButton.addListener(new ChangeListener(){
                     @Override

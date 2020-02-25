@@ -96,7 +96,7 @@ void main(void){
 
         //gl_FragColor = rgb;
         int brightness256 = int(brightness)*256;
-        float brightnessShift = brightness256/128.0;
+        float brightnessShift = float(brightness256)/128.0;
         float shiftG = 0.0;
         float shiftB = 0.0;
         if (brightnessShift >= 1.0)

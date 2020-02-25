@@ -2,27 +2,35 @@ package de.felixp.fractalsgdx.ui;
 
 import static com.badlogic.gdx.utils.Align.*;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.CollapsibleWidget;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.widget.VisTree;
 
 public class CollapsibleSideMenu {
 
-    protected VisTable collapsibleTable;
+    protected VisTree tree;
     CollapsibleWidget collapsibleWidget;
     VisTextButton collapseButton;
     int align = -1;
+    VisTable collapsibleTable;
 
     public CollapsibleSideMenu(){
 
-        collapsibleTable = new VisTable();
-        collapsibleTable.add().expand(false, true).fill(false, true);
-        collapsibleTable.row();
+        tree = new VisTree();
+        //tree.add().expand(false, true).fill(false, true);
+        //tree.row();
 
-        collapsibleWidget = new CollapsibleWidget(collapsibleTable, true);
+        //ScrollPane scrollPane = new ScrollPane(tree);
+
+        collapsibleTable = new VisTable();
+        collapsibleTable.add(tree).fillX().expandX();
+
+        collapsibleWidget = new CollapsibleWidget(collapsibleTable);
+        collapsibleWidget.setCollapsed(true);
 
         collapseButton = new VisTextButton(">", new ChangeListener() {
             @Override
@@ -71,7 +79,7 @@ public class CollapsibleSideMenu {
         }
     }
 
-    public VisTable getCollapsibleTable(){
-        return collapsibleTable;
+    public VisTree getTree(){
+        return tree;
     }
 }

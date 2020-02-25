@@ -2,7 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -22,8 +22,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     String text;
 
-    public AbstractSingleTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator) {
-        super(table, paramContainer, parameterDefinition);
+    public AbstractSingleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator) {
+        super(node, paramContainer, parameterDefinition);
         this.validator = validator;
     }
 
@@ -38,7 +38,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             VisLabel label;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 label = new VisLabel(propertyName);
                 field = new VisValidatableTextField(validator);
 
@@ -56,9 +56,9 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                     field.addListener(listener);
                 contentFields.add(field);
 
-                table.add(label).pad(3);
+                table.add(label).left().padRight(3);
                 table.add().pad(3);
-                table.add(field).fillX().padBottom(2).row();
+                table.add(field).fillX().expandX().padBottom(2).row();
             }
 
             @Override

@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
@@ -15,8 +16,8 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
 
     NumberFactory numberFactory;
 
-    public ComplexNumberPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
-        super(table, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
+    public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
+        super(node, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
         this.numberFactory = numberFactory;
     }
 
@@ -42,8 +43,7 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
             String imag = (text2 == null || text2.length() == 0) ? "0" : text2;
             supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(real, imag));
         }
-
-        supplier.setLayerRelevant(true);
+        supplier.setLayerRelevant(true);//TODO only if in definition! other flags!
         return supplier;
     }
 }

@@ -3,9 +3,9 @@ package de.felixp.fractalsgdx.ui.entries;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisScrollPane;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -20,8 +20,8 @@ import de.felixperko.fractals.system.parameters.ParameterDefinition;
 public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
 
 
-    public CompositePropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
-        super(table, paramContainer, parameterDefinition);
+    public CompositePropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(node, paramContainer, parameterDefinition);
     }
 
     @Override
@@ -33,7 +33,7 @@ public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
             VisTextButton button;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 label = new VisLabel(name);
                 button = new VisTextButton("...");
                 button.addListener(new ChangeListener() {
@@ -76,7 +76,7 @@ public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
             List<AbstractPropertyEntry> entries = subEntries;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 for (AbstractPropertyEntry entry : entries)
                     entry.openView(VIEW_LIST, table);
 //                table.pack();

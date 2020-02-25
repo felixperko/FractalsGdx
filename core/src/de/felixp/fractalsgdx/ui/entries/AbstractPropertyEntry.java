@@ -2,8 +2,8 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.kotcrab.vis.ui.widget.VisTable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,10 +19,11 @@ public abstract class AbstractPropertyEntry {
     public static final String VIEW_COLUMN = "COLUMN";
     public static final String VIEW_DETAILS = "DETAILS";
 
-    VisTable table;
+    Tree.Node node;
     ParamContainer paramContainer;
 
     String propertyName;
+
     ParameterDefinition parameterDefinition;
 
     Map<String, EntryView> views = new HashMap<>();
@@ -31,10 +32,10 @@ public abstract class AbstractPropertyEntry {
 
     List<AbstractPropertyEntry> subEntries = null;
 
-    public AbstractPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
+    public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
         this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
-        this.table = table;
+        this.node = node;
         this.paramContainer = paramContainer;
     }
 
@@ -54,7 +55,7 @@ public abstract class AbstractPropertyEntry {
         if (view != null) {
 
 //            Gdx.app.postRunnable(() ->
-                    view.drawOnTable(table)
+                    view.addToTable(table)
                     ;
 //            );
         }
@@ -85,6 +86,10 @@ public abstract class AbstractPropertyEntry {
 
     public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
         this.subEntries = subEntries;
+    }
+
+    public ParameterDefinition getParameterDefinition() {
+        return parameterDefinition;
     }
 
     public abstract void addChangeListener(ChangeListener changeListener);

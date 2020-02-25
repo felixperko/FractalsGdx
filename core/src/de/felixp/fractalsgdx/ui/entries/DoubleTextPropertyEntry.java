@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
 
@@ -10,8 +11,8 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
-    public DoubleTextPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
-        super(table, paramContainer, parameterDefinition, Validators.FLOATS);
+    public DoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(node, paramContainer, parameterDefinition, Validators.FLOATS);
     }
 
     @Override

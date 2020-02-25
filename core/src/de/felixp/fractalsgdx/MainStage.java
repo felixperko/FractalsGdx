@@ -9,12 +9,15 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
@@ -33,10 +36,12 @@ import java.util.NoSuchElementException;
 import de.felixp.fractalsgdx.client.ClientSystem;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyListButton;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
@@ -44,6 +49,7 @@ import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
@@ -67,7 +73,7 @@ public class MainStage extends Stage {
 
     AbstractRenderer renderer;
 
-//    private VisTable collapsibleTable;
+//    private VisTable tree;
 
 //    CollapsibleWidget collapsibleWidget;
 //    VisTextButton collapseButton;
@@ -91,6 +97,10 @@ public class MainStage extends Stage {
     public MainStage(Viewport viewport, Batch batch){
         super(viewport, batch);
     }
+
+    boolean switchIsJulia = false;
+    Number switchMandelbrotZoom = null;
+    ComplexNumber switchMandelbrotMidpoint = null;
 
     public void create(){
 
@@ -122,12 +132,76 @@ public class MainStage extends Stage {
         ui.align(Align.topLeft);
         ui.setFillParent(true);
 
+        //extra button to switch mandelbrot <-> juliaset
+        //
+
+        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                switchIsJulia = !switchIsJulia;
+                SystemInterfaceGdx systemInterface = ((RemoteRenderer)renderer).getSystemInterface();
+                SystemContext systemContext = systemInterface.getSystemContext();
+                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
+                ParamContainer serverParamContainer = new ParamContainer(systemContext.getParamContainer(), true);
+                if (switchIsJulia) {
+                    switchMandelbrotZoom = serverParamContainer.getClientParameter("zoom").getGeneral(Number.class).copy();
+                    switchMandelbrotMidpoint = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class).copy();
+                    CoordinateBasicShiftParamSupplier newStartSupp = new CoordinateBasicShiftParamSupplier("start");
+//                    newStartSupp.setChanged(true);
+//                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
+                    newStartSupp.setChanged(true);
+                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+
+                    StaticParamSupplier newCSupp = new StaticParamSupplier("c", switchMandelbrotMidpoint);
+                    newCSupp.setChanged(true);
+                    serverParamContainer.getClientParameters().put("c", newCSupp);
+
+                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", systemContext.getNumberFactory().createComplexNumber(0, 0));
+                    midpointSupp.setChanged(true);
+                    midpointSupp.setLayerRelevant(true);
+                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
+
+                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", systemContext.getNumberFactory().createNumber(3.0));
+                    zoomSupp.setChanged(true);
+                    zoomSupp.setLayerRelevant(true);
+                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
+                } else {
+                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", systemContext.getNumberFactory().createComplexNumber(0, 0));
+//                    newStartSupp.setChanged(true);
+//                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
+                    newStartSupp.setChanged(true);
+                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+
+                    CoordinateBasicShiftParamSupplier newCSupp = new CoordinateBasicShiftParamSupplier("c");
+                    newCSupp.setChanged(true);
+                    serverParamContainer.getClientParameters().put("c", newCSupp);
+
+                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchMandelbrotMidpoint);
+                    midpointSupp.setChanged(true);
+                    midpointSupp.setLayerRelevant(true);
+                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
+
+                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", switchMandelbrotZoom);
+                    zoomSupp.setChanged(true);//TODO test if required -> integrate...
+                    zoomSupp.setLayerRelevant(true);//TODO integrate...
+                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
+                }
+//                renderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
+                submitServer(serverParamContainer);
+            }
+        });
+
         //init menus at sides
         //
-        serverParamsSideMenu = new CollapsiblePropertyList();
+
+        serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
         clientParamsSideMenu = new CollapsiblePropertyList();
-        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCollapsibleTable(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
-        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCollapsibleTable(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
+        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
+        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
 
         //ParameterConfiguration for client parameters:
         ParameterConfiguration clientParameterConfiguration = new ParameterConfiguration();
@@ -149,12 +223,12 @@ public class MainStage extends Stage {
 
         //create suppliers
         clientParams = new ParamContainer();
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, 3.));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, 0.));
-//        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, 3.0));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, 0.0));
+//        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.0));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, 0.2));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 0.8));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 1.));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 1.5));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 3.0));
 
         clientParamsSideMenu.setParameterConfiguration(clientParams, clientParameterConfiguration, clientPropertyEntryFactory);
         ChangeListener listener = new ChangeListener() {
@@ -197,16 +271,16 @@ public class MainStage extends Stage {
         topButtons.add(positions).pad(2);
         topButtons.add(setWindowSize).pad(2);
 
-        ui.add(topButtons).align(Align.top).expandX().colspan(3).row();
+        ui.add(topButtons).align(Align.top).colspan(5).expandX().row();
 
         serverParamsSideMenu.addToTable(ui, Align.left);
-        ui.add().expandX();
+        ui.add().expandX().fillX();
         clientParamsSideMenu.addToTable(ui, Align.right);
         ui.row();
 
         //collapsible left
-//        collapsibleTable.add().expand(false, true).fill(false, true);
-//        collapsibleWidget = new CollapsibleWidget(collapsibleTable, true);
+//        tree.add().expand(false, true).fill(false, true);
+//        collapsibleWidget = new CollapsibleWidget(tree, true);
 //
 //        collapseButton = new VisTextButton(">", new ChangeListener() {
 //            @Override
@@ -225,7 +299,7 @@ public class MainStage extends Stage {
 //            }
 //        });
 //
-//        collapsibleTable.row();
+//        tree.row();
 //
 //        //add
 //        ui.add(collapseButton).align(Align.left);
@@ -235,7 +309,7 @@ public class MainStage extends Stage {
         stateBar = new Table();
         stateBar.align(Align.left);
 
-        ui.add(stateBar).align(Align.bottomLeft).colspan(3);
+        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
 
         addActor(renderer);
         addActor(ui);
@@ -287,10 +361,21 @@ public class MainStage extends Stage {
                 }
             }
         });
+        StringBuilder paramText = new StringBuilder();
+        try {
+            for (ParamSupplier supp : clientParams.getParameters()) {
+                paramText.append(clientParams.serializeJson(true));
+            }
+        } catch (JsonProcessingException e){
+            e.printStackTrace();
+        }
+        VisTextField parameterTextArea = new VisTextField(paramText.toString());
 
         window.add(cancelBtn).pad(2);
         window.add(saveBtn).pad(2);
         window.add(jumptoBtn).pad(2);
+        window.row();
+        window.add(parameterTextArea);
         addActor(window);
         window.pack();
         ((VisWindow) window).centerWindow();
@@ -309,15 +394,19 @@ public class MainStage extends Stage {
         Map<Graphics.DisplayMode, String> names = new HashMap<>();
         Map<String, Graphics.DisplayMode> modes = new HashMap<>();
         Map<String, Graphics.DisplayMode> modePerResolution = new HashMap<>();
-        for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes(Gdx.graphics.getMonitor())){
-            String res = mode.width+"x"+mode.height;
-            Graphics.DisplayMode oldMode = modePerResolution.get(res);
-            if (oldMode == null || oldMode.refreshRate < mode.refreshRate)
-                modePerResolution.put(res, mode);
+        for (Graphics.Monitor monitor : Gdx.graphics.getMonitors()) {
+            for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes(monitor)) {
+                String res = monitor.name + " " + mode.width + "x" + mode.height;
+                Graphics.DisplayMode oldMode = modePerResolution.get(res);
+                if (oldMode == null || oldMode.refreshRate < mode.refreshRate)
+                    modePerResolution.put(res, mode);
+            }
         }
         List<Graphics.DisplayMode> items = new ArrayList<>();
         nextResolution:
-        for (Graphics.DisplayMode mode : modePerResolution.values()){
+        for (Map.Entry<String, Graphics.DisplayMode> e: modePerResolution.entrySet()){
+            Graphics.DisplayMode mode = e.getValue();
+//            String name = e.getKey()+"@"+mode.refreshRate+"hz";
             String name = mode.width+"x"+mode.height+" @"+mode.refreshRate+"hz";
             names.put(mode, name);
             modes.put(name, mode);
@@ -553,7 +642,9 @@ public class MainStage extends Stage {
             clientSystem.incrementJobId();
             renderer.reset();
         }
+        clientSystem.getSystemContext().setParameters(paramContainer);
         clientSystem.updateConfiguration();
+        ((RemoteRenderer) renderer).getSystemInterface().getClientSystem().resetAnchor();//TODO integrate...
     }
 
     public void setParameterConfiguration(CollapsiblePropertyList list, ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
@@ -576,14 +667,14 @@ public class MainStage extends Stage {
 //        }
 //        propertyEntryList.clear();
 //
-//        VisTable collapsibleTable = serverParamsSideMenu.getCollapsibleTable();
+//        VisTable tree = serverParamsSideMenu.getTree();
 //
-//        collapsibleTable.clear();
+//        tree.clear();
 //
 //        //NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 //
-//        //addEntry(new IntTextPropertyEntry(collapsibleTable, systemClientData, "iterations"));
-//        //addEntry(new ComplexNumberPropertyEntry(collapsibleTable, systemClientData, "pow", numberFactory));
+//        //addEntry(new IntTextPropertyEntry(tree, systemClientData, "iterations"));
+//        //addEntry(new ComplexNumberPropertyEntry(tree, systemClientData, "pow", numberFactory));
 //
 //        if (submitButton != null)
 //            submitButton.remove();
@@ -595,7 +686,7 @@ public class MainStage extends Stage {
 //            AbstractPropertyEntry entry = serverPropertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
 //            if (entry != null) {
 //                entry.init();
-//                entry.openView(AbstractPropertyEntry.VIEW_LIST, collapsibleTable);
+//                entry.openView(AbstractPropertyEntry.VIEW_LIST, tree);
 //                addEntry(entry);
 //            }
 //        }
@@ -618,8 +709,8 @@ public class MainStage extends Stage {
 //            }
 //        });
 //
-//        collapsibleTable.add();
-//        collapsibleTable.add(submitButton).row();
+//        tree.add();
+//        tree.add(submitButton).row();
 //
 //        renderer.setRefresh();
 //        updateStateBar();

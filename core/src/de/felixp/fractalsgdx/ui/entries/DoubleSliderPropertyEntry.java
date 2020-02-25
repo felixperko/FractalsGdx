@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSlider;
@@ -14,7 +15,6 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
@@ -23,8 +23,8 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
 
-    public DoubleSliderPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
-        super(table, paramContainer, parameterDefinition);
+    public DoubleSliderPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(node, paramContainer, parameterDefinition);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
             VisLabel label;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 label = new VisLabel(propertyName);
 
                 List<String> hints = parameterDefinition.getHints();
@@ -70,9 +70,9 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                     slider.addListener(listener);
                 contentFields.add(slider);
 
-                table.add(label);
+                table.add(label).left().padRight(3);
                 table.add();
-                table.add(slider).padBottom(2).row();
+                table.add(slider).expandX().fillX().padBottom(2).row();
             }
 
             @Override

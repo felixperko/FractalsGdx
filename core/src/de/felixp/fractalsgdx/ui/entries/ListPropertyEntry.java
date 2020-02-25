@@ -32,8 +32,8 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     PropertyEntryFactory entryFactory;
 
-    public ListPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
-        super(table, paramContainer, parameterDefinition);
+    public ListPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
+        super(node, paramContainer, parameterDefinition);
         types = parameterDefinition.getConfiguration().getListTypes(propertyName);
         this.entryFactory = entryFactory;
     }
@@ -50,7 +50,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 btn_add = new VisTextButton("+");
                 tree = new VisTree();
 
@@ -78,7 +78,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
                 addContentToTree();
 
                 table.add(btn_add).align(Align.top).row();
-                table.add(tree).align(Align.topLeft).colspan(2).padBottom(2).row();
+                table.add(tree).fillX().expandX().align(Align.topLeft).colspan(2).padBottom(2).row();
 
                 table.add(new Separator()).colspan(2).expandX().fill().padBottom(4).row();
             }
@@ -110,8 +110,8 @@ class ListPropertyEntry extends AbstractPropertyEntry {
             headerTable.add(removeButton);
 
             Table subTable = new VisTable();
-
-            entry.openView(VIEW_LIST, subTable);
+            //TODO readd
+            //entry.openView(VIEW_LIST, subTable);
 
 //            VisLabel testLabel2 = new VisLabel("teest");
 

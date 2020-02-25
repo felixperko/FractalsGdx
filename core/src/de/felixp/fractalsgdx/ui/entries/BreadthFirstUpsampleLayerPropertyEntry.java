@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -24,8 +25,8 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstUpsampleLayerPropertyEntry(VisTable table, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
-        super(table, paramContainer, parameterDefinition);
+    public BreadthFirstUpsampleLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+        super(node, paramContainer, parameterDefinition);
         this.id = ID_COUNTER++;
     }
 
@@ -53,7 +54,7 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
             VisLabel lbl_priority_multiplier;
 
             @Override
-            public void drawOnTable(Table table) {
+            public void addToTable(Table table) {
                 list.add(lbl_upsample = new VisLabel("upsample"));
                 list.add(lbl_culling = new VisLabel("culling"));
                 list.add(lbl_priority_shift = new VisLabel("priority shift"));

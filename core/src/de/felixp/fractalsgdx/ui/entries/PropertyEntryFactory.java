@@ -1,11 +1,14 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.LayerConfiguration;
@@ -20,11 +23,13 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class PropertyEntryFactory {
 
-    VisTable table;
+    //VisTree tree;
+    Map<String, Tree.Node> categoryNodes;
     NumberFactory numberFactory;
 
-    public PropertyEntryFactory(VisTable table, NumberFactory numberFactory) {
-        this.table = table;
+    public PropertyEntryFactory(Map<String, Tree.Node> categoryNodes, NumberFactory numberFactory) {
+        ///this.tree = tree;
+        this.categoryNodes = categoryNodes;
         this.numberFactory = numberFactory;
     }
 
@@ -67,31 +72,32 @@ public class PropertyEntryFactory {
     }
 
     private AbstractPropertyEntry getByType(ParamValueType type, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
+        Tree.Node node = categoryNodes.get(parameterDefinition.getCategory());
         switch (type.getName()) {
             case ("integer"):
-                return new IntTextPropertyEntry(table, paramContainer, parameterDefinition);
+                return new IntTextPropertyEntry(node, paramContainer, parameterDefinition);
             case ("double"):
                 if (parameterDefinition.getHintValue("ui-element[default]:field", false) != null)
-                    return new DoubleTextPropertyEntry(table, paramContainer, parameterDefinition);
+                    return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition);
                 if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
-                    return new DoubleSliderPropertyEntry(table, paramContainer, parameterDefinition);
-                return new DoubleTextPropertyEntry(table, paramContainer, parameterDefinition);
+                    return new DoubleSliderPropertyEntry(node, paramContainer, parameterDefinition);
+                return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition);
             case ("number"):
-                return new NumberTextPropertyEntry(table, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
+                return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
             case ("complexnumber"):
-                return new ComplexNumberPropertyEntry(table, paramContainer, parameterDefinition, numberFactory);
+                return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory);
             case ("boolean"):
-                return new BooleanPropertyEntry(table, paramContainer, parameterDefinition);
+                return new BooleanPropertyEntry(node, paramContainer, parameterDefinition);
             case ("selection"):
-                return new SelectionPropertyEntry(table, paramContainer, parameterDefinition);
+                return new SelectionPropertyEntry(node, paramContainer, parameterDefinition);
             case ("list"):
-                return new ListPropertyEntry(table, paramContainer, parameterDefinition, this);
+                return new ListPropertyEntry(node, paramContainer, parameterDefinition, this);
             case ("BreadthFirstLayer"):
-                return new BreadthFirstLayerPropertyEntry(table, paramContainer, parameterDefinition);
+                return new BreadthFirstLayerPropertyEntry(node, paramContainer, parameterDefinition);
             case ("BreadthFirstUpsampleLayer"):
-                return new BreadthFirstUpsampleLayerPropertyEntry(table, paramContainer, parameterDefinition);
+                return new BreadthFirstUpsampleLayerPropertyEntry(node, paramContainer, parameterDefinition);
             case ("LayerConfiguration"):
-                return new CompositePropertyEntry(table, paramContainer, parameterDefinition){
+                return new CompositePropertyEntry(node, paramContainer, parameterDefinition){
                     @Override
                     public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
                         LayerConfiguration current = paramContainer.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
