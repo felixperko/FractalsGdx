@@ -452,6 +452,11 @@ public class RemoteRenderer extends AbstractRenderer {
         this.systemInterface = systemInterface;
     }
 
+    @Override
+    public SystemContext getSystemContext(){
+        return systemInterface.getSystemContext();
+    }
+
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){
         ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
                 Gdx.files.internal(fragmentPath));

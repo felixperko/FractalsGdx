@@ -24,6 +24,7 @@ public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         }
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
         supplier.setLayerRelevant(true);
+        supplier.setChanged(true);
         return supplier;
     }
 }

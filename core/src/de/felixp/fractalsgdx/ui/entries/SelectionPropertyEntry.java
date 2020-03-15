@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Array;
+import com.kotcrab.vis.ui.widget.Tooltip;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -46,6 +47,10 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
                 label = new VisLabel(propertyName);
                 box = new VisSelectBox();
+
+//                String tooltipText = parameterDefinition.getDescription();
+//                if (tooltipText != null)
+//                    new Tooltip.Builder(tooltipText).target(box).build();
 
                 Array arr = new Array();
                 for (String option : selection.getOptionNames())

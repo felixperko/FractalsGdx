@@ -124,8 +124,10 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		stage = new MainStage(viewport, batch);
 		((MainStage) stage).create();
 
-		client = new Client(this);
-		client.start();
+		if (((MainStage) stage).getRenderer() instanceof RemoteRenderer) {
+			client = new Client(this);
+			client.start();
+		}
 
 
 //		shader = compileShader("passthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
@@ -145,7 +147,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	}
 
 	public void drawPixmap(Integer startX, Integer startY, Pixmap pixmap){
-		((MainStage)stage).getRenderer().drawPixmap(startX, startY, pixmap);
+		((RemoteRenderer)((MainStage)stage).getRenderer()).drawPixmap(startX, startY, pixmap);
 //		synchronized (newPixmaps){
 //			Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);
 //			pixmapsYMap.put(startY, pixmap);

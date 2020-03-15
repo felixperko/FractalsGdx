@@ -59,7 +59,7 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
         this.systemId = systemId;
         this.managers = managers;
         this.messageInterface = messageInterface;
-        this.renderer = ((MainStage)FractalsGdxMain.stage).getRenderer();
+        this.renderer = (RemoteRenderer)((MainStage)FractalsGdxMain.stage).getRenderer();
 
         this.pixmapThread = new EncodePixmapThread(this);
         this.pixmapThread.start();

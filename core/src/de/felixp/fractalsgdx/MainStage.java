@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -18,6 +19,8 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.kotcrab.vis.ui.VisUI;
+import com.kotcrab.vis.ui.widget.Tooltip;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
@@ -106,8 +109,8 @@ public class MainStage extends Stage {
 
 //        Gdx.graphics.setContinuousRendering(false);
 
+//        renderer = new ShaderRenderer();
         renderer = new RemoteRenderer();
-        renderer.init();
 
         renderer.setFillParent(true);
 
@@ -239,12 +242,28 @@ public class MainStage extends Stage {
             }
         };
         clientParamsSideMenu.addAllListener(listener);
+        if (renderer instanceof ShaderRenderer){
+            ChangeListener listener2 = new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    for (AbstractPropertyEntry e : serverParamsSideMenu.getPropertyEntries())
+                        e.applyClientValue();
+                }
+            };
+            serverParamsSideMenu.addAllListener(listener2);
+        }
 
         //Topline
         VisTable topButtons = new VisTable();
         //topButtons.align(Align.top);
 
         VisTextButton connect = new VisTextButton("Connect to Server");
+
+        //TODO remove test
+//        new Tooltip.Builder("Coming soon").target(connect).build();
+//        connect.addListener(new TextTooltip("Tooltip test", VisUI.getSkin()));
+
+
         VisTextButton screenshot = new VisTextButton("Screenshot");
         screenshot.addListener(new ClickListener(0){
             @Override
@@ -313,6 +332,8 @@ public class MainStage extends Stage {
 
         addActor(renderer);
         addActor(ui);
+
+        renderer.init();
     }
 
     private void openJumpToWindow(){
@@ -633,18 +654,20 @@ public class MainStage extends Stage {
     }
 
     public void submitServer(ParamContainer paramContainer){
-        ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
-        clientSystem.setOldParams(paramContainer.getClientParameters());
         for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
             entry.applyClientValue();
         }
-        if (paramContainer.needsReset(clientSystem.getOldParams())) {
-            clientSystem.incrementJobId();
-            renderer.reset();
+        if (renderer instanceof RemoteRenderer) {
+            ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
+            if (paramContainer.needsReset(clientSystem.getOldParams())) {
+                clientSystem.incrementJobId();
+                renderer.reset();
+            }
+            clientSystem.setOldParams(paramContainer.getClientParameters());
+            clientSystem.getSystemContext().setParameters(paramContainer);
+            clientSystem.updateConfiguration();
+            ((RemoteRenderer) renderer).getSystemInterface().getClientSystem().resetAnchor();//TODO integrate...
         }
-        clientSystem.getSystemContext().setParameters(paramContainer);
-        clientSystem.updateConfiguration();
-        ((RemoteRenderer) renderer).getSystemInterface().getClientSystem().resetAnchor();//TODO integrate...
     }
 
     public void setParameterConfiguration(CollapsiblePropertyList list, ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
@@ -724,22 +747,24 @@ public class MainStage extends Stage {
         int mouseX = Gdx.input.getX();
         int mouseY = Gdx.input.getY();
 
-        ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
-        try {
-            SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
-            stateBar.clear();
-            ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-            ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
-            ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
-            //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
-            BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
-            ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
-            stateBar.add(new VisLabel("midpoint: "+getPrintString(midpoint, 3))).left().row();
-            stateBar.add(new VisLabel("ScreenPos: "+mouseX+", "+mouseY)).left().row();
-            stateBar.add(new VisLabel("WorldPos: "+getPrintString(worldCoords, 3))).left().row();
-            stateBar.add(new VisLabel("ChunkPos: "+getPrintString(chunkCoords, 3))).left();
-        } catch (NoSuchElementException e){
-            return;
+        if (renderer instanceof RemoteRenderer) {
+            ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
+            try {
+                SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
+                stateBar.clear();
+                ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+                ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
+                ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
+                //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
+                BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
+                ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
+                stateBar.add(new VisLabel("midpoint: " + getPrintString(midpoint, 3))).left().row();
+                stateBar.add(new VisLabel("ScreenPos: " + mouseX + ", " + mouseY)).left().row();
+                stateBar.add(new VisLabel("WorldPos: " + getPrintString(worldCoords, 3))).left().row();
+                stateBar.add(new VisLabel("ChunkPos: " + getPrintString(chunkCoords, 3))).left();
+            } catch (NoSuchElementException e) {
+                return;
+            }
         }
     }
 
@@ -756,7 +781,7 @@ public class MainStage extends Stage {
         super.dispose();
     }
 
-    public RemoteRenderer getRenderer() {
-        return (RemoteRenderer)renderer;//TODO replace
+    public AbstractRenderer getRenderer() {
+        return renderer;
     }
 }

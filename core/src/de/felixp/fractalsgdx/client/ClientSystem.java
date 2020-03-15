@@ -84,7 +84,8 @@ public class ClientSystem {
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(4).with_rendering(true).with_priority_shift(160));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(9).with_rendering(true).with_priority_shift(190));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(25).with_priority_shift(210));
-//        layers.add(new BreadthFirstLayer().with_samples(100).with_priority_shift(170));
+        layers.add(new BreadthFirstLayer(chunkSize).with_samples(100).with_priority_shift(240));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(250).with_priority_shift(270)); //TODO more than (100 < x < 250) samples -> black pixels
 
         LayerConfiguration layerConfiguration = new PadovanLayerConfiguration(layers);
 //        LayerConfiguration layerConfiguration = new LayerConfiguration(layers, 0.025, 20, 42);

@@ -1,17 +1,28 @@
 package de.felixp.fractalsgdx;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
+import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 
-public class ShaderRenderer extends WidgetGroup implements Renderer {
+import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
+
+public class ShaderRenderer extends AbstractRenderer {
 
     final static String shader1 = "CalcMandelbrotFragment.glsl";
     final static String shader2 = "SobelDecodeFragment.glsl";
@@ -44,11 +55,13 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
 
     int width;
     int height;
-    int iterations;
+    int iterations = 1000;
 
-    float scale;
+    float scale = 3f;
 
     int sampleLimit = 100;
+
+    SystemContext systemContext = new GPUSystemContext();
 
     public ShaderRenderer(){
         super();
@@ -59,6 +72,50 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
     public void init(){
 //		palette = new Texture("palette.png");
 //		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        fbo2 = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        ((GPUSystemContext)systemContext).init();
+
+        ParamContainer paramContainer = systemContext.getParamContainer();
+
+        addListener(new ActorGestureListener(){
+            @Override
+            public void tap(InputEvent event, float x, float y, int count, int button) {
+
+                boolean changed = false;
+                NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+                Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
+                Number factor = null;
+                if (button == Input.Buttons.LEFT) {
+                    factor = nf.createNumber(0.5);
+                    changed = true;
+                } else if (button == Input.Buttons.RIGHT) {
+                    factor = nf.createNumber(2);
+                    changed = true;
+                }
+
+                if (factor != null)
+                    zoom.mult(factor);
+
+                if (changed) {
+                    reset();
+                }
+            }
+
+            @Override
+            public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
+                xPos += deltaX;
+                yPos += deltaY;
+                NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+                Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
+                ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+                ComplexNumber delta = nf.createComplexNumber(deltaX, -deltaY);
+                delta.divNumber(nf.createNumber(Gdx.graphics.getHeight()));
+                delta.multNumber(zoom);
+                midpoint.sub(delta);
+                FractalsGdxMain.forceRefresh = true;
+            }
+        });
     }
 
     @Override
@@ -84,6 +141,7 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
             shader.begin();
 
             setShaderUniforms();
+            batch.end();
             batch.begin();
             batch.setShader(shader);
 
@@ -162,7 +220,7 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
         TextureRegion texReg2 = new TextureRegion(tex2);
         texReg2.flip(false, true);
         batch.draw(texReg2, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        batch.end();
+//        batch.end();
 //        super.draw(batch, parentAlpha);
     }
 
@@ -180,6 +238,9 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
     private void setShaderUniforms() {
         float currentWidth = Gdx.graphics.getWidth();
         float currentHeight = Gdx.graphics.getHeight();
+
+        ParamContainer paramContainer = systemContext.getParamContainer();
+
         shader.setUniformMatrix("u_projTrans", matrix);
         shader.setUniformf("ratio", currentWidth/(float)currentHeight);
         shader.setUniformf("resolution", width, height);
@@ -191,13 +252,19 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
 //			lastIncrease = t;
 //			iterations++;
 //		}
-        shader.setUniformi("iterations", iterations);
-        shader.setUniformf("scale", (float)scale);
+        shader.setUniformi("iterations", paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
+        shader.setUniformf("scale", (float)paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble());
+
         float xVariation = (float)((Math.random()-0.5)*(scale/width));
         float yVariation = (float)((Math.random()-0.5)*(scale/width));
-        shader.setUniformf("center", (float) xPos + xVariation, (float) yPos + yVariation);
-        shader.setUniformf("biasReal", biasReal);
-        shader.setUniformf("biasImag", biasImag);
+
+        ComplexNumber midpoint = systemContext.getMidpoint();
+        ComplexNumber c = paramContainer.getClientParameter("c").getGeneral(ComplexNumber.class);
+
+//        shader.setUniformf("center", (float) midpoint.getReal().toDouble() + xVariation, (float) midpoint.getImag().toDouble() + yVariation);
+        shader.setUniformf("center", (float) midpoint.getReal().toDouble(), (float) midpoint.getImag().toDouble());
+        shader.setUniformf("biasReal", (float)c.getReal().toDouble());
+        shader.setUniformf("biasImag", (float)c.getImag().toDouble());
         shader.setUniformf("samples", currentRefreshes+1);
         shader.setUniformf("flip", currentRefreshes%2 == 1 ? -1 : 1);
         //shader.setUniformi("u_texture", 0);
@@ -221,11 +288,31 @@ public class ShaderRenderer extends WidgetGroup implements Renderer {
     }
 
     @Override
+    public double getXShift() {
+        return 0;
+    }
+
+    @Override
+    public double getYShift() {
+        return 0;
+    }
+
+    @Override
     public boolean isScreenshot(boolean reset) {
         boolean curr = screenshot;
         if (reset)
             screenshot = false;
         return curr;
+    }
+
+    @Override
+    public SystemContext getSystemContext() {
+        return systemContext;
+    }
+
+    @Override
+    public void reset() {
+
     }
 
     @Override
