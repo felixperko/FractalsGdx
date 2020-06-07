@@ -32,7 +32,7 @@ public class DesktopLauncher {
 
 		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
 		config.fullscreen = true;
-
+//
 		config.vSyncEnabled = true;
 		new LwjglApplication(new FractalsGdxMain(), config);
 	}

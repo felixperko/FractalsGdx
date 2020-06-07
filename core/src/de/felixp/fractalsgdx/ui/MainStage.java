@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx;
+package de.felixp.fractalsgdx.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Graphics;
@@ -8,10 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -19,12 +17,12 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.kotcrab.vis.ui.VisUI;
-import com.kotcrab.vis.ui.widget.Tooltip;
+import com.kotcrab.vis.ui.widget.ScrollableTextArea;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextArea;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
@@ -36,23 +34,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import de.felixp.fractalsgdx.AbstractRenderer;
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.RemoteRenderer;
+import de.felixp.fractalsgdx.ShaderRenderer;
 import de.felixp.fractalsgdx.client.ClientSystem;
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
-import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
-import de.felixp.fractalsgdx.ui.CollapsiblePropertyListButton;
-import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
-import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
-import de.felixperko.fractals.system.numbers.Number;
-import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
-import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
-import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
-import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
@@ -64,7 +57,7 @@ import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_SCALE;
 
 public class MainStage extends Stage {
 
-    final static String POSITIONS_PREFS_NAME = "de.felixp.fractalsgdx.MainStage.positions";
+    final static String POSITIONS_PREFS_NAME = "de.felixp.fractalsgdx.ui.MainStage.positions";
 
     public final static String PARAMS_COLOR_ADD = "color offset";
     public final static String PARAMS_COLOR_MULT = "color change rate";
@@ -73,25 +66,14 @@ public class MainStage extends Stage {
     public final static String PARAMS_SOBEL_DIM_PERIOD = "edge glow sensitivity";
     public final static String PARAMS_AMBIENT_GLOW = "background brightness";
 
+    ParamUI paramUI;
+
+    ParamContainer clientParams;
 
     AbstractRenderer renderer;
 
-//    private VisTable tree;
 
-//    CollapsibleWidget collapsibleWidget;
-//    VisTextButton collapseButton;
-
-//    VisTextButton submitButton;
-
-    CollapsiblePropertyList serverParamsSideMenu;
-    PropertyEntryFactory serverPropertyEntryFactory;
-//    List<AbstractPropertyEntry> propertyEntryList = new ArrayList<>();
-
-    CollapsiblePropertyList clientParamsSideMenu;
-    PropertyEntryFactory clientPropertyEntryFactory;
-    ParamContainer clientParams;
-
-    Table stateBar;
+//    Table stateBar;
 
     Preferences positions_prefs;
     Map<String, ParamContainer> locations = new HashMap<>();
@@ -101,9 +83,6 @@ public class MainStage extends Stage {
         super(viewport, batch);
     }
 
-    boolean switchIsJulia = false;
-    Number switchMandelbrotZoom = null;
-    ComplexNumber switchMandelbrotMidpoint = null;
 
     public void create(){
 
@@ -135,76 +114,7 @@ public class MainStage extends Stage {
         ui.align(Align.topLeft);
         ui.setFillParent(true);
 
-        //extra button to switch mandelbrot <-> juliaset
-        //
 
-        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                switchIsJulia = !switchIsJulia;
-                SystemInterfaceGdx systemInterface = ((RemoteRenderer)renderer).getSystemInterface();
-                SystemContext systemContext = systemInterface.getSystemContext();
-                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
-                ParamContainer serverParamContainer = new ParamContainer(systemContext.getParamContainer(), true);
-                if (switchIsJulia) {
-                    switchMandelbrotZoom = serverParamContainer.getClientParameter("zoom").getGeneral(Number.class).copy();
-                    switchMandelbrotMidpoint = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class).copy();
-                    CoordinateBasicShiftParamSupplier newStartSupp = new CoordinateBasicShiftParamSupplier("start");
-//                    newStartSupp.setChanged(true);
-//                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
-                    newStartSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-
-                    StaticParamSupplier newCSupp = new StaticParamSupplier("c", switchMandelbrotMidpoint);
-                    newCSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("c", newCSupp);
-
-                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", systemContext.getNumberFactory().createComplexNumber(0, 0));
-                    midpointSupp.setChanged(true);
-                    midpointSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
-
-                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", systemContext.getNumberFactory().createNumber(3.0));
-                    zoomSupp.setChanged(true);
-                    zoomSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
-                } else {
-                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", systemContext.getNumberFactory().createComplexNumber(0, 0));
-//                    newStartSupp.setChanged(true);
-//                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
-                    newStartSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-
-                    CoordinateBasicShiftParamSupplier newCSupp = new CoordinateBasicShiftParamSupplier("c");
-                    newCSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("c", newCSupp);
-
-                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchMandelbrotMidpoint);
-                    midpointSupp.setChanged(true);
-                    midpointSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
-
-                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", switchMandelbrotZoom);
-                    zoomSupp.setChanged(true);//TODO test if required -> integrate...
-                    zoomSupp.setLayerRelevant(true);//TODO integrate...
-                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
-                }
-//                renderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
-                submitServer(serverParamContainer);
-            }
-        });
-
-        //init menus at sides
-        //
-
-        serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
-        clientParamsSideMenu = new CollapsiblePropertyList();
-        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
-        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
 
         //ParameterConfiguration for client parameters:
         ParameterConfiguration clientParameterConfiguration = new ParameterConfiguration();
@@ -233,25 +143,9 @@ public class MainStage extends Stage {
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 1.5));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 3.0));
 
-        clientParamsSideMenu.setParameterConfiguration(clientParams, clientParameterConfiguration, clientPropertyEntryFactory);
-        ChangeListener listener = new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                for (AbstractPropertyEntry e : clientParamsSideMenu.getPropertyEntries())
-                    e.applyClientValue();
-            }
-        };
-        clientParamsSideMenu.addAllListener(listener);
-        if (renderer instanceof ShaderRenderer){
-            ChangeListener listener2 = new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    for (AbstractPropertyEntry e : serverParamsSideMenu.getPropertyEntries())
-                        e.applyClientValue();
-                }
-            };
-            serverParamsSideMenu.addAllListener(listener2);
-        }
+        //init ParamUI
+        paramUI = new ParamUI(this);
+        paramUI.init(clientParameterConfiguration, clientParams);
 
         //Topline
         VisTable topButtons = new VisTable();
@@ -292,48 +186,78 @@ public class MainStage extends Stage {
 
         ui.add(topButtons).align(Align.top).colspan(5).expandX().row();
 
-        serverParamsSideMenu.addToTable(ui, Align.left);
-        ui.add().expandX().fillX();
-        clientParamsSideMenu.addToTable(ui, Align.right);
-        ui.row();
-
-        //collapsible left
-//        tree.add().expand(false, true).fill(false, true);
-//        collapsibleWidget = new CollapsibleWidget(tree, true);
-//
-//        collapseButton = new VisTextButton(">", new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                collapsibleWidget.setCollapsed(!collapsibleWidget.isCollapsed());
-//                collapsibleWidget.pack();
-//                collapseButton.layout();
-//                if (collapsibleWidget.isCollapsed()){
-////                    collapseButton.setPosition(0, Gdx.graphics.getHeight()/2, Align.left);
-//                    collapseButton.setText(">");
-//                } else {
-////                    collapseButton.setPosition(collapsibleWidget.getWidth(), Gdx.graphics.getHeight()/2, Align.left);
-//                    collapseButton.setText("<");
-//////                    collapsibleWidget.setPosition(0, (Gdx.graphics.getHeight())*0.5f, Align.left);
-//                }
-//            }
-//        });
-//
-//        tree.row();
-//
-//        //add
-//        ui.add(collapseButton).align(Align.left);
-//        ui.add(collapsibleWidget).align(Align.left).expandY();
+        paramUI.addToUiTable(ui);
 
 
-        stateBar = new Table();
-        stateBar.align(Align.left);
+//        stateBar = new Table();
+//        stateBar.align(Align.left);
 
-        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
+//        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
 
         addActor(renderer);
         addActor(ui);
 
         renderer.init();
+    }
+
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+//        updateStateBar();
+        return true;
+    }
+
+//    public void addEntry(AbstractPropertyEntry entry){
+//        propertyEntryList.add(entry);
+//    }
+
+    public ParamSupplier getClientParameter(String name){
+        return clientParams.getClientParameter(name);
+    }
+
+//    public void updateStateBar(){
+//        int mouseX = Gdx.input.getX();
+//        int mouseY = Gdx.input.getY();
+//
+//        if (renderer instanceof RemoteRenderer) {
+//            ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
+//            try {
+//                SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
+//                stateBar.clear();
+//                ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+//                ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
+//                ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
+//                //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
+//                BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
+//                ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
+//                stateBar.add(new VisLabel("midpoint: " + getPrintString(midpoint, 3))).left().row();
+//                stateBar.add(new VisLabel("ScreenPos: " + mouseX + ", " + mouseY)).left().row();
+//                stateBar.add(new VisLabel("WorldPos: " + getPrintString(worldCoords, 3))).left().row();
+//                stateBar.add(new VisLabel("ChunkPos: " + getPrintString(chunkCoords, 3))).left();
+//            } catch (NoSuchElementException e) {
+//                return;
+//            }
+//        }
+//    }
+
+    private String getPrintString(ComplexNumber number, int precision){
+        return NumberUtil.getRoundedDouble(number.getReal().toDouble(), precision)+", "+NumberUtil.getRoundedDouble(number.getImag().toDouble(), precision);
+    }
+
+    public void resize(int width, int height){
+
+    }
+
+    @Override
+    public void dispose(){
+        super.dispose();
+    }
+
+    public AbstractRenderer getRenderer() {
+        return renderer;
+    }
+
+    public ParamUI getParamUI() {
+        return paramUI;
     }
 
     private void openJumpToWindow(){
@@ -378,30 +302,46 @@ public class MainStage extends Stage {
                     }
                     clientSystem.updateConfiguration();
                     clientSystem.resetAnchor();
-                    setParameterConfiguration(serverParamsSideMenu, systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration(), serverPropertyEntryFactory);//TODO put in updateConfiguration()?
+                    paramUI.setParameterConfiguration(paramUI.serverParamsSideMenu, systemContext.getParamContainer(), ((RemoteRenderer) renderer).getSystemInterface().getParamConfiguration(), paramUI.serverPropertyEntryFactory);//TODO put in updateConfiguration()?
                 }
             }
         });
-        StringBuilder paramText = new StringBuilder();
+        String paramText = "";
         try {
-            for (ParamSupplier supp : clientParams.getParameters()) {
-                paramText.append(clientParams.serializeJson(true));
-            }
-        } catch (JsonProcessingException e){
+            ParamContainer newContainer = new ParamContainer(paramUI.serverParamsSideMenu.getParamContainer(), true);
+            paramUI.serverParamsSideMenu.propertyEntryList.forEach(pe -> pe.applyClientValue(newContainer));
+            paramText = newContainer.serializeJson(true).replaceAll("\r\n", "\n");
+        } catch (IOException e){
             e.printStackTrace();
         }
-        VisTextField parameterTextArea = new VisTextField(paramText.toString());
+        ScrollableTextArea parameterTextArea = new ScrollableTextArea(paramText);
+        ScrollPane scrollPane = parameterTextArea.createCompatibleScrollPane();
+
+
+        VisTextButton applyBtn = new VisTextButton("Apply", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                try {
+                    ParamContainer paramContainer = ParamContainer.deserializeJson(parameterTextArea.getText());
+                    renderer.reset();
+                    paramUI.submitServer(paramContainer);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
         window.add(cancelBtn).pad(2);
         window.add(saveBtn).pad(2);
         window.add(jumptoBtn).pad(2);
         window.row();
-        window.add(parameterTextArea);
+        window.add(scrollPane).colspan(3).width(Gdx.graphics.getWidth()*.5f).height(Gdx.graphics.getHeight()*.5f).row();
+        window.add(applyBtn);
         addActor(window);
         window.pack();
         ((VisWindow) window).centerWindow();
 
-
+        parameterTextArea.setText(paramText);
     }
 
     private void openWindowMenu(){
@@ -637,151 +577,5 @@ public class MainStage extends Stage {
         addActor(window);
         window.pack();
         window.centerWindow();
-    }
-
-    @Override
-    public boolean mouseMoved(int screenX, int screenY) {
-        updateStateBar();
-        return true;
-    }
-
-//    public void addEntry(AbstractPropertyEntry entry){
-//        propertyEntryList.add(entry);
-//    }
-
-    public void setServerParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration){
-        setParameterConfiguration(serverParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
-    }
-
-    public void submitServer(ParamContainer paramContainer){
-        for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
-            entry.applyClientValue();
-        }
-        if (renderer instanceof RemoteRenderer) {
-            ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
-            if (paramContainer.needsReset(clientSystem.getOldParams())) {
-                clientSystem.incrementJobId();
-                renderer.reset();
-            }
-            clientSystem.setOldParams(paramContainer.getClientParameters());
-            clientSystem.getSystemContext().setParameters(paramContainer);
-            clientSystem.updateConfiguration();
-            ((RemoteRenderer) renderer).getSystemInterface().getClientSystem().resetAnchor();//TODO integrate...
-        }
-    }
-
-    public void setParameterConfiguration(CollapsiblePropertyList list, ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
-
-        ChangeListener submitListener = new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                submitServer(paramContainer);
-//                }
-            }
-        };
-
-        list.setParameterConfiguration(paramContainer, parameterConfiguration, propertyEntryFactory);
-        list.addSubmitListener(submitListener);
-
-        renderer.setRefresh();
-        updateStateBar();
-//        for (AbstractPropertyEntry entry : propertyEntryList) {
-//            entry.closeView(AbstractPropertyEntry.VIEW_LIST);
-//        }
-//        propertyEntryList.clear();
-//
-//        VisTable tree = serverParamsSideMenu.getTree();
-//
-//        tree.clear();
-//
-//        //NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-//
-//        //addEntry(new IntTextPropertyEntry(tree, systemClientData, "iterations"));
-//        //addEntry(new ComplexNumberPropertyEntry(tree, systemClientData, "pow", numberFactory));
-//
-//        if (submitButton != null)
-//            submitButton.remove();
-//
-//        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
-//        List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
-//        parameterDefinitions.addAll(calculatorParameterDefinitions);
-//        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
-//            AbstractPropertyEntry entry = serverPropertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
-//            if (entry != null) {
-//                entry.init();
-//                entry.openView(AbstractPropertyEntry.VIEW_LIST, tree);
-//                addEntry(entry);
-//            }
-//        }
-//
-//        ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
-//
-//        submitButton = new VisTextButton("Submit", new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                clientSystem.setOldParams(paramContainer.getClientParameters());
-//                for (AbstractPropertyEntry entry : propertyEntryList){
-//                    entry.applyClientValue();
-//                }
-//                if (paramContainer.needsReset(clientSystem.getOldParams())) {
-//                    clientSystem.incrementJobId();
-//                    renderer.reset();
-//                }
-//                clientSystem.updateConfiguration();
-////                }
-//            }
-//        });
-//
-//        tree.add();
-//        tree.add(submitButton).row();
-//
-//        renderer.setRefresh();
-//        updateStateBar();
-    }
-
-    public ParamSupplier getClientParameter(String name){
-        return clientParams.getClientParameter(name);
-    }
-
-    public void updateStateBar(){
-        int mouseX = Gdx.input.getX();
-        int mouseY = Gdx.input.getY();
-
-        if (renderer instanceof RemoteRenderer) {
-            ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
-            try {
-                SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
-                stateBar.clear();
-                ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-                ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
-                ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
-                //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
-                BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
-                ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
-                stateBar.add(new VisLabel("midpoint: " + getPrintString(midpoint, 3))).left().row();
-                stateBar.add(new VisLabel("ScreenPos: " + mouseX + ", " + mouseY)).left().row();
-                stateBar.add(new VisLabel("WorldPos: " + getPrintString(worldCoords, 3))).left().row();
-                stateBar.add(new VisLabel("ChunkPos: " + getPrintString(chunkCoords, 3))).left();
-            } catch (NoSuchElementException e) {
-                return;
-            }
-        }
-    }
-
-    private String getPrintString(ComplexNumber number, int precision){
-        return NumberUtil.getRoundedDouble(number.getReal().toDouble(), precision)+", "+NumberUtil.getRoundedDouble(number.getImag().toDouble(), precision);
-    }
-
-    public void resize(int width, int height){
-
-    }
-
-    @Override
-    public void dispose(){
-        super.dispose();
-    }
-
-    public AbstractRenderer getRenderer() {
-        return renderer;
     }
 }

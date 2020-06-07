@@ -1,25 +1,18 @@
 package de.felixp.fractalsgdx.client;
 
-import com.badlogic.gdx.graphics.Pixmap;
-
-import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.MainStage;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.RemoteRenderer;
-import de.felixperko.fractals.data.AbstractArrayChunk;
-import de.felixperko.fractals.data.BorderAlignment;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.manager.client.ClientManagers;
-import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParameterConfiguration;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewContainerAdapter;
@@ -94,7 +87,7 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
         if (parameterConfiguration != null)
             this.parameterConfiguration = parameterConfiguration;
         if (this.parameterConfiguration != null)
-            ((MainStage)FractalsGdxMain.stage).setServerParameterConfiguration(systemClientData, this.parameterConfiguration);
+            ((MainStage)FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(systemClientData, this.parameterConfiguration);
     }
 
     @Override

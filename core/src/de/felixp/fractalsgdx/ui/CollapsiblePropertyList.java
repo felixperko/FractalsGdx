@@ -33,7 +33,12 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     List<ChangeListener> allListeners = new ArrayList<>();
 
+    ParamContainer paramContainer;
+
     public void setParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
+
+        this.paramContainer = paramContainer;
+
         for (AbstractPropertyEntry entry : propertyEntryList) {
             entry.closeView(AbstractPropertyEntry.VIEW_LIST);
         }
@@ -222,5 +227,9 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public Map<String, Tree.Node> getCategoryNodes() {
         return categoryNodes;
+    }
+
+    public ParamContainer getParamContainer() {
+        return paramContainer;
     }
 }

@@ -84,6 +84,8 @@ public class PropertyEntryFactory {
                 return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition);
             case ("number"):
                 return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
+            case ("string"):
+                return new StringTextPropertyEntry(node, paramContainer, parameterDefinition);
             case ("complexnumber"):
                 return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory);
             case ("boolean"):

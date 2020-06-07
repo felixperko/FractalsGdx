@@ -77,9 +77,13 @@ public abstract class AbstractPropertyEntry {
     }
 
     public void applyClientValue() {
+        applyClientValue(getParamContainer());
+    }
+
+    public void applyClientValue(ParamContainer container) {
         ParamSupplier supplier = getSupplier();
         if (supplier != null)
-            getParamContainer().getClientParameters().put(getPropertyName(), supplier);
+            container.getClientParameters().put(getPropertyName(), supplier);
     }
 
     public abstract ParamSupplier getSupplier();

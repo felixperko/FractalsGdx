@@ -86,6 +86,9 @@ void main()
 	float resYSq = resY*resY;
 	float resXSq = resX*resX;
 	float resIterations = 0.0;
+	float outputXSq = 0.0;
+	float outputYSq = 0.0;
+	bool first = true;
 	for (int i = 0 ; i < iterations ; i++){
 	    if (burningship > 0.0){
 	        resX = abs(resX);
@@ -95,12 +98,15 @@ void main()
         resX = resXSq - resYSq + cx;
         resXSq = resX*resX;
         resYSq = resY*resY;
-		if (resXSq + resYSq > 65536.0){
+		if (resXSq + resYSq > 65536.0 && first){
+		    first = false;
 		    resIterations = float(i);
+		    outputXSq = resXSq;
+		    outputYSq = resYSq;
 		    break;
         }
 	}
-	float lSq = resXSq + resYSq;
+	float lSq = outputXSq + outputYSq;
 	if (lSq > 65536.0){
 		float smoothIterations = (resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2);
         //gl_FragColor = encode(l);

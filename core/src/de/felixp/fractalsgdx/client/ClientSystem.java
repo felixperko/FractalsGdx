@@ -69,22 +69,25 @@ public class ClientSystem {
 //        zoom = numberFactory.createNumber(5./200000.);
         Number zoom = numberFactory.createNumber(3.);
         params.put("zoom", new StaticParamSupplier("zoom", zoom));
-        params.put("iterations", new StaticParamSupplier("iterations", (Integer)5000));
+        params.put("iterations", new StaticParamSupplier("iterations", (Integer)1000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
+
+        params.put("f(z)=", new StaticParamSupplier("f(z)=", "z^3+z^pow+c"));
 
         List<Layer> layers = new ArrayList<>();
 //        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
-        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(0));
-        layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
-        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
+//        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(0));
+//        layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
+//        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(false).with_priority_shift(30));
         layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
-        layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
+//        layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(1).with_rendering(true).with_priority_shift(100));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(2).with_rendering(true).with_priority_shift(130));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(2).with_rendering(true).with_priority_shift(130));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(4).with_rendering(true).with_priority_shift(160));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(9).with_rendering(true).with_priority_shift(190));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(9).with_rendering(true).with_priority_shift(190));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(25).with_priority_shift(210));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(100).with_priority_shift(240));
+        layers.add(new BreadthFirstLayer(chunkSize).with_samples(400).with_priority_shift(270));
 //        layers.add(new BreadthFirstLayer(chunkSize).with_samples(250).with_priority_shift(270)); //TODO more than (100 < x < 250) samples -> black pixels
 
         LayerConfiguration layerConfiguration = new PadovanLayerConfiguration(layers);
@@ -97,7 +100,7 @@ public class ClientSystem {
         params.put("task_buffer", new StaticParamSupplier("task_buffer", (Integer) 5));
 
 
-        params.put("calculator", new StaticParamSupplier("calculator", "MandelbrotCalculator"));
+        params.put("calculator", new StaticParamSupplier("calculator", "CustomCalculator"));
         params.put("systemName", new StaticParamSupplier("systemName", "BreadthFirstSystem"));
         params.put("numberFactory", new StaticParamSupplier("numberFactory", numberFactory));
         params.put("chunkFactory", new StaticParamSupplier("chunkFactory", new ArrayChunkFactory(ReducedNaiveChunk.class, chunkSize)));

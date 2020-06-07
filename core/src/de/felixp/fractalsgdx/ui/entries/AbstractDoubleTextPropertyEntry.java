@@ -9,7 +9,6 @@ import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
 import com.kotcrab.vis.ui.widget.VisLabel;
-import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
@@ -17,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.MainStage;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
@@ -143,7 +142,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                                 @Override
                                 public void changed(ChangeEvent event, Actor actor) {
                                     selectedSupplierClass = StaticParamSupplier.class;
-                                    ((MainStage)FractalsGdxMain.stage).submitServer(paramContainer);
+                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(paramContainer);
 
                                     typeStaticItem.setDisabled(true);
                                     typeViewItem.setDisabled(false);
@@ -154,7 +153,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                                 @Override
                                 public void changed(ChangeEvent event, Actor actor) {
                                     selectedSupplierClass = CoordinateBasicShiftParamSupplier.class;
-                                    ((MainStage)FractalsGdxMain.stage).submitServer(paramContainer);
+                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(paramContainer);
 
                                     typeStaticItem.setDisabled(false);
                                     typeViewItem.setDisabled(true);

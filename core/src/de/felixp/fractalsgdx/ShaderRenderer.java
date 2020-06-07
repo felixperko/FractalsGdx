@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
@@ -113,6 +114,8 @@ public class ShaderRenderer extends AbstractRenderer {
                 delta.divNumber(nf.createNumber(Gdx.graphics.getHeight()));
                 delta.multNumber(zoom);
                 midpoint.sub(delta);
+                systemContext.setMidpoint(midpoint);
+                ((MainStage)FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(paramContainer, ((GPUSystemContext) systemContext).parameterConfiguration);
                 FractalsGdxMain.forceRefresh = true;
             }
         });
@@ -253,7 +256,10 @@ public class ShaderRenderer extends AbstractRenderer {
 //			iterations++;
 //		}
         shader.setUniformi("iterations", paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
-        shader.setUniformf("scale", (float)paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble());
+
+        //TODO remove instance variable
+        float scale = (float)paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble();
+        shader.setUniformf("scale", scale);
 
         float xVariation = (float)((Math.random()-0.5)*(scale/width));
         float yVariation = (float)((Math.random()-0.5)*(scale/width));
@@ -261,8 +267,8 @@ public class ShaderRenderer extends AbstractRenderer {
         ComplexNumber midpoint = systemContext.getMidpoint();
         ComplexNumber c = paramContainer.getClientParameter("c").getGeneral(ComplexNumber.class);
 
-//        shader.setUniformf("center", (float) midpoint.getReal().toDouble() + xVariation, (float) midpoint.getImag().toDouble() + yVariation);
-        shader.setUniformf("center", (float) midpoint.getReal().toDouble(), (float) midpoint.getImag().toDouble());
+        shader.setUniformf("center", (float) midpoint.getReal().toDouble() + xVariation, (float) midpoint.getImag().toDouble() + yVariation);
+//        shader.setUniformf("center", (float) midpoint.getReal().toDouble(), (float) midpoint.getImag().toDouble());
         shader.setUniformf("biasReal", (float)c.getReal().toDouble());
         shader.setUniformf("biasImag", (float)c.getImag().toDouble());
         shader.setUniformf("samples", currentRefreshes+1);

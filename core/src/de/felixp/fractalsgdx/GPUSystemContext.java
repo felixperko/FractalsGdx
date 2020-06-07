@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
@@ -64,7 +65,7 @@ public class GPUSystemContext implements SystemContext {
     }
 
     public void init() {
-        ((MainStage)FractalsGdxMain.stage).setServerParameterConfiguration(paramContainer, this.parameterConfiguration);
+        ((MainStage)FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(paramContainer, this.parameterConfiguration);
     }
 
     @Override

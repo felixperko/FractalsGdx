@@ -14,13 +14,13 @@ import de.felixperko.fractals.network.messages.SessionInitRequestMessage;
 public class Client {
 
     boolean local =
-            true
-//            false
+//            true
+            false
             ;
     final String ip =
-            "localhost"
+//            "localhost"
 //                "192.168.0.13"
-//                "192.168.0.11"
+                "192.168.2.117"
             ;
     final int port =
             3141

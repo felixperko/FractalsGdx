@@ -19,8 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-import net.dermetfan.utils.Pair;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
