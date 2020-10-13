@@ -17,8 +17,8 @@ import java.util.Map;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterConfiguration;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 
 public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
@@ -35,7 +35,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     ParamContainer paramContainer;
 
-    public void setParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
+    public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
 
         this.paramContainer = paramContainer;
 
@@ -55,14 +55,15 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         if (submitButton != null)
             submitButton.remove();
 
-        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
+        List<ParamDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
 
         if (paramContainer.getClientParameters().containsKey("calculator")) {
-            List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
-            parameterDefinitions.addAll(calculatorParameterDefinitions);
+            List<ParamDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
+            if (calculatorParameterDefinitions != null)
+                parameterDefinitions.addAll(calculatorParameterDefinitions);
         }
 
-        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
+        for (ParamDefinition parameterDefinition : parameterDefinitions) {
             AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
             if (entry != null) {
                 entry.init();

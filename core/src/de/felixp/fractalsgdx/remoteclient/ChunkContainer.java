@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;

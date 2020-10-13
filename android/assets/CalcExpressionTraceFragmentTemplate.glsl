@@ -1,9 +1,11 @@
+#version 130
 #ifdef GL_ES
 precision highp float;
 #endif
-varying vec4 v_color;
-varying vec2 v_texCoords;
-varying vec2 pos;
+in vec4 v_color;
+in vec2 v_texCoords;
+in vec2 pos;
+out vec4 frag_color;
 uniform sampler2D u_texture;
 uniform int iterations;
 //uniform sampler1D palette;
@@ -14,6 +16,9 @@ uniform float biasReal;
 uniform float biasImag;
 uniform float samples;
 uniform float flip;
+uniform float limit;
+uniform float logPow;
+uniform float[] params;
 uniform vec2 resolution;
 
 const float log2 = log(2.0);
@@ -22,7 +27,6 @@ const float lowerborder = 0.0;
 
 uniform float burningship;
 uniform float juliaset;
-
 
 vec3 EncodeExpV3( in float value )
 {
@@ -33,32 +37,10 @@ vec3 EncodeExpV3( in float value )
     return vec3( encode.xy - encode.yz / 256.0 + 1.0/512.0, (float(exponent) + 127.5) / 256.0 );
 }
 
-float DecodeExpV3( in vec3 pack )
-{
-    int exponent = int( pack.z * 256.0 - 127.0 );
-    float value  = dot( pack.xy, 1.0 / vec2(1.0, 256.0) );
-    value        = value * (2.0*256.0*256.0) / (256.0*256.0 - 1.0) - 1.0;
-    return value * exp2( float(exponent) );
-}
-
 vec4 encode(in float value){
     //return EncodeRangeV4(value, lowerborder, upperborder);
     return vec4(EncodeExpV3(value), 1.0);
     //return EncodeExpV4(value);
-}
-
-float decode(in vec4 pixel){
-    //return log(DecodeRangeV4(pixel, lowerborder, upperborder));
-    return DecodeExpV3(vec3(pixel));
-    //return DecodeExpV4(pixel);
-}
-
-void addValue(inout vec4 pixel, in float addValue){
-    float oldValue = decode(pixel);
-    //if (addValue < 0) //do nothing
-    //    pixel = encode(oldValue);
-    if (oldValue >= 0.0)
-        pixel = encode(oldValue+addValue);
 }
 
 void main()
@@ -66,52 +48,69 @@ void main()
 	//gl_FragColor = v_color * texture2D(u_texture, v_texCoords);
 	//vec2 p = pos*8 - vec2(2,2);
 
-	float resX = biasReal;
-	float resY = biasImag;
-	float cx = (pos.x - 0.5)*ratio * scale + center.x;
-	float cy = (((pos.y - 0.5) * scale) + center.y);
+	float deltaX = (pos.x - 0.5)*ratio;
+	float deltaY = (pos.y - 0.5);
 
-    if (juliaset > 0.0){
-        resX = cx;
-        resY = cy;
-        cx = biasReal;
-        cy = biasImag;
-    }
+	<INIT>
+
+//	float resX = biasReal;
+//	float resY = biasImag;
+//	float cx = (pos.x - 0.5)*ratio * scale + center.x;
+//	float cy = (((pos.y - 0.5) * scale) + center.y);
+
+//    local_0 = biasReal;
+//    local_1 = biasImag;
+
+//    local_4 = cx;
+//    local_5 = cy;
+
+//    if (juliaset > 0.0){
+//        local_0 = cx;
+//        local_1 = cy;
+//        local_4 = biasReal;
+//        local_5 = biasImag;
+//    }
+
+//    if (juliaset > 0.0){
+//        resX = cx;
+//        resY = cy;
+//        cx = biasReal;
+//        cy = biasImag;
+//    }
 
 	//float cx = biasReal;
 	//float cy = biasImag;
 	//float resX = (pos.x - 0.5*ratio) * scale + center.x;
 	//float resY = (pos.y - 0.5) * scale + center.y;
 
-	float resYSq = resY*resY;
-	float resXSq = resX*resX;
+	float resYSq = local_1*local_1;
+	float resXSq = local_0*local_0;
 	float resIterations = 0.0;
 	float outputXSq = 0.0;
 	float outputYSq = 0.0;
 	bool first = true;
 	for (int i = 0 ; i < iterations ; i++){
 
-	    if (burningship > 0.0){
-	        resX = abs(resX);
-	        resY = abs(resY);
-        }
-        resY = resX*resY*2.0 + cy;
-        resX = resXSq - resYSq + cx;
+	    <ITERATE>
 
-        resXSq = resX*resX;
-        resYSq = resY*resY;
-		//if (resXSq + resYSq > 65536.0 && first){
-		    //first = false;
-		if (resXSq + resYSq > 65536.0){
+        resXSq = local_0*local_0;
+        resYSq = local_1*local_1;
+
+		if (resXSq + resYSq > limit){
+//		if (resXSq + resYSq > 6.7108864E7){
 		    resIterations = float(i);
 		    outputXSq = resXSq;
 		    outputYSq = resYSq;
 		    break;
         }
 	}
+
+	float resX = local_0;
+	float resY = local_1;
+
 	float lSq = outputXSq + outputYSq;
-	if (lSq > 65536.0){
-		float smoothIterations = (resIterations + 1.0 - log(log(lSq)*0.5/log2)/log2);
+	if (lSq > limit){
+		float smoothIterations = (resIterations + 1.0 - log(log(lSq)*0.5/log2)/(logPow));
         //gl_FragColor = encode(l);
         //addValue(gl_FragColor, l);
         //vec2 coords = v_texCoords;
@@ -124,7 +123,7 @@ void main()
         //addValue(gl_FragColor, smoothIterations);
         //if (last == 0.0)
         //if (lastColor.a > 0.0)
-        gl_FragColor = encode(smoothIterations + last);
+        frag_color = encode(smoothIterations + last);
         //else
         //    gl_FragColor = encode(smoothIterations*samples);
         //if (samples == 1){
@@ -136,7 +135,7 @@ void main()
         //gl_FragColor = encode((l/100.0 + last*(99.0/100.0)));
         //gl_FragColor = encode(last*0.9 + smoothIterations*0.1);
 	} else {
-		gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+		frag_color = vec4(0.0, 0.0, 0.0, 0.0);
 		//addValue(gl_FragColor, 0.0);
 		//gl_FragColor = decode(texture2D(u_texture, v_texCoords)) + encode(0.0);
 	}

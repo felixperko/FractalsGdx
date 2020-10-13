@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +15,8 @@ import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.ClientConfiguration;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.ClientMessageInterface;
-import de.felixperko.fractals.system.parameters.ParameterConfiguration;
+import de.felixperko.fractals.network.messages.ResourceRequestMessage;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.systems.stateinfo.ComplexNumberUpdate;
 import de.felixperko.fractals.system.systems.stateinfo.ServerStateInfo;
 import de.felixperko.fractals.system.systems.stateinfo.TaskStateUpdate;
@@ -27,6 +28,14 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
     Client client;
 
     Map<String, List<ISharedDataListener>> sharedDataListeners = new HashMap<>();
+
+    @Override
+    public ResourceRequestMessage requestResources() {
+        List<Float> requestedGpuUsages = new ArrayList<>();
+//        requestedGpuUsages.add(1f);
+//        requestedGpuUsages.add(1f);
+        return new ResourceRequestMessage(1, requestedGpuUsages, null);
+    }
 
     public MessageInterfaceGdx(ServerConnection serverConnection) {
         super(serverConnection);
@@ -95,7 +104,7 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
     }
 
     @Override
-    public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration, ParameterConfiguration parameterConfiguration) {
+    public void createdSystem(UUID systemId, ClientConfiguration clientConfiguration, ParamConfiguration parameterConfiguration) {
         if (managers == null)
             throw new IllegalStateException();
         SystemInterfaceGdx systemInterface = new SystemInterfaceGdx(systemId, this, managers);
@@ -112,11 +121,10 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
         client.clientConfiguration = clientConfiguration;
         ParamContainer paramContainer = clientConfiguration.getParamContainer(systemId);
         systemInterface.setParamContainer(paramContainer);
+        systemInterface.updateParameterConfiguration(client.getClientSystemById(systemId).getParamContainer(), parameterConfiguration);
         client.createdSystem(clientConfiguration, systemInterface);
-        systemInterface.getClientSystem().setParamContainer(paramContainer);
+//        systemInterface.getClientSystem().setParamContainer(paramContainer);
         addSystemInterface(systemId, systemInterface);
-        systemInterface.updateParameterConfiguration(client.getFocusedClientSystem().getParamContainer(), parameterConfiguration);
-
     }
 
     public static boolean TEST_FINISH = false;
@@ -166,5 +174,12 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
             sharedDataListeners.put(identifier,listeners);
         }
         return listeners;
+    }
+
+    @Override
+    public void changedResources(int cpuCores, int maxCpuCores, Map<String, Float> gpus) {
+        super.changedResources(cpuCores, maxCpuCores, gpus);
+        for (ChangedResourcesListener listener : client.changedResourcesListeners)
+            listener.changedResources(cpuCores, maxCpuCores, gpus);
     }
 }

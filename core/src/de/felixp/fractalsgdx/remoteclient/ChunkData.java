@@ -1,9 +1,8 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;

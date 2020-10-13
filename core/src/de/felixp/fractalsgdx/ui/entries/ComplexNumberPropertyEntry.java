@@ -7,7 +7,7 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -16,7 +16,7 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
 
     NumberFactory numberFactory;
 
-    public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory) {
+    public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory) {
         super(node, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
         this.numberFactory = numberFactory;
     }

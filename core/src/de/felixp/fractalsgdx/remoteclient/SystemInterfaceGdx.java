@@ -1,10 +1,10 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.RemoteRenderer;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.manager.client.ClientManagers;
@@ -12,7 +12,7 @@ import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
-import de.felixperko.fractals.system.parameters.ParameterConfiguration;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewContainerAdapter;
@@ -52,7 +52,7 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
         this.systemId = systemId;
         this.managers = managers;
         this.messageInterface = messageInterface;
-        this.renderer = (RemoteRenderer)((MainStage)FractalsGdxMain.stage).getRenderer();
+        this.renderer = (RemoteRenderer)((MainStage)FractalsGdxMain.stage).getRemoteRendererById(systemId);
 
         this.pixmapThread = new EncodePixmapThread(this);
         this.pixmapThread.start();
@@ -80,14 +80,18 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
         return systemContext.getParamContainer();
     }
 
-    ParameterConfiguration parameterConfiguration;
+    ParamConfiguration parameterConfiguration;
 
     @Override
-    public void updateParameterConfiguration(ParamContainer systemClientData, ParameterConfiguration parameterConfiguration) {
-        if (parameterConfiguration != null)
+    public void updateParameterConfiguration(ParamContainer systemClientData, ParamConfiguration parameterConfiguration) {
+        if (parameterConfiguration != null) {
             this.parameterConfiguration = parameterConfiguration;
-        if (this.parameterConfiguration != null)
-            ((MainStage)FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(systemClientData, this.parameterConfiguration);
+            if (clientSystem != null)
+                clientSystem.setParamConfiguration(parameterConfiguration);
+        }
+        if (this.parameterConfiguration != null) {
+            ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(renderer, systemClientData, this.parameterConfiguration);
+        }
     }
 
     @Override
@@ -132,7 +136,7 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
     }
 
     @Override
-    public ParameterConfiguration getParamConfiguration() {
+    public ParamConfiguration getParamConfiguration() {
         return parameterConfiguration;
     }
 
@@ -193,10 +197,15 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
 
     public void setClientSystem(ClientSystem clientSystem){
         this.clientSystem = clientSystem;
+        this.clientSystem.setParamConfiguration(parameterConfiguration);
         this.systemContext = (BFSystemContext)clientSystem.getSystemContext();
     }
 
     public SystemContext getSystemContext() {
         return clientSystem.systemContext;
+    }
+
+    public RemoteRenderer getRenderer() {
+        return renderer;
     }
 }

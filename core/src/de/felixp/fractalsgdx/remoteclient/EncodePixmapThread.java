@@ -1,10 +1,6 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import com.badlogic.gdx.graphics.Color;
-
-import java.util.UUID;
-
-import de.felixperko.fractals.manager.client.ClientManagers;
 
 public class EncodePixmapThread extends PixmapThread {
 
@@ -25,6 +21,26 @@ public class EncodePixmapThread extends PixmapThread {
         float mantissa1 = (bits >>> 15) & 0x000000ff;
         float mantissa2 = (bits >>> 7) & 0x000000ff;
         color.set(mantissa1/256f, mantissa2/256f, exponent/256f, 1f);
+    }
+
+    public static float decode3f(Color color){
+
+//        float mantissa1 = color.r;
+//        float mantissa2 = color.g / 256.0f;
+//        //float exponent = color.b*256.0 - 127.0;
+//        float value = mantissa1 + mantissa2 + 1.0f;
+//        //return value*(float)Math.pow(2, (exponent));
+//        //float value = 1.0 + dot(pack.rgb, 1.0 / vec3(1.0, 256.0, 256.0*256.0));
+//        float exponent = color.b * 256.0f - 127.0f;
+//        return value * (float)Math.exp(exponent);
+
+
+        int exponentDecoded = (int)(color.b * 256.0f);
+        int mantissa1Decoded = (int)(color.r * 256.0f);
+        int mantissa2Decoded = (int)(color.g * 256.0f);
+        int decoded = exponentDecoded << 23 | mantissa1Decoded << 15 | mantissa2Decoded << 7;
+        float res = Float.intBitsToFloat(decoded);
+        return res;
     }
 
 //    public static Color encode4fFast(float value){
@@ -62,10 +78,47 @@ public class EncodePixmapThread extends PixmapThread {
 
     @Override
     protected void getColor(Color color, float value) {
+
         encode3fFast(color, value);
+
+//        float decodedValue = decode3f(color);
+////        float diff = value - decodedValue;
+////        if (Math.abs(diff) > 0.0001) {
+//////            System.out.println("EncodePixel: "+value+" - "+decodedValue+" = "+ diff);
+////            System.out.println("old:  "+getDebugBits(value));
+////            System.out.println("new:  "+getDebugBits(decodedValue));
+////            System.out.println("diff: "+getDebugDiffFlag(getDebugBits(value), getDebugBits(decodedValue)));
+////            System.out.println("patt: SEEE.EEEE.EMMM.MMMM.MMMM.MMMM.MMMM.MMMM");
+////        }
+
 //        Color c = encode3f(value);
 //        float valueAfter = decode3f((byte)(c.r*256), (byte)(c.g*256), (byte)(c.b*256));
 //        return encode1f(value);
+    }
+
+    private String getDebugBits(float value) {
+        String bits = Integer.toBinaryString(Float.floatToRawIntBits(value));
+        StringBuilder res = new StringBuilder();
+        for (int i = 0 ; i < bits.length()/4 ; i++) {
+            res.append(bits.substring(i * 4, i * 4 + 4));
+            res.append(".");
+        }
+        if (bits.length()%4 != 0)
+            res.append(bits.substring(bits.length()-bits.length()%4));
+        else
+            res.deleteCharAt(res.length()-1);
+        return res.toString();
+    }
+
+    private String getDebugDiffFlag(String s1, String s2){
+        StringBuilder s = new StringBuilder();
+        int min = Math.min(s1.length(), s2.length());
+        int max = Math.max(s1.length(), s2.length());
+        for (int i = 0 ; i < min ; i++)
+            s.append(s1.charAt(i) == s2.charAt(i) ? " " : "F");
+        for (int i = min ; i < max ; i++)
+            s.append("F");
+        return s.toString();
     }
 
     private Color encode1f(float value){

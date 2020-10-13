@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import com.badlogic.gdx.Gdx;
 
@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import de.felixp.fractalsgdx.ui.ParamUI;
 import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.data.ReducedNaiveChunk;
@@ -20,6 +22,7 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.PadovanLayerConfiguration;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -33,26 +36,34 @@ public class ClientSystem {
 
     Managers managers;
     Client client;
+    UUID systemId;
 
-    public ClientSystem(Managers managers, Client client){
+    public ClientSystem(Managers managers, Client client, UUID systemId){
         this.managers = managers;
         this.client = client;
+        this.systemId = systemId;
         this.systemContext = createDefaultSystemConfiguration();
     }
 
     SystemInterfaceGdx systemInterface;
 
     BFSystemContext systemContext;
-    public Integer chunkSize = 128*2;
+//    public Integer chunkSize = 128*2*2*2;
+    public Integer chunkSize = 128*2*2;
+//    public Integer chunkSize = 128*2;
+//    public Integer chunkSize = 128; ///TODO doesn't work
 
     ComplexNumber anchor;
+    
+    ParamConfiguration paramConfiguration = null;
 
     public ParamContainer getParamContainer() {
         return systemContext.getParamContainer();
     }
 
     public void setParamContainer(ParamContainer paramContainer){
-        this.systemContext.setParameters(paramContainer);
+//        this.systemContext.setParameters(paramContainer);
+        ParamUI.submitServer(systemInterface.getRenderer(), paramContainer);
     }
 
     private BFSystemContext createDefaultSystemConfiguration() {
@@ -62,6 +73,7 @@ public class ClientSystem {
         params.put("width", new StaticParamSupplier("width", (Integer) Gdx.graphics.getWidth()));
         params.put("height", new StaticParamSupplier("height", (Integer)Gdx.graphics.getHeight()));
         params.put("chunkSize", new StaticParamSupplier("chunkSize", chunkSize));
+        params.put("precision", new StaticParamSupplier("precision", "32"));
 //		params.put("midpoint", new StaticParamSupplier("midpoint", new DoubleComplexNumber(new DoubleNumber(0.251), new DoubleNumber(0.00004849892910689283399687005))));
         ComplexNumber midpoint = numberFactory.createComplexNumber(0, 0);
         this.anchor = midpoint.copy();
@@ -72,23 +84,24 @@ public class ClientSystem {
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)1000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
 
-        params.put("f(z)=", new StaticParamSupplier("f(z)=", "z^3+z^pow+c"));
+//        params.put("f(z)=", new StaticParamSupplier("f(z)=", "(re(z)+abs(im(z))*i)^pow+c"));
+//        params.put("f(z)=", new StaticParamSupplier("f(z)=", "(re(z)+tanh(im(z))*i)^pow+c"));
+        params.put("f(z)=", new StaticParamSupplier("f(z)=", "z^pow+c"));
 
         List<Layer> layers = new ArrayList<>();
 //        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
 //        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(0));
 //        layers.add(new BreadthFirstUpsampleLayer(16, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(10));
-//        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(false).with_priority_shift(30));
-        layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
+//        layers.add(new BreadthFirstUpsampleLayer(8, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(30));
+//        layers.add(new BreadthFirstUpsampleLayer(4, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(50));
 //        layers.add(new BreadthFirstUpsampleLayer(2, chunkSize).with_culling(true).with_rendering(true).with_priority_shift(70));
         layers.add(new BreadthFirstLayer(chunkSize).with_samples(1).with_rendering(true).with_priority_shift(100));
 //        layers.add(new BreadthFirstLayer(chunkSize).with_samples(2).with_rendering(true).with_priority_shift(130));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(4).with_rendering(true).with_priority_shift(160));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(4).with_rendering(true).with_priority_shift(160));
 //        layers.add(new BreadthFirstLayer(chunkSize).with_samples(9).with_rendering(true).with_priority_shift(190));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(25).with_priority_shift(210));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(100).with_priority_shift(240));
-        layers.add(new BreadthFirstLayer(chunkSize).with_samples(400).with_priority_shift(270));
-//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(250).with_priority_shift(270)); //TODO more than (100 < x < 250) samples -> black pixels
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(25).with_priority_shift(210));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(100).with_priority_shift(240));
+//        layers.add(new BreadthFirstLayer(chunkSize).with_samples(400).with_priority_shift(270));
 
         LayerConfiguration layerConfiguration = new PadovanLayerConfiguration(layers);
 //        LayerConfiguration layerConfiguration = new LayerConfiguration(layers, 0.025, 20, 42);
@@ -119,7 +132,7 @@ public class ClientSystem {
 
         params.put("view", new StaticParamSupplier("view", 0));
 
-        BFSystemContext systemContext = new BFSystemContext(null);
+        BFSystemContext systemContext = new BFSystemContext(null, paramConfiguration);
         systemContext.setParameters(new ParamContainer(params));
         return systemContext;
 
@@ -194,11 +207,37 @@ public class ClientSystem {
 
     public void createdSystem(SystemInterfaceGdx systemInterface, ClientConfiguration clientConfiguration) {
         this.systemInterface = systemInterface;
-        setParamContainer(clientConfiguration.getParamContainer(systemInterface.systemId));
+
         systemInterface.setClientSystem(this);
+        ParamContainer contextParamContainer = this.systemInterface.getRenderer().getRendererContext().getParamContainer();
+        if (contextParamContainer != null) {
+            contextParamContainer.setParamConfiguration(getParamConfiguration());
+            setParamContainer(contextParamContainer);
+        } else {
+            setParamContainer(clientConfiguration.getParamContainer(systemInterface.systemId));
+        }
+//        clientConfiguration.addRequest(systemId, new ParamContainer(getParamContainer(), false));
+//        client.serverConnection.writeMessage(new UpdateConfigurationMessage(clientConfiguration));
     }
 
     public SystemContext getSystemContext() {
         return systemContext;
+    }
+
+    public UUID getSystemId() {
+        return systemId;
+    }
+
+    public SystemInterfaceGdx getSystemInterface() {
+        return systemInterface;
+    }
+
+    public void setParamConfiguration(ParamConfiguration paramConfiguration) {
+        this.paramConfiguration = paramConfiguration;
+        systemContext.setParamConfiguration(paramConfiguration);
+    }
+
+    public ParamConfiguration getParamConfiguration() {
+        return paramConfiguration;
     }
 }

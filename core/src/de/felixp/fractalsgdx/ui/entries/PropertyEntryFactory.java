@@ -3,8 +3,9 @@ package de.felixp.fractalsgdx.ui.entries;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.Validators;
-import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisTree;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,15 +14,17 @@ import java.util.Map;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.LayerConfiguration;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueField;
 import de.felixperko.fractals.system.parameters.ParamValueType;
-import de.felixperko.fractals.system.parameters.ParameterConfiguration;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class PropertyEntryFactory {
+
+    final static Logger LOG = LoggerFactory.getLogger(PropertyEntryFactory.class);
 
     //VisTree tree;
     Map<String, Tree.Node> categoryNodes;
@@ -35,9 +38,9 @@ public class PropertyEntryFactory {
 
     static int ID_COUNTER_SUB_DEFINITIONS = 0;
 
-    public AbstractPropertyEntry getPropertyEntry(ParameterDefinition parameterDefinition, ParamContainer paramContainer){
+    public AbstractPropertyEntry getPropertyEntry(ParamDefinition parameterDefinition, ParamContainer paramContainer){
 
-        ParameterConfiguration config = parameterDefinition.getConfiguration();
+        ParamConfiguration config = parameterDefinition.getConfiguration();
 
         List<AbstractPropertyEntry> subEntries = new ArrayList<>();
 
@@ -47,14 +50,14 @@ public class PropertyEntryFactory {
             for (ParamValueField field : type.getSubTypes()){
                 ParamValueType subType =  field.getType();
                 //ParameterDefinition subDefinition = config.getParameters().stream().filter(def -> def.getName().equalsIgnoreCase(subType.getName())).findFirst().get();
-                ParameterDefinition subDefinition = new ParameterDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
+                ParamDefinition subDefinition = new ParamDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
                 subDefinition.setConfiguration(parameterDefinition.getConfiguration());
                 AbstractPropertyEntry entry = getByType(subType, paramContainer, subDefinition);
                 if (entry != null) {
                     entry.init();
                     subEntries.add(entry);
                 } else {
-                    System.out.println("Can't find sub-property class for parameter definition '"+subDefinition.getName()+"'");
+                    LOG.debug("Can't find sub-property class for parameter definition '"+subDefinition.getName()+"'");
                     continue loop;
                 }
             }
@@ -67,11 +70,11 @@ public class PropertyEntryFactory {
                 continue loop;
             }
         }
-        System.out.println("Can't find property class for parameter definition '"+parameterDefinition.getName()+"'");
+        LOG.debug("Can't find property class for parameter definition '"+parameterDefinition.getName()+"'");
         return null;
     }
 
-    private AbstractPropertyEntry getByType(ParamValueType type, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
+    private AbstractPropertyEntry getByType(ParamValueType type, ParamContainer paramContainer, ParamDefinition parameterDefinition){
         Tree.Node node = categoryNodes.get(parameterDefinition.getCategory());
         switch (type.getName()) {
             case ("integer"):
@@ -85,7 +88,7 @@ public class PropertyEntryFactory {
             case ("number"):
                 return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
             case ("string"):
-                return new StringTextPropertyEntry(node, paramContainer, parameterDefinition);
+                return new ExpressionTextPropertyEntry(node, paramContainer, parameterDefinition);
             case ("complexnumber"):
                 return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory);
             case ("boolean"):

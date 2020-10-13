@@ -5,10 +5,11 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
 import com.kotcrab.vis.ui.widget.VisTable;
 
-import de.felixp.fractalsgdx.RemoteRenderer;
-import de.felixp.fractalsgdx.ShaderRenderer;
-import de.felixp.fractalsgdx.client.ClientSystem;
-import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
@@ -17,14 +18,34 @@ import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
-import de.felixperko.fractals.system.parameters.ParameterConfiguration;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ParamUI {
 
-    CollapsiblePropertyList serverParamsSideMenu;
+    static CollapsiblePropertyList serverParamsSideMenu;
+
+    //TODO move!
+    public static void submitServer(FractalRenderer renderer, ParamContainer paramContainer){
+        for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
+            entry.applyClientValue();
+        }
+        if (renderer instanceof RemoteRenderer) {
+            ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
+            if (paramContainer.needsReset(clientSystem.getOldParams())) {
+                clientSystem.incrementJobId();
+                paramContainer.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
+                renderer.reset();
+            }
+            clientSystem.setOldParams(paramContainer.getClientParameters());
+            clientSystem.getSystemContext().setParameters(paramContainer);
+            clientSystem.updateConfiguration();
+            clientSystem.resetAnchor();//TODO integrate...
+        }
+    }
+
     PropertyEntryFactory serverPropertyEntryFactory;
 //    List<AbstractPropertyEntry> propertyEntryList = new ArrayList<>();
 
@@ -41,7 +62,7 @@ public class ParamUI {
         this.stage = mainStage;
     }
 
-    public void init(ParameterConfiguration clientParameterConfiguration, ParamContainer clientParams){
+    public void init(ParamConfiguration clientParameterConfiguration, ParamContainer clientParams){
         //extra button to switch mandelbrot <-> juliaset
         //
 
@@ -64,16 +85,17 @@ public class ParamUI {
             }
         };
         clientParamsSideMenu.addAllListener(listener);
-        if (stage.getRenderer() instanceof ShaderRenderer){
-            ChangeListener listener2 = new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    for (AbstractPropertyEntry e : serverParamsSideMenu.getPropertyEntries())
-                        e.applyClientValue();
-                }
-            };
-            serverParamsSideMenu.addAllListener(listener2);
-        }
+        //TODO test ShaderRenderer: apply parameters
+//        if (stage.getRenderer() instanceof ShaderRenderer){
+//            ChangeListener listener2 = new ChangeListener() {
+//                @Override
+//                public void changed(ChangeEvent event, Actor actor) {
+//                    for (AbstractPropertyEntry e : serverParamsSideMenu.getPropertyEntries())
+//                        e.applyClientValue();
+//                }
+//            };
+//            serverParamsSideMenu.addAllListener(listener2);
+//        }
     }
 
     public CollapsiblePropertyListButton getJuliasetButton() {
@@ -81,9 +103,8 @@ public class ParamUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 switchIsJulia = !switchIsJulia;
-                SystemInterfaceGdx systemInterface = ((RemoteRenderer)stage.getRenderer()).getSystemInterface();
-                SystemContext systemContext = systemInterface.getSystemContext();
-                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
+                SystemContext systemContext = stage.focusedRenderer.getSystemContext();
+//                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
                 ParamContainer serverParamContainer = new ParamContainer(systemContext.getParamContainer(), true);
                 if (switchIsJulia) {
                     switchMandelbrotZoom = serverParamContainer.getClientParameter("zoom").getGeneral(Number.class).copy();
@@ -133,45 +154,35 @@ public class ParamUI {
                     serverParamContainer.getClientParameters().put("zoom", zoomSupp);
                 }
 //                renderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
-                submitServer(serverParamContainer);
+                submitServer(((MainStage)FractalsGdxMain.stage).focusedRenderer, serverParamContainer);
             }
         });
     }
 
-    public void submitServer(ParamContainer paramContainer){
-        for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
-            entry.applyClientValue();
-        }
-        if (stage.getRenderer() instanceof RemoteRenderer) {
-            ClientSystem clientSystem = ((RemoteRenderer) stage.getRenderer()).getSystemInterface().getClientSystem();
-            if (paramContainer.needsReset(clientSystem.getOldParams())) {
-                clientSystem.incrementJobId();
-                stage.getRenderer().reset();
-            }
-            clientSystem.setOldParams(paramContainer.getClientParameters());
-            clientSystem.getSystemContext().setParameters(paramContainer);
-            clientSystem.updateConfiguration();
-            ((RemoteRenderer) stage.getRenderer()).getSystemInterface().getClientSystem().resetAnchor();//TODO integrate...
-        }
-    }
-
     public void addToUiTable(VisTable ui) {
-        serverParamsSideMenu.addToTable(ui, Align.left);
-        ui.add().expandX().fillX();
-        clientParamsSideMenu.addToTable(ui, Align.right);
+//        ui.debug();
+        VisTable serverParamTable = new VisTable();
+        VisTable clientParamTable = new VisTable();
+
+        serverParamsSideMenu.addToTable(serverParamTable, Align.left);
+        clientParamsSideMenu.addToTable(clientParamTable, Align.right);
+
+        ui.add(serverParamTable).left().expandY().expandX().fillX();
+        ui.add(clientParamTable).right().expandY();
         ui.row();
     }
 
-    public void setServerParameterConfiguration(ParamContainer paramContainer, ParameterConfiguration parameterConfiguration){
-        setParameterConfiguration(serverParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
+    public void setServerParameterConfiguration(FractalRenderer renderer, ParamContainer paramContainer, ParamConfiguration parameterConfiguration){
+        setParameterConfiguration(renderer, serverParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
     }
 
-    public void setParameterConfiguration(CollapsiblePropertyList list, ParamContainer paramContainer, ParameterConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
+    public void setParameterConfiguration(FractalRenderer focusedRenderer, CollapsiblePropertyList list,
+                                          ParamContainer paramContainer, ParamConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
 
         ChangeListener submitListener = new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                submitServer(paramContainer);
+                submitServer(focusedRenderer, paramContainer);
 //                }
             }
         };
@@ -179,7 +190,7 @@ public class ParamUI {
         list.setParameterConfiguration(paramContainer, parameterConfiguration, propertyEntryFactory);
         list.addSubmitListener(submitListener);
 
-        stage.getRenderer().setRefresh();
+        focusedRenderer.setRefresh();
 //        stage.updateStateBar();
 //        for (AbstractPropertyEntry entry : propertyEntryList) {
 //            entry.closeView(AbstractPropertyEntry.VIEW_LIST);

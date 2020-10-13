@@ -16,9 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -38,7 +39,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
 
-    public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
+    public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
         super(node, paramContainer, parameterDefinition);
 
         this.validator1 = validator1;
@@ -132,39 +133,39 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                             PopupMenu menu = new PopupMenu();
                             MenuItem typeStaticItem = new MenuItem("Set fixed");
                             MenuItem typeViewItem = new MenuItem("Set view based");
-                            MenuItem typeScreenItem = new MenuItem("Set screen based");
+//                            MenuItem typeScreenItem = new MenuItem("Set screen based");
 
                             typeStaticItem.setDisabled(selectedSupplierClass == StaticParamSupplier.class);
                             typeViewItem.setDisabled(selectedSupplierClass == CoordinateBasicShiftParamSupplier.class);
-                            typeScreenItem.setDisabled(true);
+//                            typeScreenItem.setDisabled(true);
 
                             typeStaticItem.addListener(new ChangeListener() {
                                 @Override
                                 public void changed(ChangeEvent event, Actor actor) {
                                     selectedSupplierClass = StaticParamSupplier.class;
-                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(paramContainer);
+                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(((MainStage)FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
 
                                     typeStaticItem.setDisabled(true);
                                     typeViewItem.setDisabled(false);
-                                    typeScreenItem.setDisabled(true);
+//                                    typeScreenItem.setDisabled(true);
                                 }
                             });
                             typeViewItem.addListener(new ChangeListener() {
                                 @Override
                                 public void changed(ChangeEvent event, Actor actor) {
                                     selectedSupplierClass = CoordinateBasicShiftParamSupplier.class;
-                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(paramContainer);
+                                    ((MainStage)FractalsGdxMain.stage).getParamUI().submitServer(((MainStage)FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
 
                                     typeStaticItem.setDisabled(false);
                                     typeViewItem.setDisabled(true);
-                                    typeScreenItem.setDisabled(true);
+//                                    typeScreenItem.setDisabled(true);
                                 }
                             });
-                            typeScreenItem.setDisabled(true);
+//                            typeScreenItem.setDisabled(true);
 
                             menu.addItem(typeStaticItem);
                             menu.addItem(typeViewItem);
-                            menu.addItem(typeScreenItem);
+//                            menu.addItem(typeScreenItem);
 
                             menu.showMenu(optionButton.getStage(), Gdx.input.getX(), Gdx.graphics.getHeight()-Gdx.input.getY());
                         }

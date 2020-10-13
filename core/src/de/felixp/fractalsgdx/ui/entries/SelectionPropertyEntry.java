@@ -1,6 +1,7 @@
 package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -14,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.Selection;
@@ -23,7 +24,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     Selection<?> selection;
 
-    public SelectionPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+    public SelectionPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
 
         super(node, paramContainer, parameterDefinition);
 
@@ -40,7 +41,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
         views.put(VIEW_LIST, new EntryView() {
 
             private VisLabel label;
-            private VisSelectBox box;
+            private SelectBox box;
 
             @Override
             public void addToTable(Table table) {
@@ -56,7 +57,10 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 for (String option : selection.getOptionNames())
                     arr.add(option);
                 box.setItems(arr);
-                Object current = paramContainer.getClientParameter(propertyName).getGeneral();
+                ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
+                if (supplier == null)
+                    throw new IllegalArgumentException("Parameter missing: "+propertyName);
+                Object current = supplier.getGeneral();
                 String currentName = null;
                 for (String s : selection.getOptionNames()){
                     Object obj = selection.getOption(s);

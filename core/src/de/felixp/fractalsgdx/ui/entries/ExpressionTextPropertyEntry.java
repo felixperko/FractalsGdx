@@ -5,15 +5,14 @@ import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.util.Validators;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.expressions.FractalsExpressionParser;
-import de.felixperko.fractals.util.expressions.FractalsPolynom;
 
-public class StringTextPropertyEntry extends AbstractSingleTextPropertyEntry {
+public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
-    public StringTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+    public ExpressionTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
         super(node, paramContainer, parameterDefinition, new InputValidator() {
             @Override
             public boolean validateInput(String input) {

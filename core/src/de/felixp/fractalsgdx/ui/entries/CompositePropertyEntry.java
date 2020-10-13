@@ -15,12 +15,12 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 import java.util.List;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 
 public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
 
 
-    public CompositePropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+    public CompositePropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
         super(node, paramContainer, parameterDefinition);
     }
 

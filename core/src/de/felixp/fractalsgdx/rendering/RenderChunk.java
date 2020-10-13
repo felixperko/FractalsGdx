@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx;
+package de.felixp.fractalsgdx.rendering;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -7,9 +7,8 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 
 import net.dermetfan.utils.Pair;
 
-import de.felixp.fractalsgdx.client.ClientSystem;
+import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixperko.fractals.data.AbstractArrayChunk;
-import de.felixperko.fractals.data.Chunk;
 import de.felixperko.fractals.system.ZoomableSystemContext;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;

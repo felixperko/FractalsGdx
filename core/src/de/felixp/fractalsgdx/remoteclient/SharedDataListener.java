@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 public abstract class SharedDataListener implements ISharedDataListener {
 

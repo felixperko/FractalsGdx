@@ -5,8 +5,9 @@ import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTable;
 
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
@@ -14,14 +15,15 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     NumberFactory numberFactory;
 
-    public NumberTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
+    public NumberTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
         super(node, paramContainer, parameterDefinition, inputValidator);
         this.numberFactory = numberFactory;
     }
 
     @Override
     public ParamSupplier getSupplier() {
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), numberFactory.createNumber(text));
+        Number val = text == null ? numberFactory.createNumber(0.0) : numberFactory.createNumber(text);
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
         supplier.setLayerRelevant(true);
         return supplier;
     }

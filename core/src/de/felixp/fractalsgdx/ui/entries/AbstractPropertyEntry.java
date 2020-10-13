@@ -5,15 +5,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 
 public abstract class AbstractPropertyEntry {
+
+    private static Logger LOG = LoggerFactory.getLogger(AbstractPropertyEntry.class);
 
     public static final String VIEW_LIST = "LIST";
     public static final String VIEW_COLUMN = "COLUMN";
@@ -24,7 +29,7 @@ public abstract class AbstractPropertyEntry {
 
     String propertyName;
 
-    ParameterDefinition parameterDefinition;
+    ParamDefinition parameterDefinition;
 
     Map<String, EntryView> views = new HashMap<>();
 
@@ -32,7 +37,7 @@ public abstract class AbstractPropertyEntry {
 
     List<AbstractPropertyEntry> subEntries = null;
 
-    public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition){
+    public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition){
         this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
         this.node = node;
@@ -54,10 +59,9 @@ public abstract class AbstractPropertyEntry {
         EntryView view = views.get(viewName);
         if (view != null) {
 
-//            Gdx.app.postRunnable(() ->
+            Gdx.app.postRunnable(() ->
                     view.addToTable(table)
-                    ;
-//            );
+            );
         }
     }
 
@@ -81,9 +85,14 @@ public abstract class AbstractPropertyEntry {
     }
 
     public void applyClientValue(ParamContainer container) {
-        ParamSupplier supplier = getSupplier();
-        if (supplier != null)
-            container.getClientParameters().put(getPropertyName(), supplier);
+        try {
+            ParamSupplier supplier = getSupplier();
+            if (supplier != null)
+                container.getClientParameters().put(getPropertyName(), supplier);
+        } catch (Exception e){
+            LOG.error("couldn't get supplier for name: "+getPropertyName());
+            throw e;
+        }
     }
 
     public abstract ParamSupplier getSupplier();
@@ -92,7 +101,7 @@ public abstract class AbstractPropertyEntry {
         this.subEntries = subEntries;
     }
 
-    public ParameterDefinition getParameterDefinition() {
+    public ParamDefinition getParameterDefinition() {
         return parameterDefinition;
     }
 

@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 
 abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
@@ -22,7 +22,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     String text;
 
-    public AbstractSingleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, InputValidator validator) {
+    public AbstractSingleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, InputValidator validator) {
         super(node, paramContainer, parameterDefinition);
         this.validator = validator;
     }
@@ -49,7 +49,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 field.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
-                        text = field.getText();
+                        if (field.isInputValid())
+                            text = field.getText();
                     }
                 });
                 for (ChangeListener listener : listeners)

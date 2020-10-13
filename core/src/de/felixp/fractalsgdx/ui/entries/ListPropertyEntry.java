@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueType;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
@@ -32,7 +32,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     PropertyEntryFactory entryFactory;
 
-    public ListPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
+    public ListPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
         super(node, paramContainer, parameterDefinition);
         types = parameterDefinition.getConfiguration().getListTypes(propertyName);
         this.entryFactory = entryFactory;
@@ -94,7 +94,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     private void addNewElement(ParamValueType type){
         int index = menu.getRows();
-        ParameterDefinition parameterDefinition = new ParameterDefinition("list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type); //TODO ParameterDefinition again, see other TODO
+        ParamDefinition parameterDefinition = new ParamDefinition("list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type); //TODO ParameterDefinition again, see other TODO
         parameterDefinition.setConfiguration(parameterDefinition.getConfiguration());
         paramContainer.addClientParameter(new StaticParamSupplier(parameterDefinition.getName(), new BreadthFirstLayer()));
 

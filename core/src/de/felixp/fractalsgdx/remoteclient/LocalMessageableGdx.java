@@ -1,16 +1,16 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import de.felixperko.fractals.network.infra.Message;
 import de.felixperko.fractals.network.infra.connection.ClientLocalConnection;
 import de.felixperko.fractals.network.infra.connection.Connection;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.network.interfaces.Messageable;
-import de.felixperko.fractals.network.messages.ConnectedMessage;
-import de.felixperko.fractals.util.CategoryLogger;
-import de.felixperko.fractals.util.ColorContainer;
 
 /**
  * Can be retrieved from a local server to send messages to this client
@@ -22,6 +22,8 @@ public class LocalMessageableGdx implements Messageable {
     ServerConnection serverConnection;
 
     Logger log = LoggerFactory.getLogger("com/toLocalClient");
+
+    List<Runnable> connectionClosedRunnables = new ArrayList<>();
 
     public LocalMessageableGdx(){
     }
@@ -65,5 +67,13 @@ public class LocalMessageableGdx implements Messageable {
     @Override
     public void start() {
 
+    }
+
+    public void addConnectionClosedRunnable(Runnable runnable){
+        this.connectionClosedRunnables.add(runnable);
+    }
+
+    public void removeConnectionClosedRunnable(Runnable runnable){
+        this.connectionClosedRunnables.remove(runnable);
     }
 }

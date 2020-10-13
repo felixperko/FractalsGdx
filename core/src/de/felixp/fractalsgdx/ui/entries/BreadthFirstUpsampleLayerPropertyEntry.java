@@ -14,7 +14,7 @@ import java.util.List;
 
 import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.parameters.ParameterDefinition;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
@@ -25,7 +25,7 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstUpsampleLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParameterDefinition parameterDefinition) {
+    public BreadthFirstUpsampleLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
         super(node, paramContainer, parameterDefinition);
         this.id = ID_COUNTER++;
     }

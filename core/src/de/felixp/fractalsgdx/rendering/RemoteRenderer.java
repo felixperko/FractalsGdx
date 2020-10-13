@@ -1,12 +1,10 @@
-package de.felixp.fractalsgdx;
+package de.felixp.fractalsgdx.rendering;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -14,28 +12,37 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix3;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
-import com.badlogic.gdx.utils.BufferUtils;
-import com.badlogic.gdx.utils.ScreenUtils;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.UUID;
 
-import de.felixp.fractalsgdx.client.SystemInterfaceGdx;
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.remoteclient.Client;
+import de.felixp.fractalsgdx.remoteclient.ClientSystem;
+import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 
-public class RemoteRenderer extends AbstractRenderer {
+public class RemoteRenderer extends AbstractFractalRenderer {
 
     boolean outlineChunkBorders = false;
 
@@ -43,12 +50,13 @@ public class RemoteRenderer extends AbstractRenderer {
 
     Map<ViewData, List<RenderChunk>> chunks = new HashMap<>();
 
-    public static Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
+    Map<Integer, Map<Integer,Texture>> textures = new HashMap<>();
     //public Map<ComplexNumber, Texture> textures = new HashMap<>();
 
     List<Texture> textureList = new ArrayList<>();
+    Map<Integer, Queue<Texture>> offscreenTextures = new HashMap<>(); //texture dimensions; textures
 
-    public static Map<Integer, Map<Integer,Pixmap>> newPixmaps = new HashMap<>();
+    public Map<Integer, Map<Integer,Pixmap>> newPixmaps = new HashMap<>();
 //    public static Map<ComplexNumber, Pixmap> newPixmaps = new HashMap<>();
 
     ShaderProgram shader;
@@ -61,13 +69,26 @@ public class RemoteRenderer extends AbstractRenderer {
     double yPos = 0;
 
     ShapeRenderer shapeRenderer;
+    private UUID systemId;
+
+    public RemoteRenderer(RendererContext rendererContext) {
+        super(rendererContext);
+        createClientSystem();
+    }
+
+    protected void createClientSystem() {
+        Client client = FractalsGdxMain.client;
+        systemId = UUID.randomUUID();
+        ClientSystem clientSystem = new ClientSystem(client.getManagers(), client, systemId);
+        client.addClientSystemRequest(systemId, clientSystem);
+    }
 
     @Override
     public void init() {
         ShaderProgram.pedantic = false;
         shader = compileShader("PassthroughVertexCpu.glsl", "SobelDecodeFragmentCpu.glsl");
 
-        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), false);
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getWidth(), (int)getHeight(), false);
 
 //        setBounds(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         setFillParent(true);
@@ -78,40 +99,44 @@ public class RemoteRenderer extends AbstractRenderer {
             @Override
             public void tap(InputEvent event, float x, float y, int count, int button) {
 
-                boolean changed = false;
-                if (button == Input.Buttons.LEFT) {
-                    systemInterface.getClientSystem().updatePosition(getWidth() * 0.5f - x, getHeight() * 0.5f - y);
-                    systemInterface.getClientSystem().updateZoom(0.5f);
-                    changed = true;
-                } else if (button == Input.Buttons.RIGHT) {
-                    systemInterface.getClientSystem().updateZoom(2f);
-                    changed = true;
-                }
+                if (systemInterface != null) {
+                    boolean changed = false;
+                    if (button == Input.Buttons.LEFT) {
+                        systemInterface.getClientSystem().updatePosition(getWidth() * 0.5f - x, getHeight() * 0.5f - y);
+                        systemInterface.getClientSystem().updateZoom(0.5f);
+                        changed = true;
+                    } else if (button == Input.Buttons.RIGHT) {
+                        systemInterface.getClientSystem().updateZoom(2f);
+                        changed = true;
+                    }
 
-                if (changed) {
-                    reset();
+                    if (changed) {
+                        reset();
+                    }
                 }
             }
 
             @Override
             public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
-                xPos += deltaX;
-                yPos += deltaY;
-                systemInterface.getClientSystem().updatePosition(deltaX, deltaY);
-                FractalsGdxMain.forceRefresh = true;
+                if (systemInterface != null) {
+                    xPos += deltaX;
+                    yPos += deltaY;
+                    systemInterface.getClientSystem().updatePosition(deltaX, deltaY);
+                    rendererContext.panned(systemInterface.getParamContainer());
+                }
             }
         });
     }
+//    @Override
+//    public float getPrefWidth() {
+//        return Gdx.graphics.getWidth();
+//    }
+//
+//    @Override
+//    public float getPrefHeight() {
+//        return Gdx.graphics.getHeight();
 
-    @Override
-    public float getPrefWidth() {
-        return Gdx.graphics.getWidth();
-    }
-
-    @Override
-    public float getPrefHeight() {
-        return Gdx.graphics.getHeight();
-    }
+//    }
 
     @Override
     public void reset() {
@@ -133,6 +158,11 @@ public class RemoteRenderer extends AbstractRenderer {
     }
 
     @Override
+    public void removed() {
+        //TODO
+    }
+
+    @Override
     public double getXShift() {
         return xPos;
     }
@@ -150,9 +180,11 @@ public class RemoteRenderer extends AbstractRenderer {
     @Override
     public void draw(Batch batch, float parentAlpha) {
 
+        batch.setColor(Color.WHITE);
 //        getStage().getViewport().apply();
 
-        setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        //react to resizing (partly...)
+//        setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         if (prevWidth == -1){
             prevWidth = getWidth();
             prevHeight = getHeight();
@@ -161,25 +193,32 @@ public class RemoteRenderer extends AbstractRenderer {
         if (systemInterface == null || systemInterface.getClientSystem() == null)
             return;
 
-        processPixmaps();
+        //pixmaps (ram) -> textures (vram) (i guess?)
 
         int chunkSize = systemInterface.getClientSystem().chunkSize;
 
+        //frame buffer pass 1: draw encoded floats to framebuffer
         fbo.begin();
+
+        Matrix4 matrix = new Matrix4();
+        matrix.setToOrtho2D(0, 0, getWidth(), getHeight()); // here is the actual size you want
+        batch.setProjectionMatrix(matrix);
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()) {
-            for (Map.Entry<Integer, Texture> e2 : e.getValue().entrySet()) {
-                float x = ((e.getKey() - 0.0f * chunkSize) + (float) xPos) + getWidth() / 2;
-                float y = ((e2.getKey() - 0.0f * chunkSize) + (float) yPos) + getHeight() / 2;
-                batch.draw(e2.getValue(), x, y, chunkSize, chunkSize);
-            }
-        }
+        drawChunks(batch, chunkSize);
 
         batch.end();
         fbo.end();
+        //frame buffer pass 1 end
+
+//        newOffscreenTextures.forEach((texture, textureX) -> {
+//            getTextureYMap(textureX).remove(texture);
+//            textureList.remove(texture);
+////            textureOffscreen(texture);
+//            texture.dispose();
+//        });processPixmaps();
 
         shader.begin();
         batch.begin();
@@ -188,19 +227,10 @@ public class RemoteRenderer extends AbstractRenderer {
         shader.setUniformMatrix("u_projTrans", matrix);
         timeCounter += (float)Gdx.graphics.getDeltaTime();
 
-        MainStage stage = (MainStage)getStage();
+        setColoringParams();
 
-        shader.setUniformf("colorAdd", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Double.class));
-        shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Double.class));
-//        shader.setUniformf("sobelLuminance", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_FACTOR).getGeneral(Double.class));
-        shader.setUniformf("sobel_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_GLOW).getGeneral(Double.class));
-        shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Double.class));
-        shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Double.class));
-//        shader.setUniformf("colorAdd", (float)(double)stage.colorAddSupplier.getGeneral(Double.class) + timeCounter*-0.2f);
-//        shader.setUniformf("colorMult", (float)(double)stage.colorMultSupplier.getGeneral(Double.class));
-//        shader.setUniformf("sobelLuminance", (float)(double)stage.glowFactorSupplier.getGeneral(Double.class));
-
-        shader.setUniformf("resolution", (float) getWidth(), (float) getHeight());
+        matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.setProjectionMatrix(matrix);
 
         //draw flipped framebuffer on screen
         Texture texture = fbo.getColorBufferTexture();
@@ -210,6 +240,7 @@ public class RemoteRenderer extends AbstractRenderer {
         batch.end();
 
         shader.end();
+        batch.flush();
 
         if (isScreenshot(true)) {
             makeScreenshot();
@@ -221,6 +252,35 @@ public class RemoteRenderer extends AbstractRenderer {
 
         batch.begin();
         batch.setShader(null);
+    }
+
+    protected void drawChunks(Batch batch, int chunkSize) {
+        //        Map<Texture, Integer> newOffscreenTextures = new HashMap<>();
+        for (Map.Entry<Integer, Map<Integer, Texture>> e : textures.entrySet()) {
+            for (Map.Entry<Integer, Texture> e2 : e.getValue().entrySet()) {
+                Integer textureX = e.getKey();
+                Integer textureY = e2.getKey();
+                float x = ((textureX - 0.0f * chunkSize) + (float) xPos) + getWidth() / 2;
+                float y = ((textureY - 0.0f * chunkSize) + (float) yPos) + getHeight() / 2;
+
+                int margin = 100;
+                boolean onScreen = x > 0-chunkSize-margin*2 && x < getWidth()+margin
+                                && y > 0-chunkSize-margin*2 && y < getHeight()+margin;
+
+                Texture texture = e2.getValue();
+                if (onScreen) {
+                    //draw encoded float texture on framebuffer
+                    batch.draw(texture, x, y, chunkSize, chunkSize);
+                } else {
+//                    newOffscreenTextures.put(texture, textureX);
+                }
+            }
+        }
+    }
+
+    protected void setColoringParams(){
+        ComplexNumber anchor = systemInterface.getClientSystem().getAnchor().copy();
+        super.setColoringParams(shader, xPos, yPos, getWidth(), getHeight(), (MainStage)getStage(), getSystemContext(), getRendererContext(), anchor);
     }
 
     private void processPixmaps() {
@@ -235,21 +295,50 @@ public class RemoteRenderer extends AbstractRenderer {
                 int x = e.getKey();
                 Map<Integer, Texture> textureYMap = getTextureYMap(e.getKey());
                 for (Map.Entry<Integer,Pixmap> e2 : e.getValue().entrySet()){
+
                     int y = e2.getKey();
                     Pixmap pixmap = e2.getValue();
                     Texture texture = textureYMap.get(y);
-                    if (texture != null)
+
+
+//                    if (texture != null)
+//                        texture.dispose();
+
+////                    if (texture == null) {
+//                    texture = new Texture(pixmap);
+////                        texture.draw(pixmap, 0, 0);
+//                    textureYMap.put(y, texture);
+//                    textureList.add(texture);
+////                    }
+////                    else {
+////                        texture.draw(pixmap, 0, 0);
+////                    }
+
+//                    pixmap.dispose();
+
+
+                    //load a cached offscreen texture to overwrite
+                    if (texture == null){
+                        Queue<Texture> offscreenTextureList = offscreenTextures.get(pixmap.getWidth());
+                        if (offscreenTextureList != null && !offscreenTextureList.isEmpty())
+                            texture = offscreenTextureList.poll();
+                    }
+//                    if (texture != null && texture.getWidth() != pixmap.getWidth()){
+//                        textureOffscreen(texture);
+//                    }
+                    //not cached -> create
+                    if (texture != null){
                         texture.dispose();
+//                        PixmapTextureData pixmapTextureData = new PixmapTextureData(pixmap, null, false, false);
+//                        texture.load(pixmapTextureData);
+                    }
 //                    if (texture == null) {
                         texture = new Texture(pixmap);
-//                        texture.draw(pixmap, 0, 0);
                         textureYMap.put(y, texture);
                         textureList.add(texture);
 //                    }
-//                    else {
-//                        texture.draw(pixmap, 0, 0);
-//                    }
-                    pixmap.dispose();
+
+
 
 //                    removePairs.add(new Pair<Integer, Integer>(e.getKey(), e2.getKey()));
 //                    if (--countLeft <= 0) {
@@ -258,9 +347,10 @@ public class RemoteRenderer extends AbstractRenderer {
 //                    }
                 }
             }
-            setRefresh();
+            if (!newPixmaps.isEmpty())
+                setRefresh();
+            newPixmaps.clear();
 //            if (!limitReached)
-                newPixmaps.clear();
 //            else {
 //                for (Pair<Integer, Integer> remove : removePairs){
 //                    Integer x = remove.getKey();
@@ -270,7 +360,6 @@ public class RemoteRenderer extends AbstractRenderer {
 //            }
         }
     }
-
     //TODO outline
 //    private void drawOutline(int chunkSize) {
 //        if (systemInterface == null)
@@ -361,6 +450,7 @@ public class RemoteRenderer extends AbstractRenderer {
 //        }
 //
 //        shapeRenderer.end();
+
 //    }
 
     private Color getChunkStateColor(TaskState taskState){
@@ -387,32 +477,8 @@ public class RemoteRenderer extends AbstractRenderer {
         }
         return null;
     }
-
-    private void makeScreenshot() {
-        byte[] pixels = ScreenUtils.getFrameBufferPixels(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), true);
-
-        // this loop makes sure the whole screenshot is opaque and looks exactly like what the user is seeing
-        for(int i = 4; i < pixels.length; i += 4) {
-            pixels[i - 1] = (byte) 255;
-        }
-
-        //get date string
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-        Calendar cal = Calendar.getInstance();
-        Date d = new Date();
-        String date = dateFormat.format(d);
-        String filename = "fractals_"+date+".png";
-
-
-        Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
-        BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
-        FileHandle fileHandle = Gdx.files.external(filename);
-        PixmapIO.writePNG(fileHandle, pixmap);
-        System.out.println("saved screenshot to "+fileHandle.file().getAbsolutePath());
-        pixmap.dispose();
-    }
-
     float prevWidth = -1, prevHeight = -1;
+
     float scaleX = 1, scaleY = 1;
 
     @Override
@@ -428,7 +494,9 @@ public class RemoteRenderer extends AbstractRenderer {
 
     @Override
     protected void sizeChanged() {
-        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getWidth(), (int)getHeight(), false);
+
+        if (getWidth() > 0 && getHeight() > 0)
+            fbo = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getWidth(), (int)getHeight(), false);
 
         if (systemInterface == null)
             return;
@@ -455,15 +523,6 @@ public class RemoteRenderer extends AbstractRenderer {
         return systemInterface.getSystemContext();
     }
 
-    public ShaderProgram compileShader(String vertexPath, String fragmentPath){
-        ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
-                Gdx.files.internal(fragmentPath));
-        if (!shader.isCompiled()) {
-            throw new IllegalStateException("Error compiling shaders ("+vertexPath+", "+fragmentPath+"): "+shader.getLog());
-        }
-        return shader;
-    }
-
     public void drawPixmap(Integer startX, Integer startY, Pixmap pixmap){
         synchronized (newPixmaps){
             Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);
@@ -472,6 +531,15 @@ public class RemoteRenderer extends AbstractRenderer {
         setRefresh();
 //			texture = new Texture(pixmap);
 //			textureYMap.put(startY, texture)
+    }
+
+    private void textureOffscreen(Texture texture) {
+        Queue offscreenTextureQueue = offscreenTextures.get(texture.getWidth());
+        if (offscreenTextureQueue == null){
+            offscreenTextureQueue = new LinkedList();
+            offscreenTextures.put(texture.getWidth(), offscreenTextureQueue);
+        }
+        offscreenTextureQueue.add(texture);
     }
 
     private Map<Integer, Texture> getTextureYMap(Integer x){
@@ -490,5 +558,9 @@ public class RemoteRenderer extends AbstractRenderer {
             newPixmaps.put(x, map);
         }
         return map;
+    }
+
+    public UUID getSystemId() {
+        return systemId;
     }
 }

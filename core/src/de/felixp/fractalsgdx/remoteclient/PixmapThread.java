@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.client;
+package de.felixp.fractalsgdx.remoteclient;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -8,23 +8,29 @@ import net.dermetfan.utils.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.PriorityQueue;
 
 import de.felixperko.fractals.data.AbstractArrayChunk;
-import de.felixperko.fractals.data.BorderAlignment;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.system.ZoomableSystemContext;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.systems.infra.LifeCycleState;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
+import de.felixperko.fractals.system.thread.AbstractFractalsThread;
 import de.felixperko.fractals.util.Nestable;
 import de.felixperko.fractals.util.NestedMap;
 
-public abstract class PixmapThread extends Thread {
+public abstract class PixmapThread extends AbstractFractalsThread {
+
+    private static int ID_COUNTER = 0;
 
     NestedMap<Integer, CompressedChunk> chunkMap = new NestedMap<>();
+    List<CompressedChunk> addtoChunkList = new ArrayList<>();
 
     PriorityQueue<Pair<Integer, Integer>> coordQueue = new PriorityQueue<Pair<Integer, Integer>>(new Comparator<Pair<Integer, Integer>>() {
         @Override
@@ -49,14 +55,15 @@ public abstract class PixmapThread extends Thread {
     Logger log = LoggerFactory.getLogger(PixmapThread.class);
 
     public PixmapThread(SystemInterfaceGdx systemInterface){
-        setName("PIXMAP_0");
+        super(systemInterface.managers, "PIXMAP_"+ID_COUNTER++);
         this.systemInterface = systemInterface;
     }
 
     @Override
     public void run() {
-        while (!Thread.interrupted()){
+        while (getLifeCycleState() != LifeCycleState.STOPPED){
 //            drawNext();
+            processNewChunks();
             if (!drawNext()){
                 try {
                     Thread.sleep(1);
@@ -172,14 +179,17 @@ public abstract class PixmapThread extends Thread {
 //            @Override
 //            public void run() {
         if (jobId == clientSystem.systemContext.getViewId())
-            systemInterface.messageInterface.getFractalsGdxMain().drawPixmap(chunkImgX, chunkImgY, pixmap);
+            systemInterface.getRenderer().drawPixmap(chunkImgX, chunkImgY, pixmap);
 //            }
 //        });
     }
 
     protected abstract void getColor(Color color, float value);
 
-    public synchronized void addChunk(CompressedChunk chunk){
+    public void addChunk(CompressedChunk chunk){
+        synchronized (addtoChunkList){
+            addtoChunkList.add(chunk);
+        }
 //        for (CompressedChunk chunk2 : coordQueue){
 //            if (chunk2.getChunkX() == chunk.getChunkX() && chunk2.getChunkY() == chunk.getChunkY() && chunk2.getUpsample() == chunk.getUpsample()) {
 //                coordQueue.remove(chunk2);
@@ -188,17 +198,27 @@ public abstract class PixmapThread extends Thread {
 //        }
 
 //        CompressedChunk existingChunk = chunkMap.getChild(chunk.getChunkX()).getChild(chunk.getChunkY()).getValue();
-        Nestable<Integer, CompressedChunk> currentNode = chunkMap.getOrMakeChild(chunk.getChunkX()).getOrMakeChild(chunk.getChunkY());
-        Pair<Integer, Integer> coords = new Pair<>(chunk.getChunkX(), chunk.getChunkY());
-        if (currentNode.getValue() == null){
-            chunkMap.getOrMakeChild(chunk.getChunkX()).getOrMakeChild(chunk.getChunkY()).setValue(chunk);
-            coordQueue.add(coords);
-        } else {
-            currentNode.setValue(chunk);
-//            coordQueue.add(coords);
-        }
+
 
 //        coordQueue.add(chunk);
+    }
+
+
+    public void processNewChunks(){
+        synchronized (addtoChunkList){
+            for (CompressedChunk chunk : addtoChunkList){
+                Nestable<Integer, CompressedChunk> currentNode = chunkMap.getOrMakeChild(chunk.getChunkX()).getOrMakeChild(chunk.getChunkY());
+                Pair<Integer, Integer> coords = new Pair<>(chunk.getChunkX(), chunk.getChunkY());
+                if (currentNode.getValue() == null){
+                    chunkMap.getOrMakeChild(chunk.getChunkX()).getOrMakeChild(chunk.getChunkY()).setValue(chunk);
+                    coordQueue.add(coords);
+                } else {
+                    currentNode.setValue(chunk);
+//            coordQueue.add(coords);
+                }
+            }
+            addtoChunkList.clear();
+        }
     }
 
 //    private void addNewChunks(){
@@ -220,6 +240,8 @@ public abstract class PixmapThread extends Thread {
 
         NumberFactory nf = systemContext.getNumberFactory();
         int height = (int)systemContext.getParamValue("height", Integer.class);
+        int width = (int)systemContext.getParamValue("width", Integer.class);
+        int pixelScale = Math.min(width, height);
         Number zoom = systemContext.getZoom();
         int chunkSize = systemContext.getChunkSize();
 
@@ -228,7 +250,7 @@ public abstract class PixmapThread extends Thread {
         ComplexNumber pos = worldCoords.copy();
         pos.sub(clientSystem.getAnchor());
         pos.divNumber(zoom);
-        pos.multNumber(nf.createNumber(height)); //TODO buffer wrapped values?
+        pos.multNumber(nf.createNumber(pixelScale)); //TODO buffer wrapped values?
 
         Number screenY = pos.getImag();
         screenY.add(nf.createNumber(chunkSize));
