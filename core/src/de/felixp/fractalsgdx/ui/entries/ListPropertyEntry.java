@@ -160,4 +160,15 @@ class ListPropertyEntry extends AbstractPropertyEntry {
     public void removeChangeListener(ChangeListener changeListener) {
         throw new NotImplementedException();
     }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return false;
+    }
+
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        throw new NotImplementedException();
+    }
 }

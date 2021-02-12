@@ -41,6 +41,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
+import de.felixperko.fractals.util.NumberUtil;
 
 public class RemoteRenderer extends AbstractFractalRenderer {
 
@@ -111,6 +112,8 @@ public class RemoteRenderer extends AbstractFractalRenderer {
                     }
 
                     if (changed) {
+//                        systemInterface.getClientSystem().updatePosition(0, 0);
+                        rendererContext.panned(systemInterface.getParamContainer());
                         reset();
                     }
                 }
@@ -218,7 +221,9 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 //            textureList.remove(texture);
 ////            textureOffscreen(texture);
 //            texture.dispose();
-//        });processPixmaps();
+//        });
+
+        processPixmaps();
 
         shader.begin();
         batch.begin();
@@ -243,7 +248,11 @@ public class RemoteRenderer extends AbstractFractalRenderer {
         batch.flush();
 
         if (isScreenshot(true)) {
+            long t1 = System.nanoTime();
             makeScreenshot();
+            long t2 = System.nanoTime();
+            double dtInMs = NumberUtil.getTimeInS((t2-t1)/1000, 2);
+            System.out.println("made screenshot: "+dtInMs+" ms");
         }
 
 //        if (outlineChunkBorders || Gdx.input.isKeyPressed(Input.Keys.O)) {
@@ -280,7 +289,7 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 
     protected void setColoringParams(){
         ComplexNumber anchor = systemInterface.getClientSystem().getAnchor().copy();
-        super.setColoringParams(shader, xPos, yPos, getWidth(), getHeight(), (MainStage)getStage(), getSystemContext(), getRendererContext(), anchor);
+        super.setColoringParams(shader, getWidth(), getHeight(), (MainStage)getStage(), getSystemContext(), getRendererContext());
     }
 
     private void processPixmaps() {
@@ -396,7 +405,7 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 //                ChunkContainer chunkContainer = getChunkContainer(chunkX, chunkY);
 //                shapeRenderer.setColor(getChunkStateColor(chunkContainer == null ? null : chunkContainer.getTaskState()));
 //                if (chunkContainer != null && chunkContainer.getTaskState() == TaskState.STARTED) {
-//                    float progress = (float)chunkContainer.getProgress();
+//                    float progress = (float)chunkContainer.getTimeProgress();
 //                    float height1 = progress*chunkSize;
 //                    float height2 = chunkSize-height1;
 //                    shapeRenderer.rect(x, y+height2, chunkSize, height1);

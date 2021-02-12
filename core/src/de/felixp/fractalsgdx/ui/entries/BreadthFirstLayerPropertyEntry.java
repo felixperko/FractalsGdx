@@ -102,4 +102,17 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
         throw new NotImplementedException();
     }
 
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof BreadthFirstLayer;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        BreadthFirstLayer val = (BreadthFirstLayer)newValue;
+        field_samples.setText(""+val.getSamples());
+        field_priority_shift.setText(""+val.getPriorityShift());
+        field_priority_multiplier.setText(""+val.getPriorityMultiplier());
+    }
+
 }

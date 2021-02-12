@@ -4,11 +4,12 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.kotcrab.vis.ui.VisUI;
+import com.kotcrab.vis.ui.util.Validators;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSlider;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextField;
+import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ import de.felixperko.fractals.util.NumberUtil;
 
 public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
+    public static final String NAME_LIST_TEXTFIELD = "LIST_TEXTFIELD";
     double value;
 
     double min;
@@ -51,6 +53,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
             @Override
             public void addToTable(Table table) {
+
                 label = new VisLabel(propertyName);
 
                 List<String> hints = parameterDefinition.getHints();
@@ -65,7 +68,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 min = minD != null ? (double)minD : 0;
                 max = maxD != null ? (double)maxD : (min < 1 ? 1 : min+1);
 
-                float step = 0.005f;
+                float step = 0.001f;
                 slider = new VisSlider(0, 1, step, false);
 
                 ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
@@ -87,13 +90,13 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                     slider.addListener(listener);
                 contentFields.add(slider);
 
-                minField = new VisTextField(min+""){
+                minField = new VisTextField(min + "") {
                     @Override
                     public float getPrefWidth() {
                         return isVisible() ? super.getPrefWidth() : 0;
                     }
                 };
-                maxField = new VisTextField(max+""){
+                maxField = new VisTextField(max + "") {
                     @Override
                     public float getPrefWidth() {
                         return isVisible() ? super.getPrefWidth() : 0;
@@ -192,6 +195,47 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 contentFields.remove(slider);
             }
         });
+
+        views.put(NAME_LIST_TEXTFIELD, new EntryView() {
+
+            protected VisValidatableTextField field;
+            VisLabel label;
+
+            @Override
+            public void addToTable(Table table) {
+                label = new VisLabel(propertyName);
+                field = new VisValidatableTextField(Validators.FLOATS);
+
+                ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
+
+                if (textSupplier != null) {
+                    value = textSupplier.getGeneral(Double.class);
+                    field.setText(value+"");
+                }
+                field.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, Actor actor) {
+                        if (field.isInputValid()) {
+                            value = Double.parseDouble(field.getText());
+                        }
+                    }
+                });
+                for (ChangeListener listener : listeners)
+                    field.addListener(listener);
+                contentFields.add(field);
+
+                table.add(label).left().padRight(3);
+                table.add().pad(3);
+                table.add(field).fillX().expandX().padBottom(2).row();
+            }
+
+            @Override
+            public void removeFromTable() {
+                label.remove();
+                field.remove();
+                contentFields.remove(field);
+            }
+        });
     }
 
     @Override
@@ -211,5 +255,18 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
         listeners.remove(changeListener);
         for (Actor field : contentFields)
             field.removeListener(changeListener);
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof Double;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        double val = (Double)newValue;
+        if (val >= min && value <= max){
+            value = val;
+        }
     }
 }

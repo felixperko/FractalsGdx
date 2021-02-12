@@ -23,8 +23,18 @@ public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         } catch (NumberFormatException e){
         }
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
-        supplier.setLayerRelevant(true);
+        supplier.setLayerRelevant(true); //TODO move declaration to paramConfiguration
         supplier.setChanged(true);
         return supplier;
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof Double;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        text = ""+newValue;
     }
 }

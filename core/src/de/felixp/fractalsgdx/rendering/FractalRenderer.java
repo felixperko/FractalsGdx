@@ -2,7 +2,6 @@ package de.felixp.fractalsgdx.rendering;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 
-import de.felixp.fractalsgdx.interpolation.ParameterInterpolation;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
@@ -17,7 +16,9 @@ public interface FractalRenderer {
 
     void draw(Batch batch, float parentAlpha);
 
-    abstract void setScreenshot(boolean screenshot);
+    abstract void setSingleScreenshotScheduled(boolean singleScreenshotScheduled);
+
+    void setScreenshotRecording(boolean screenshotRecording);
 
     abstract boolean isScreenshot(boolean reset);
 
@@ -43,15 +44,7 @@ public interface FractalRenderer {
 
     void removePanListener(PanListener panListener);
 
-    void addParameterInterpolationServer(ParameterInterpolation parameterInterpolation);
-
-    void removeParameterInterpolationServer(ParameterInterpolation parameterInterpolation);
-
-    void addParameterInterpolationClient(ParameterInterpolation parameterInterpolation);
-
-    void removeParameterInterpolationClient(ParameterInterpolation parameterInterpolation);
-
-    void applyParameterInterpolations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory);
+    void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory);
 
     void setRelativeX(float v);
 

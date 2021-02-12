@@ -30,6 +30,8 @@ import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -40,6 +42,8 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.animation.AnimationListener;
+import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.ScreenshotListener;
 
@@ -257,7 +261,7 @@ public class ScreenshotUI {
             window.add(previewTable).expandX().fillX().row();
             window.add(buttonTable);
 
-            window.debug();
+//            window.debug();
         }
         else { //exists already
             sizeLabel.setVisible(false);
@@ -304,7 +308,6 @@ public class ScreenshotUI {
 
     public static String getScreenshotFileName(){
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-//        Calendar cal = Calendar.getInstance();
         Date d = new Date();
         String date = dateFormat.format(d);
         return "fractals_"+date;
@@ -315,10 +318,63 @@ public class ScreenshotUI {
         renderer.addScreenshotListener(new ScreenshotListener() {
             @Override
             public void madeScreenshot(byte[] data) {
-                saveImage(data, getScreenshotPath(), extensionSelect.getSelected());
+                saveImage(data, getSingleScreenshotPath(), extensionSelect.getSelected(), null);
             }
         }, true);
-        renderer.setScreenshot(true);
+        renderer.setSingleScreenshotScheduled(true);
+    }
+
+    static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    public static void recordScreenshots(String animationName){
+        //TODO get animation and start, disable recording when done
+        FractalRenderer renderer = ((MainStage) FractalsGdxMain.stage).getFocusedRenderer();
+        ParamAnimation animation = renderer.getRendererContext().getParamAnimation(animationName);
+        if (animation == null)
+            throw new IllegalArgumentException("Animation not found: "+animationName);
+        animation.setUsingFrameBasedProgress();
+        animation.setPaused(true);
+        animation.setFrameCounter(0);
+        String screenshotFileName = getScreenshotFileName();
+//        PixmapIO.PNG pixmapIO = new PixmapIO.PNG();
+//        pixmapIO.setCompression(7);
+//        pixmapIO.setFlipY(false);
+        ScreenshotListener screenshotListener = new ScreenshotListener() {
+            @Override
+            public void madeScreenshot(byte[] data) {
+//                saveImage(data, getRecordingScreenshotPath(screenshotFileName+"\\", animation), extensionSelect.getSelected(), pixmapIO);
+                String screenshotPath = getRecordingScreenshotPath(screenshotFileName + "\\", animation);
+                while (executor.getQueue().size() > 0){
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                executor.submit(() -> {
+                    saveImage(data, screenshotPath, extensionSelect.getSelected(), null);
+                    return null;
+                });
+            }
+        };
+        animation.addAnimationListener(new AnimationListener() {
+            @Override
+            public void animationFinished() {
+                animation.setPaused(true);
+                renderer.setScreenshotRecording(false);
+                renderer.removeScreenshotListener(screenshotListener);
+                animation.removeAnimationListener(this);
+            }
+
+            @Override
+            public void animationProgressUpdated() {
+
+            }
+        });
+        renderer.addScreenshotListener(screenshotListener, false);
+        renderer.setScreenshotRecording(true);
+        renderer.reset();
+        animation.setPaused(false);
     }
 
     public static void previewScreenshot(){
@@ -344,19 +400,28 @@ public class ScreenshotUI {
 //                Pixmap pixmap2 = new Pixmap(data2, 0, data2.length);
             }
         }, true);
-        renderer.setScreenshot(true);
+        renderer.setSingleScreenshotScheduled(true);
     }
 
-    private static String getScreenshotPath(){
+    private static String getSingleScreenshotPath(){
         String folderText = folderTextField.getText();
         if (!folderText.endsWith("\\") && !folderText.endsWith("/"))
             folderText += "\\";
         return folderText + filenameTextField.getText() + extensionSelect.getSelected();
     }
 
+    private static synchronized String getRecordingScreenshotPath(String prefix, ParamAnimation animation){
+        int frame = animation.getFrameCounter();
+        String frameFormatted = String.format("%03d", frame);
+        String folderText = folderTextField.getText();
+        if (!folderText.endsWith("\\") && !folderText.endsWith("/"))
+            folderText += "\\";
+        return folderText + prefix + frameFormatted + extensionSelect.getSelected();
+    }
+
     //Util
 
-    public static void saveImage(byte[] pixels, String path, String extension){
+    public static void saveImage(byte[] pixels, String path, String extension, PixmapIO.PNG pixmapIO){
         Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
         BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
         FileHandle fileHandle = Gdx.files.absolute(path);
@@ -366,8 +431,12 @@ public class ScreenshotUI {
             extension = extension.substring(1);
 
         try {
-            if (extension.equalsIgnoreCase("png"))
-                PixmapIO.writePNG(fileHandle, pixmap);
+            if (extension.equalsIgnoreCase("png")) {
+                if (pixmapIO != null) //buffers etc. reused
+                    pixmapIO.write(fileHandle, pixmap);
+                else
+                    PixmapIO.writePNG(fileHandle, pixmap);
+            }
             else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg"))
                 writeJpgWithQuality(new FileImageOutputStream(fileHandle.file()), pixmapToBufferedImage(pixmap), qualitySlider.getValue()/100f);
 //                ImageIO.write(pixmapToBufferedImage(pixmap), "JPG", fileHandle.file()); //TODO Android support?

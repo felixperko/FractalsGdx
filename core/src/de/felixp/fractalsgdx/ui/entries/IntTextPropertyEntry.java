@@ -23,4 +23,14 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         return supplier;
     }
 
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof Integer;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        text = ""+newValue;
+    }
+
 }

@@ -27,4 +27,14 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         supplier.setLayerRelevant(true);
         return supplier;
     }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof Number;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        text = ((Number)newValue).toString();
+    }
 }

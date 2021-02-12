@@ -193,7 +193,7 @@ public class MainStageWindows {
         renderersTable.add(localResourcesTable).left().row();
 
         for (FractalRenderer renderer : ((MainStage)stage).getRenderers()) {
-            addRendererToList(renderer);
+            addRendererToList(window, renderer);
         }
 
         VisTextButton addRendererButton = new VisTextButton("Add renderer", new ChangeListener() {
@@ -202,7 +202,7 @@ public class MainStageWindows {
                 FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.2f, 0.2f));
                 ((MainStage)stage).addFractalRenderer(renderer);
                 renderer.init();
-                addRendererToList(renderer);
+                addRendererToList(window, renderer);
                 //button to the bottom
                 actor.remove();
                 renderersTable.add(actor).row();
@@ -213,9 +213,9 @@ public class MainStageWindows {
         return renderersTable;
     }
 
-    public static void addRendererToList(FractalRenderer renderer) {
+    public static void addRendererToList(Window settingsWindow, FractalRenderer renderer) {
         RendererUI rendererUI = new RendererUI(renderer);
-        VisTable infoTable = rendererUI.initInfoTable();
+        VisTable infoTable = rendererUI.initInfoTable(settingsWindow);
         VisTable resourcesTable = rendererUI.initResourcesTable();
 
         renderersTable.add(infoTable).left().row();

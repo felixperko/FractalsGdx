@@ -37,6 +37,8 @@ public abstract class AbstractPropertyEntry {
 
     List<AbstractPropertyEntry> subEntries = null;
 
+    String prefListView = VIEW_LIST;
+
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition){
         this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
@@ -55,7 +57,7 @@ public abstract class AbstractPropertyEntry {
 
     protected abstract void generateViews();
 
-    public void openView(String viewName, Table table) {
+    public EntryView openView(String viewName, Table table) {
         EntryView view = views.get(viewName);
         if (view != null) {
 
@@ -63,10 +65,15 @@ public abstract class AbstractPropertyEntry {
                     view.addToTable(table)
             );
         }
+        return view;
     }
 
     public void closeView(String viewName){
         EntryView view = views.get(viewName);
+        closeView(view);
+    }
+
+    public void closeView(EntryView view){
         if (view != null){
             Gdx.app.postRunnable(() -> view.removeFromTable());
         }
@@ -101,10 +108,26 @@ public abstract class AbstractPropertyEntry {
         this.subEntries = subEntries;
     }
 
+    public String getPrefListView() {
+        return prefListView;
+    }
+
+    public void setPrefListView(String prefListView) {
+        this.prefListView = prefListView;
+    }
+
     public ParamDefinition getParameterDefinition() {
         return parameterDefinition;
     }
 
     public abstract void addChangeListener(ChangeListener changeListener);
     public abstract void removeChangeListener(ChangeListener changeListener);
+
+    public void setValue(Object newValue){
+        if (checkValue(newValue))
+            setCheckedValue(newValue);
+    }
+
+    protected abstract boolean checkValue(Object valueObj);
+    protected abstract void setCheckedValue(Object newValue);
 }

@@ -1,7 +1,11 @@
+#version 130
+#define FLT_MIN 1.175494351e-38
 #ifdef GL_ES
 precision highp float;
 #endif
 uniform sampler2D u_texture;
+uniform sampler2D palette;
+uniform int usePalette;
 varying vec2 v_texCoords;
 uniform float sobel_ambient;
 uniform float sobel_magnitude;
@@ -16,17 +20,23 @@ float sobelLuminance = 1.0;
 uniform float sobelPeriod;
 uniform vec2 resolution;
 
-uniform float axisWidth;
-uniform vec4 axisColor;
-uniform vec2 axisTexCoords;
+const float resultOffset = 10.0;
 
 float DecodeExpV3( in vec3 pack )
 {
-    int exponent = int( pack.z * 256.0 - 127.0 );
-    float value  = dot( pack.xy, 1.0 / vec2(1.0, 256.0) );
-    value        = value * (2.0*256.0*256.0) / (256.0*256.0 - 1.0) - 1.0;
+//    float scale = 256.0/257.0;
+    int exponent = int( pack.z * 256.0 - 128.0 );
+    float value  = pack.x + pack.y/256.0 + 1.0;
     return value * exp2( float(exponent) );
 }
+
+//float DecodeExpV3( in vec3 pack )
+//{
+//    int exponent = int( pack.z * 256.0 ) ;
+//    float value  = dot( pack.xy, (1.0) / vec2(1.0, 256.0) ) + 1.0;
+////    value        = ((value) * (256.0*256.0) / (256.0*256.0) );
+//    return value * exp2( float(exponent) );
+//}
 
 vec3 hsv2rgb(vec3 c) {
   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -48,25 +58,36 @@ void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
     float w = 1.0/resolution.x;
     float h = 1.0/resolution.y;
 
-    n[0] = decode(texture2D(tex, coord + vec2(-w, -h)));
-    n[1] = decode(texture2D(tex, coord + vec2(0.0, -h)));
-    n[2] = decode(texture2D(tex, coord + vec2(w, -h)));
-    n[3] = decode(texture2D(tex, coord + vec2(-w, 0.0)));
-    n[4] = decode(texture2D(tex, coord));
-    n[5] = decode(texture2D(tex, coord + vec2(w, 0.0)));
-    n[6] = decode(texture2D(tex, coord + vec2(-w, h)));
-    n[7] = decode(texture2D(tex, coord + vec2(0.0, h)));
-    n[8] = decode(texture2D(tex, coord + vec2(w, h)));
 
-    n[0] = max(0, n[0]);
-    n[1] = max(0, n[1]);
-    n[2] = max(0, n[2]);
-    n[3] = max(0, n[3]);
-    n[4] = max(0, n[4]);
-    n[5] = max(0, n[5]);
-    n[6] = max(0, n[6]);
-    n[7] = max(0, n[7]);
-    n[8] = max(0, n[8]);
+    n[0] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, -1), 0));
+    n[1] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, -1), 0));
+    n[2] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, -1), 0));
+    n[3] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1,  0), 0));
+    n[4] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
+    n[5] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 0), 0));
+    n[6] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, 1), 0));
+    n[7] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, 1), 0));
+    n[8] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 1), 0));
+
+//    n[0] = decode(texture2D(tex, coord + vec2(-w, -h)));
+//    n[1] = decode(texture2D(tex, coord + vec2(0.0, -h)));
+//    n[2] = decode(texture2D(tex, coord + vec2(w, -h)));
+//    n[3] = decode(texture2D(tex, coord + vec2(-w, 0.0)));
+//    n[4] = decode(texture2D(tex, coord));
+//    n[5] = decode(texture2D(tex, coord + vec2(w, 0.0)));
+//    n[6] = decode(texture2D(tex, coord + vec2(-w, h)));
+//    n[7] = decode(texture2D(tex, coord + vec2(0.0, h)));
+//    n[8] = decode(texture2D(tex, coord + vec2(w, h)));
+
+    n[0] = max(0.0, n[0]);
+    n[1] = max(0.0, n[1]);
+    n[2] = max(0.0, n[2]);
+    n[3] = max(0.0, n[3]);
+    n[4] = max(0.0, n[4]);
+    n[5] = max(0.0, n[5]);
+    n[6] = max(0.0, n[6]);
+    n[7] = max(0.0, n[7]);
+    n[8] = max(0.0, n[8]);
 }
 
 void main(void){
@@ -75,7 +96,8 @@ void main(void){
 
     make_kernel(n, u_texture, v_texCoords.xy);
 
-    float d = decode(texture2D(u_texture, v_texCoords.xy));
+//    float d = decode(texture2D(u_texture, v_texCoords.xy));
+    float d = decode(texelFetch(u_texture, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
     if (d > 0.0){
 
         //sobel edge detection
@@ -93,8 +115,12 @@ void main(void){
         //select color based on iteration count
         vec3 hsv = vec3(d/colorMult+colorAdd,colorSaturation,1.0);
         vec4 rgb = vec4(hsv2rgb(hsv), 1.0);
-        float brightness = sobel_ambient + sobel_magnitude*s;
-        float chance = fract(brightness * 256.0);
+
+        float brightness = sobel_ambient;
+        if (gl_FragCoord.x >= 1.0 && gl_FragCoord.x < resolution.x-1.0 && gl_FragCoord.y >= 1.0 && gl_FragCoord.y < resolution.y-1.0)
+            brightness += sobel_magnitude*s;
+
+//        float chance = fract(brightness * 256.0);
 //        if (rand(v_texCoords.xy) < chance)
 //            brightness += 1.0/256.0;
 
@@ -115,6 +141,12 @@ void main(void){
 
         if (brightness > 1.0)
             brightness = 1.0;
+
+        //palette
+        if (usePalette > 0)
+            rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
+//            rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
+
         gl_FragColor = vec4(brightness, brightness, brightness, 1.0) * rgb;
 
         //extract channel
@@ -125,21 +157,13 @@ void main(void){
         else if (extractChannel == 3)
             gl_FragColor = vec4(gl_FragColor.b*mappingColorR, gl_FragColor.b*mappingColorG, gl_FragColor.b*mappingColorB, 1.0);
         //extract channel end
+
+//            gl_FragColor = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 256.0), 0.0));
+//        if (v_texCoords.y > 0.5)
+//        else
+//            gl_FragColor = texture2D(u_texture, vec2(0.0, mod(v_texCoords.x, 1.0)));
     }
     else {
         gl_FragColor = vec4(0.0,0.0,0.0,1.0);
-    }
-
-    //draw axis
-    if (axisColor.a > 0.0){
-        vec2 axisDistances = v_texCoords.xy - axisTexCoords;
-        vec2 overlap = (axisWidth/resolution.xy - abs(axisDistances.xy))*resolution.xy;
-        float maxOverlap = min(1.0, max(overlap.x, overlap.y));
-        //if ( < width/resolution.x || abs(axisDistances.y) < width/resolution.y)
-        float axisAlpha = axisColor.a * maxOverlap;
-        vec3 axisAlphaVec = vec3(axisAlpha, axisAlpha, axisAlpha);
-        if (maxOverlap > 0.0)
-            gl_FragColor.xyz = (1.0 - axisAlphaVec) * gl_FragColor.xyz + axisAlphaVec * axisColor.xyz;
-            //gl_FragColor = vec4(1.0,1.0,1.0,0.1);
     }
 }

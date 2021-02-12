@@ -14,6 +14,7 @@ import java.util.List;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
@@ -34,7 +35,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
             public void addToTable(Table table) {
                 if (label == null) {
                     label = new VisLabel(getPropertyName());
-                    checkBox = new VisCheckBox("enabled");
+                    checkBox = new VisCheckBox("");
                 }
 
                 ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
@@ -45,8 +46,9 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
                     checkBox.addListener(listener);
                 contentFields.add(checkBox);
 
-                table.add(label);
-                table.add(checkBox).padBottom(2).row();
+                table.add(label).left();
+                table.add();
+                table.add(checkBox).left().padBottom(2).row();
             }
 
             @Override
@@ -60,7 +62,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return null;
+        return new StaticParamSupplier(propertyName, checkBox.isChecked());
     }
 
     @Override
@@ -75,5 +77,15 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
         listeners.remove(changeListener);
         for (Actor field : contentFields)
             field.removeListener(changeListener);
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof Boolean;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        checkBox.setChecked((Boolean)newValue);
     }
 }

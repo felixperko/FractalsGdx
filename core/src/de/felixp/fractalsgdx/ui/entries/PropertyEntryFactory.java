@@ -1,7 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.Validators;
 
 import org.slf4j.Logger;
@@ -12,15 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.LayerConfiguration;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueField;
 import de.felixperko.fractals.system.parameters.ParamValueType;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class PropertyEntryFactory {
 
@@ -52,7 +48,7 @@ public class PropertyEntryFactory {
                 //ParameterDefinition subDefinition = config.getParameters().stream().filter(def -> def.getName().equalsIgnoreCase(subType.getName())).findFirst().get();
                 ParamDefinition subDefinition = new ParamDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
                 subDefinition.setConfiguration(parameterDefinition.getConfiguration());
-                AbstractPropertyEntry entry = getByType(subType, paramContainer, subDefinition);
+                AbstractPropertyEntry entry = createEntry(subType, paramContainer, subDefinition);
                 if (entry != null) {
                     entry.init();
                     subEntries.add(entry);
@@ -62,7 +58,7 @@ public class PropertyEntryFactory {
                 }
             }
 
-            AbstractPropertyEntry entry = getByType(type, paramContainer, parameterDefinition);
+            AbstractPropertyEntry entry = createEntry(type, paramContainer, parameterDefinition);
             if (entry != null) {
                 entry.addSubEntries(subEntries);
                 return entry;
@@ -74,7 +70,7 @@ public class PropertyEntryFactory {
         return null;
     }
 
-    private AbstractPropertyEntry getByType(ParamValueType type, ParamContainer paramContainer, ParamDefinition parameterDefinition){
+    private AbstractPropertyEntry createEntry(ParamValueType type, ParamContainer paramContainer, ParamDefinition parameterDefinition){
         Tree.Node node = categoryNodes.get(parameterDefinition.getCategory());
         switch (type.getName()) {
             case ("integer"):
@@ -101,37 +97,37 @@ public class PropertyEntryFactory {
                 return new BreadthFirstLayerPropertyEntry(node, paramContainer, parameterDefinition);
             case ("BreadthFirstUpsampleLayer"):
                 return new BreadthFirstUpsampleLayerPropertyEntry(node, paramContainer, parameterDefinition);
-            case ("LayerConfiguration"):
-                return new CompositePropertyEntry(node, paramContainer, parameterDefinition){
-                    @Override
-                    public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
-                        LayerConfiguration current = paramContainer.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
-                        if (current != null) {
-                            ((ListPropertyEntry) subEntries.get(0)).setContent(current.getLayers());
-                        }
-                        super.addSubEntries(subEntries);
-                    }
-
-                    @Override
-                    public ParamSupplier getSupplier() {
-//                        List<BreadthFirstLayer> layers = subEntries.get(0).getSupplier().getGeneral(List.class);
-//                        double simStep = subEntries.get(1).getSupplier().getGeneral(Double.class);
-//                        int simCount = subEntries.get(2).getSupplier().getGeneral(Integer.class);
-//                        long seed = subEntries.get(3).getSupplier().getGeneral(Long.class);
-//                        return new StaticParamSupplier(getPropertyName(), new LayerConfiguration(layers, simStep, simCount, seed));
-                        return null;
-                    }
-
-                    @Override
-                    public void addChangeListener(ChangeListener changeListener) {
-                        throw new NotImplementedException();
-                    }
-
-                    @Override
-                    public void removeChangeListener(ChangeListener changeListener) {
-                        throw new NotImplementedException();
-                    }
-                };
+//            case ("LayerConfiguration"):
+//                return new CompositePropertyEntry(node, paramContainer, parameterDefinition){
+//                    @Override
+//                    public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
+//                        LayerConfiguration current = paramContainer.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
+//                        if (current != null) {
+//                            ((ListPropertyEntry) subEntries.get(0)).setContent(current.getLayers());
+//                        }
+//                        super.addSubEntries(subEntries);
+//                    }
+//
+//                    @Override
+//                    public ParamSupplier getSupplier() {
+////                        List<BreadthFirstLayer> layers = subEntries.get(0).getSupplier().getGeneral(List.class);
+////                        double simStep = subEntries.get(1).getSupplier().getGeneral(Double.class);
+////                        int simCount = subEntries.get(2).getSupplier().getGeneral(Integer.class);
+////                        long seed = subEntries.get(3).getSupplier().getGeneral(Long.class);
+////                        return new StaticParamSupplier(getPropertyName(), new LayerConfiguration(layers, simStep, simCount, seed));
+//                        return null;
+//                    }
+//
+//                    @Override
+//                    public void addChangeListener(ChangeListener changeListener) {
+//                        throw new NotImplementedException();
+//                    }
+//
+//                    @Override
+//                    public void removeChangeListener(ChangeListener changeListener) {
+//                        throw new NotImplementedException();
+//                    }
+//                };
             default:
                 return null;
         }

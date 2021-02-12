@@ -17,6 +17,7 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -111,6 +112,19 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     @Override
     public void removeChangeListener(ChangeListener changeListener) {
         throw new NotImplementedException();
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof BreadthFirstUpsampleLayer;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        BreadthFirstUpsampleLayer val = (BreadthFirstUpsampleLayer)newValue;
+        field_upsample.setText(""+val.getUpsample());
+        field_priority_shift.setText(""+val.getPriorityShift());
+        field_priority_multiplier.setText(""+val.getPriorityMultiplier());
     }
 
 }

@@ -7,9 +7,6 @@ import com.kotcrab.vis.ui.widget.VisTable;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
-import de.felixp.fractalsgdx.rendering.RemoteRenderer;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
-import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
@@ -25,30 +22,12 @@ import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ParamUI {
 
-    static CollapsiblePropertyList serverParamsSideMenu;
-
-    //TODO move!
-    public static void submitServer(FractalRenderer renderer, ParamContainer paramContainer){
-        for (AbstractPropertyEntry entry : serverParamsSideMenu.getPropertyEntries()){
-            entry.applyClientValue();
-        }
-        if (renderer instanceof RemoteRenderer) {
-            ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
-            if (paramContainer.needsReset(clientSystem.getOldParams())) {
-                clientSystem.incrementJobId();
-                paramContainer.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
-                renderer.reset();
-            }
-            clientSystem.setOldParams(paramContainer.getClientParameters());
-            clientSystem.getSystemContext().setParameters(paramContainer);
-            clientSystem.updateConfiguration();
-            clientSystem.resetAnchor();//TODO integrate...
-        }
-    }
+    public static boolean showSliderLimits = false;
 
     PropertyEntryFactory serverPropertyEntryFactory;
 //    List<AbstractPropertyEntry> propertyEntryList = new ArrayList<>();
 
+    CollapsiblePropertyList serverParamsSideMenu;
     CollapsiblePropertyList clientParamsSideMenu;
     PropertyEntryFactory clientPropertyEntryFactory;
 
@@ -56,7 +35,7 @@ public class ParamUI {
     Number switchMandelbrotZoom = null;
     ComplexNumber switchMandelbrotMidpoint = null;
 
-    MainStage stage;
+    protected MainStage stage;
 
     public ParamUI(MainStage mainStage){
         this.stage = mainStage;
@@ -72,7 +51,7 @@ public class ParamUI {
         //
 
         serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
-        clientParamsSideMenu = new CollapsiblePropertyList();
+        clientParamsSideMenu = new CollapsiblePropertyList().addButton(getSliderLimitsButton());
         serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
         clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
 
@@ -96,6 +75,23 @@ public class ParamUI {
 //            };
 //            serverParamsSideMenu.addAllListener(listener2);
 //        }
+    }
+
+    public CollapsiblePropertyList getServerParamsSideMenu() {
+        return serverParamsSideMenu;
+    }
+
+    public CollapsiblePropertyList getClientParamsSideMenu() {
+        return clientParamsSideMenu;
+    }
+
+    public CollapsiblePropertyListButton getSliderLimitsButton() {
+        return new CollapsiblePropertyListButton("toggle slider limits", "settings", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showSliderLimits = !showSliderLimits;
+            }
+        });
     }
 
     public CollapsiblePropertyListButton getJuliasetButton() {
@@ -153,8 +149,9 @@ public class ParamUI {
                     zoomSupp.setLayerRelevant(true);//TODO integrate...
                     serverParamContainer.getClientParameters().put("zoom", zoomSupp);
                 }
-//                renderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
-                submitServer(((MainStage)FractalsGdxMain.stage).focusedRenderer, serverParamContainer);
+                FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).focusedRenderer;
+                focusedRenderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
+                stage.submitServer(focusedRenderer, serverParamContainer);
             }
         });
     }
@@ -167,7 +164,8 @@ public class ParamUI {
         serverParamsSideMenu.addToTable(serverParamTable, Align.left);
         clientParamsSideMenu.addToTable(clientParamTable, Align.right);
 
-        ui.add(serverParamTable).left().expandY().expandX().fillX();
+        ui.add(serverParamTable).left().expandY();
+        ui.add().expandX();
         ui.add(clientParamTable).right().expandY();
         ui.row();
     }
@@ -176,13 +174,17 @@ public class ParamUI {
         setParameterConfiguration(renderer, serverParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
     }
 
+    public void setClientParameterConfiguration(FractalRenderer renderer, ParamContainer paramContainer, ParamConfiguration parameterConfiguration){
+        setParameterConfiguration(renderer, clientParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
+    }
+
     public void setParameterConfiguration(FractalRenderer focusedRenderer, CollapsiblePropertyList list,
                                           ParamContainer paramContainer, ParamConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
 
         ChangeListener submitListener = new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                submitServer(focusedRenderer, paramContainer);
+                stage.submitServer(focusedRenderer, paramContainer);
 //                }
             }
         };

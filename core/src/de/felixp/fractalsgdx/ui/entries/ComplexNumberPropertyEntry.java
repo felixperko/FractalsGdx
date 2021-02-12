@@ -46,4 +46,16 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
         supplier.setLayerRelevant(true);//TODO only if in definition! other flags!
         return supplier;
     }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof ComplexNumber;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        ComplexNumber cn = (ComplexNumber)newValue;
+        text1 = cn.getReal().toString();
+        text2 = cn.getImag().toString();
+    }
 }

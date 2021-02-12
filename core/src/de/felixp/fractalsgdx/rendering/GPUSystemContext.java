@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.rendering;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftPa
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewContainer;
@@ -55,6 +57,7 @@ public class GPUSystemContext implements SystemContext {
         paramConfiguration = new ParamConfiguration();
 
         List<ParamDefinition> defs = new ArrayList<>();
+        List<ParamSupplier> defaultValues = new ArrayList<>();
 
         paramConfiguration.addValueType(BFOrbitCommon.numberType);
         paramConfiguration.addValueType(BFOrbitCommon.complexnumberType);
@@ -73,21 +76,25 @@ public class GPUSystemContext implements SystemContext {
         supplierClasses.add(StaticParamSupplier.class);
         supplierClasses.add(CoordinateBasicShiftParamSupplier.class);
 
+        defs.add(new ParamDefinition("f(z)=", "Calculator", StaticParamSupplier.class, BFOrbitCommon.stringType));
         defs.add(new ParamDefinition("iterations", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defs.add(new ParamDefinition("zoom", "Position", StaticParamSupplier.class, BFOrbitCommon.numberType));
         defs.add(new ParamDefinition("midpoint", "Position", StaticParamSupplier.class, BFOrbitCommon.complexnumberType));
-        defs.add(new ParamDefinition("c", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType));
+        defs.add(new ParamDefinition("c", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
         defs.add(new ParamDefinition("start", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType));
-        defs.add(new ParamDefinition("f(z)=", "Calculator", StaticParamSupplier.class, BFOrbitCommon.stringType));
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.doubleType));
-        defs.add(new ParamDefinition("resolutionScale", "Calculator", StaticParamSupplier.class, BFOrbitCommon.doubleType));
-        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
-        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defs.add(new ParamDefinition("shader grid dim", "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defaultValues.add(new StaticParamSupplier("shader grid dim", 1));
+        defs.add(new ParamDefinition("resolutionScale", "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType));
+        defaultValues.add(new StaticParamSupplier("resolutionScale", 1.0));
+//        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
+//        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defs.add(new ParamDefinition(PARAM_NAME_LAYER_CONFIG, "Calculator", StaticParamSupplier.class, layerconfigurationType));
 
         paramConfiguration.addParameterDefinitions(defs);
+        paramConfiguration.addDefaultValues(defaultValues);
 
-        Map<String, ParamSupplier> map = new HashMap<>();
+        LinkedHashMap<String, ParamSupplier> map = new LinkedHashMap<>();
         paramContainer = new ParamContainer(map);
 
         nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
@@ -103,9 +110,20 @@ public class GPUSystemContext implements SystemContext {
             paramContainer.addClientParameter(new StaticParamSupplier("start", nf.createComplexNumber(0,0)));
         paramContainer.addClientParameter(new StaticParamSupplier("f(z)=", "z^2+c"));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", 256.0));
+        paramContainer.addClientParameter(new StaticParamSupplier("shader grid dim", 1));
         paramContainer.addClientParameter(new StaticParamSupplier("resolutionScale", 1.0));
+        paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
-        layers.add(new BreadthFirstLayer(1));
+        layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));
+        layers.add(new BreadthFirstUpsampleLayer(8, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(10));
+        layers.add(new BreadthFirstUpsampleLayer(4, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(20));
+        layers.add(new BreadthFirstUpsampleLayer(2, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(30));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(40));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(4).with_rendering(true).with_priority_shift(50));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(16).with_rendering(true).with_priority_shift(60));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(49).with_rendering(true).with_priority_shift(70));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(100).with_rendering(true).with_priority_shift(80));
+        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(400).with_rendering(true).with_priority_shift(90));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAM_NAME_LAYER_CONFIG, new PadovanLayerConfiguration(layers)));
 
         updateLayerConfig(paramContainer, PARAM_NAME_LAYER_CONFIG, null, paramContainer.getClientParameters());
@@ -118,6 +136,7 @@ public class GPUSystemContext implements SystemContext {
         } else {
             rendererContext.setParamContainer(this.paramContainer);
         }
+        this.paramContainer.setParamConfiguration(paramConfiguration);
         ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(renderer, paramContainer, this.paramConfiguration);
     }
 
@@ -131,6 +150,7 @@ public class GPUSystemContext implements SystemContext {
         if (this.paramContainer != null && paramContainer != this.paramContainer){
             boolean changed = this.paramContainer.updateChangedFlag(paramContainer.getClientParameters());
             updateLayerConfig(paramContainer, PARAM_NAME_LAYER_CONFIG, this.paramContainer.getClientParameters(), paramContainer.getClientParameters());
+            paramContainer.setParamConfiguration(paramConfiguration);
             this.paramContainer = paramContainer;
             if (changed)
                 renderer.paramsChanged();

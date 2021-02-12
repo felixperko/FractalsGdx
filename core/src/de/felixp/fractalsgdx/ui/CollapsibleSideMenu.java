@@ -32,7 +32,7 @@ public class CollapsibleSideMenu {
         //ScrollPane scrollPane = new ScrollPane(tree);
 
         collapsibleTable = new VisTable();
-        collapsibleTable.setFillParent(true);
+//        collapsibleTable.setFillParent(true);
 
 //        VisTable dummyActor = new VisTable(){
 //
@@ -79,13 +79,12 @@ public class CollapsibleSideMenu {
 
         if (align == left) {
             parentTable.add(collapseButton).align(left);
-            parentTable.add(collapsibleWidget).align(left).expandX().fillX().expandY();
-            refreshButtonArrow();
+            parentTable.add(collapsibleWidget).align(left).expandY();
         } else {
             parentTable.add(collapsibleWidget).align(right).expandY();
             parentTable.add(collapseButton).align(right);
-            refreshButtonArrow();
         }
+        refreshButtonArrow();
     }
 
     private void refreshButtonArrow(){
@@ -106,5 +105,9 @@ public class CollapsibleSideMenu {
 
     public VisTree getTree(){
         return tree;
+    }
+
+    public VisTextButton getCollapseButton() {
+        return collapseButton;
     }
 }

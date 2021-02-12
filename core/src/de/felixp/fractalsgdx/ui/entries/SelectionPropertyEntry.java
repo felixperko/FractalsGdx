@@ -60,15 +60,11 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
                 if (supplier == null)
                     throw new IllegalArgumentException("Parameter missing: "+propertyName);
-                Object current = supplier.getGeneral();
-                String currentName = null;
-                for (String s : selection.getOptionNames()){
-                    Object obj = selection.getOption(s);
-                    if (obj.equals(current))
-                        currentName = s;
-                }
-                selectedValue = currentName;
-                box.setSelected(currentName);
+                Object newSelectedObj = supplier.getGeneral();
+                if (checkValue(newSelectedObj))
+                    setCheckedValue(newSelectedObj);
+                else if (newSelectedObj != null)
+                    throw new IllegalArgumentException("Parameter invalid: "+propertyName);
 
                 box.addListener(new ChangeListener() {
                     @Override
@@ -113,5 +109,27 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
         listeners.remove(changeListener);
         for (Actor field : contentFields)
             field.removeListener(changeListener);
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        for (String optionName : selection.getOptionNames()){
+            if (selection.getOption(optionName).equals(valueObj))
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newSelectedObj) {
+        String newSelectedName = null;
+        for (String s : selection.getOptionNames()){
+            Object obj = selection.getOption(s);
+            if (obj.equals(newSelectedObj))
+                newSelectedName = s;
+        }
+        selectedValue = newSelectedName;
+        for (Actor contentField : contentFields)
+            ((VisSelectBox)contentField).setSelected(selectedValue);
     }
 }

@@ -4,11 +4,12 @@ import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.util.Validators;
 
+import de.felixperko.expressions.FractalsExpression;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.util.expressions.FractalsExpressionParser;
+import de.felixperko.expressions.FractalsExpressionParser;
 
 public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
@@ -17,7 +18,11 @@ public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry
             @Override
             public boolean validateInput(String input) {
                 try {
-                    return FractalsExpressionParser.parse(input) != null;
+                    FractalsExpression expr = FractalsExpressionParser.parse(input);
+                    if (expr == null)
+                        return false;
+                    //TODO update dynamic parameters
+                    return true;
                 } catch (IllegalArgumentException e){
                     return false;
                 }
@@ -31,6 +36,16 @@ public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), text);
         supplier.setLayerRelevant(true);
         return supplier;
+    }
+
+    @Override
+    protected boolean checkValue(Object valueObj) {
+        return valueObj instanceof String;
+    }
+
+    @Override
+    protected void setCheckedValue(Object newValue) {
+        text = (String)newValue;
     }
 
 }

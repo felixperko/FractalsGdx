@@ -60,12 +60,12 @@ public class MessageInterfaceGdx extends ClientMessageInterface {
 //                            ChunkContainer chunkContainer = systemInterface.getChunkData().getChunkContainer(update.getTaskId());
 //                            if (chunkContainer != null) {
 //                                chunkContainer.setTaskState(update.getTaskState());
-//                                chunkContainer.setProgress(update.getProgress());
+//                                chunkContainer.setTimeProgress(update.getTimeProgress());
 //                                chunkContainer.setLayerId(update.getLayerId());
 //                            }
                         }
                     }
-//                    System.out.println(update.getTaskId()+" "+update.getTaskState().toString()+" "+update.getLayerId()+" "+update.getProgress());
+//                    System.out.println(update.getTaskId()+" "+update.getTaskState().toString()+" "+update.getLayerId()+" "+update.getTimeProgress());
                 }
             }
         });

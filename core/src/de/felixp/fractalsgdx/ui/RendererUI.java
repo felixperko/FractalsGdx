@@ -1,6 +1,7 @@
 package de.felixp.fractalsgdx.ui;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
@@ -61,7 +62,7 @@ public class RendererUI {
         this.renderer = renderer;
     }
 
-    public VisTable initInfoTable(){
+    public VisTable initInfoTable(Window settingsWindow){
         if (infoTable != null) {
             infoTable.remove();
         }
@@ -123,6 +124,7 @@ public class RendererUI {
                         stage.addFractalRenderer(renderer);
                 }
 
+                settingsWindow.remove();
                 MainStageWindows.openSettingsMenu(stage);
 //                for (FractalRenderer renderer : renderers)
 //                    stage.addFractalRenderer((AbstractFractalRenderer)renderer);
@@ -144,37 +146,46 @@ public class RendererUI {
             xField.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    try {
-                        renderer.setRelativeX(Integer.parseInt(xField.getText()) / 100f);
-                        xField.setInputValid(true);
-                    } catch (NumberFormatException e){xField.setInputValid(false);}
+                    Integer value  = parseIntPercentage(xField.getText(), 0, (int)(100*(1f-renderer.getRelativeWidth())));
+                    xField.setInputValid(value != null);
+                    widthField.setInputValid(value != null);
+                    if  (value != null){
+                        renderer.setRelativeX(value / 100f);
+                    }
+
                 }
             });
             yField.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    try {
-                        renderer.setRelativeY(Integer.parseInt(yField.getText()) / 100f);
-                        yField.setInputValid(true);
-                    } catch (NumberFormatException e){yField.setInputValid(false);}
+                    Integer value  = parseIntPercentage(yField.getText(), 0, (int)(100*(1f-renderer.getRelativeHeight())));
+                    yField.setInputValid(value != null);
+                    heightField.setInputValid(value != null);
+                    if  (value != null){
+                        renderer.setRelativeY(value / 100f);
+                    }
                 }
             });
             widthField.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    try {
-                        renderer.setRelativeWidth(Integer.parseInt(widthField.getText()) / 100f);
-                        widthField.setInputValid(true);
-                    } catch (NumberFormatException e){widthField.setInputValid(false);}
+                    Integer value  = parseIntPercentage(widthField.getText(), 1, (int)(100*(1f-renderer.getRelativeX())));
+                    xField.setInputValid(value != null);
+                    widthField.setInputValid(value != null);
+                    if  (value != null){
+                        renderer.setRelativeWidth(value / 100f);
+                    }
                 }
             });
             heightField.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    try {
-                        renderer.setRelativeHeight(Integer.parseInt(heightField.getText()) / 100f);
-                        heightField.setInputValid(true);
-                    } catch (NumberFormatException e){heightField.setInputValid(false);}
+                    Integer value  = parseIntPercentage(heightField.getText(), 1, (int)(100*(1f-renderer.getRelativeY())));
+                    yField.setInputValid(value != null);
+                    heightField.setInputValid(value != null);
+                    if  (value != null){
+                        renderer.setRelativeHeight(value / 100f);
+                    }
                 }
             });
 
@@ -198,6 +209,23 @@ public class RendererUI {
             infoTable.add(dimTable);
 //        }
         return infoTable;
+    }
+
+    /**
+     * @param inputText
+     * @param min
+     * @param max
+     * @return parsed int value in the given range, null if not parsable or out of the given range
+     */
+    public static Integer parseIntPercentage(String inputText, int min, int max){
+
+        try {
+            int value = Integer.parseInt(inputText);
+            boolean valid = value >= min && value <= max;
+            return valid ? value : null;
+        } catch (NumberFormatException e){
+            return null;
+        }
     }
 
     private String getPercentage(float relativeValue) {

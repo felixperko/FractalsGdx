@@ -118,7 +118,7 @@ public abstract class PixmapThread extends AbstractFractalsThread {
         int chunkImgX = (int)Math.round(chunkCoords.getReal().toDouble());
         int chunkImgY = (int)Math.round(chunkCoords.getImag().toDouble());
 
-        log.trace(chunk.getChunkX()+" / "+chunk.getChunkY()+" -> "+chunkImgX+" / "+chunkImgY);
+        log.debug(chunk.getChunkX()+" / "+chunk.getChunkY()+" -> "+chunkImgX+" / "+chunkImgY);
         boolean inside = false;
         com.badlogic.gdx.graphics.Color color = new com.badlogic.gdx.graphics.Color();
 

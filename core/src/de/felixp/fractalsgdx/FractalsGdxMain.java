@@ -59,12 +59,12 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 		batch = new SpriteBatch();
 
-		client = new Client(this);
-		client.start();
-
 		viewport = new ScreenViewport();
 		stage = new MainStage(viewport, batch);
 		((MainStage) stage).create();
+
+		client = new Client(this);
+		client.start();
 
 
 //		InputMultiplexer multiplexer = new InputMultiplexer();
@@ -90,8 +90,13 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 
 		viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		stage.act(Gdx.graphics.getDeltaTime());
-		stage.draw();
+		try {
+			stage.act(Gdx.graphics.getDeltaTime());
+			stage.draw();
+		} catch (NullPointerException e){
+			e.printStackTrace();
+			System.exit(0);
+		}
 	}
 
 	public int getUiScale() {

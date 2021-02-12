@@ -1,29 +1,30 @@
 package de.felixp.fractalsgdx.rendering;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
 import java.util.List;
 
-import de.felixp.fractalsgdx.interpolation.ParameterInterpolation;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
-import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRenderer {
 
+    private static Logger LOG = LoggerFactory.getLogger(AbstractFractalRenderer.class);
     private static int ID_COUNTER = 1;
 
-    protected static void setColoringParams(ShaderProgram shader, double xPos, double yPos, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext, ComplexNumber anchor) {
-        rendererContext.applyParameterInterpolations(systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
+    protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
+//        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
+        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_COLOR_USE_PALETTE).getGeneral(Boolean.class) ? 1 : 0);
         shader.setUniformf("colorAdd", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Double.class));
         shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Double.class));
         shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Double.class));
@@ -40,19 +41,6 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 //        shader.setUniformf("sobelLuminance", (float)(double)stage.glowFactorSupplier.getGeneral(Double.class));
 
         shader.setUniformf("resolution", width, height);
-
-        ComplexNumber anchorCpy = anchor.copy();
-        //anchorCpy.multValues(systemContext.getNumberFactory().createComplexNumber(-1, 1));
-        Number zoom = (Number) systemContext.getParamValue("zoom", Number.class);
-        ComplexNumber pos = systemContext.getNumberFactory().createComplexNumber(-xPos, yPos);
-        ComplexNumber dims = systemContext.getNumberFactory().createComplexNumber(-height, height);
-        anchorCpy.divNumber(zoom);
-        anchorCpy.multValues(dims);
-        //pos.divNumber(zoom);
-
-        shader.setUniformf("axisWidth", 1.5f);
-        shader.setUniformf("axisColor", 1.0f, 1.0f, 1.0f, (float)(double)stage.getClientParameter(MainStage.PARAMS_AXIS_ALPHA).getGeneral(Double.class));
-        shader.setUniformf("axisTexCoords", (float)((anchorCpy.realDouble()-pos.realDouble())/width)+0.5f, (float)((anchorCpy.imagDouble()-pos.imagDouble())/height)+0.5f);
     }
 
     int position = -1;
@@ -60,7 +48,8 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     //TODO replace with position?
     int id = ID_COUNTER++;
 
-    boolean screenshot;
+    boolean singleScreenshotScheduled;
+    boolean recordingScreenshots;
 
     RendererContext rendererContext;
 
@@ -78,15 +67,25 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         ShaderProgram shader = null;
         String vertexString = null;
         String fragmentString = null;
-        try {
-            List<String> vertexStringTemplate = Files.readAllLines(Paths.get(Gdx.files.internal(vertexPath).path()));
-            List<String> fragmentStringTemplate = Files.readAllLines(Paths.get(Gdx.files.internal(fragmentPath).path()));
-            vertexString = fillShaderTemplate(vertexStringTemplate);
-            fragmentString = fillShaderTemplate(fragmentStringTemplate);
+//        try {
+            FileHandle vertexTemplateHandle = Gdx.files.internal(vertexPath);
+            FileHandle fragmentTemplateHandle = Gdx.files.internal(fragmentPath);
+            String vertexTemplate = vertexTemplateHandle.readString();
+            String fragmentTemplate = fragmentTemplateHandle.readString();
+            vertexString = fillShaderTemplate(Arrays.asList(vertexTemplate));
+            fragmentString = fillShaderTemplate(Arrays.asList(fragmentTemplate));
+//            List<String> vertexStringTemplate = Files.readAllLines(Paths.get(vertexShaderPath));
+//            List<String> fragmentStringTemplate = Files.readAllLines(Paths.get(fragmentShaderPath));
+//            LOG.warn("compiling shaders "+vertexShaderPath+", "+fragmentShaderPath);
+//            List<String> vertexStringTemplate = Files.readAllLines(Paths.get(vertexShaderPath));
+//            List<String> fragmentStringTemplate = Files.readAllLines(Paths.get(fragmentShaderPath));
+//            vertexString = fillShaderTemplate(vertexStringTemplate);
+//            fragmentString = fillShaderTemplate(fragmentStringTemplate);
             shader = new ShaderProgram(vertexString, fragmentString);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        }
+//        catch (IOException e) {
+//            e.printStackTrace();
+//        }
         if (!shader.isCompiled()) {
             System.out.println("----VERTEX----");
             System.out.println(vertexString);
@@ -127,15 +126,22 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     public abstract void reset();
 
     @Override
-    public void setScreenshot(boolean screenshot) {
-        this.screenshot = screenshot;
+    public void setSingleScreenshotScheduled(boolean singleScreenshotScheduled) {
+        this.singleScreenshotScheduled = singleScreenshotScheduled;
     }
 
     @Override
-    public boolean isScreenshot(boolean reset) {
-        boolean curr = screenshot;
-        if (reset)
-            screenshot = false;
+    public void setScreenshotRecording(boolean screenshotRecording) {
+        this.recordingScreenshots = screenshotRecording;
+    }
+
+    @Override
+    public boolean isScreenshot(boolean resetSingle) {
+        if (recordingScreenshots)
+            return true;
+        boolean curr = singleScreenshotScheduled;
+        if (resetSingle)
+            singleScreenshotScheduled = false;
         return curr;
     }
 
@@ -172,13 +178,23 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     }
 
     protected synchronized void makeScreenshot(){
+
+        long t1 = System.nanoTime();
+
         //get pixels
         byte[] pixels = ScreenUtils.getFrameBufferPixels(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), true);
+
+        long t2 = System.nanoTime();
+
         // this loop makes sure the whole screenshot is opaque and looks exactly like what the user is seeing
-        for(int i = 4; i < pixels.length; i += 4) {
-            pixels[i - 1] = (byte) 255;
-        }
+//        for(int i = 4; i < pixels.length; i += 4) {
+//            pixels[i - 1] = (byte) 255;
+//        }
+
         rendererContext.madeScreenshot(pixels);
+
+        long t3 = System.nanoTime();
+        System.out.println("Screenshot processing times: "+(t2-t1)+", "+(t3-t2));
     }
 
     public abstract double getXShift();
@@ -233,6 +249,13 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         return rendererContext.removeScreenshotListener(screenshotListener);
     }
 
+    @Override
+    public void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory) {
+        boolean changed = rendererContext.applyParameterAnimations(getSystemContext(), serverParamContainer, clientParamContainer, numberFactory);
+        if (changed)
+            reset();
+    }
+
     public void addPanListener(PanListener panListener){
         rendererContext.addPanListener(panListener);
     }
@@ -240,32 +263,4 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     public void removePanListener(PanListener panListener){
         rendererContext.removePanListener(panListener);
     }
-
-    public void addParameterInterpolationServer(ParameterInterpolation parameterInterpolation){
-        rendererContext.addParameterInterpolationServer(parameterInterpolation);
-    }
-
-    public void removeParameterInterpolationServer(ParameterInterpolation parameterInterpolation){
-        rendererContext.removeParameterInterpolationServer(parameterInterpolation);
-    }
-
-    public void addParameterInterpolationClient(ParameterInterpolation parameterInterpolation){
-        rendererContext.addParameterInterpolationClient(parameterInterpolation);
-    }
-
-    public void removeParameterInterpolationClient(ParameterInterpolation parameterInterpolation){
-        rendererContext.removeParameterInterpolationClient(parameterInterpolation);
-    }
-
-    @Override
-    public void applyParameterInterpolations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory) {
-        rendererContext.applyParameterInterpolations(serverParamContainer, clientParamContainer, numberFactory);
-    }
-
-    //    public boolean isRefresh(boolean reset){
-//        boolean val = refresh;
-//        if (reset)
-//            refresh = false;
-//        return val;
-//    }
 }

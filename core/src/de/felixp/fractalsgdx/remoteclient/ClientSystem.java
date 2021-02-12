@@ -4,11 +4,13 @@ import com.badlogic.gdx.Gdx;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import de.felixp.fractalsgdx.ui.ParamUI;
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.data.ReducedNaiveChunk;
@@ -28,7 +30,6 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.task.Layer;
 
@@ -49,7 +50,7 @@ public class ClientSystem {
 
     BFSystemContext systemContext;
 //    public Integer chunkSize = 128*2*2*2;
-    public Integer chunkSize = 128*2*2;
+    public Integer chunkSize = 128*2;
 //    public Integer chunkSize = 128*2;
 //    public Integer chunkSize = 128; ///TODO doesn't work
 
@@ -63,12 +64,12 @@ public class ClientSystem {
 
     public void setParamContainer(ParamContainer paramContainer){
 //        this.systemContext.setParameters(paramContainer);
-        ParamUI.submitServer(systemInterface.getRenderer(), paramContainer);
+        ((MainStage) FractalsGdxMain.stage).submitServer(systemInterface.getRenderer(), paramContainer);
     }
 
     private BFSystemContext createDefaultSystemConfiguration() {
         NumberFactory numberFactory = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-        Map<String, ParamSupplier> params = new HashMap<>();
+        LinkedHashMap<String, ParamSupplier> params = new LinkedHashMap<>();
         int samplesDim = 1;
         params.put("width", new StaticParamSupplier("width", (Integer) Gdx.graphics.getWidth()));
         params.put("height", new StaticParamSupplier("height", (Integer)Gdx.graphics.getHeight()));
@@ -156,7 +157,7 @@ public class ClientSystem {
         zoom.mult(systemContext.getNumberFactory().createNumber(zoomFactor));
         setOldParams(systemContext.getParamContainer().getClientParameters()); //TODO !
         systemContext.setZoom(zoom);
-        //systemClientData.getClientParameters().put("zoom", supplier);
+//        systemClientData.getClientParameters().put("zoom", supplier);
         incrementJobId();
         updateConfiguration();
         resetAnchor();
@@ -213,6 +214,7 @@ public class ClientSystem {
         if (contextParamContainer != null) {
             contextParamContainer.setParamConfiguration(getParamConfiguration());
             setParamContainer(contextParamContainer);
+            systemContext.setViewId(0);
         } else {
             setParamContainer(clientConfiguration.getParamContainer(systemInterface.systemId));
         }

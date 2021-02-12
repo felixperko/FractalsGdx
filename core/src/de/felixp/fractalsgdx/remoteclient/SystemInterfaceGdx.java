@@ -140,44 +140,44 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
         return parameterConfiguration;
     }
 
-    @Deprecated
-    public ComplexNumber getWorldCoords(ComplexNumber screenCoords){
-
-        NumberFactory nf = systemContext.getNumberFactory();
-        int width = systemContext.getParamValue("width", Integer.class);
-        int height = systemContext.getParamValue("height", Integer.class);
-        Number zoom = systemContext.getZoom();
-        ComplexNumber midpoint = systemContext.getMidpoint();
-
-        ComplexNumber worldCoords = screenCoords.copy();
-        worldCoords.sub(nf.createComplexNumber(nf.createNumber(width/2), nf.createNumber(height/2)));
-        worldCoords.divNumber(nf.createNumber(height));
-        worldCoords.multNumber(zoom);
-        worldCoords.add(midpoint);
-        return worldCoords;
-    }
-
-    @Deprecated
-    public ComplexNumber getChunkGridCoords(ComplexNumber worldCoords){
-
-        NumberFactory nf = systemContext.getNumberFactory();
-        int width = systemContext.getParamValue("width", Integer.class);
-        int height = systemContext.getParamValue("height", Integer.class);
-        Number zoom = systemContext.getZoom();
-        //ComplexNumber anchor = getWorldCoords(nf.createComplexNumber(renderer.getXShift(), renderer.getYShift()));
-        ComplexNumber anchor = clientSystem.anchor;
-
-        ComplexNumber gridPos = worldCoords.copy();
-        gridPos.sub(anchor);
-        gridPos.divNumber(zoom);
-//        ComplexNumber shift = nf.createComplexNumber(width/height/2f, 1/2f);
-//        gridPos.sub(shift);
-        gridPos.multNumber(nf.createNumber(systemContext.getChunkSize()));
-        gridPos.divNumber(nf.createNumber(30.4));
-        //gridPos.divNumber(nf.createNumber(64*4));
-        //gridPos.add(nf.createComplexNumber(0, 1));
-        return gridPos;
-    }
+//    @Deprecated
+//    public ComplexNumber getWorldCoords(ComplexNumber screenCoords){
+//
+//        NumberFactory nf = systemContext.getNumberFactory();
+//        int width = systemContext.getParamValue("width", Integer.class);
+//        int height = systemContext.getParamValue("height", Integer.class);
+//        Number zoom = systemContext.getZoom();
+//        ComplexNumber midpoint = systemContext.getMidpoint();
+//
+//        ComplexNumber worldCoords = screenCoords.copy();
+//        worldCoords.sub(nf.createComplexNumber(nf.createNumber(width/2), nf.createNumber(height/2)));
+//        worldCoords.divNumber(nf.createNumber(height));
+//        worldCoords.multNumber(zoom);
+//        worldCoords.add(midpoint);
+//        return worldCoords;
+//    }
+//
+//    @Deprecated
+//    public ComplexNumber getChunkGridCoords(ComplexNumber worldCoords){
+//
+//        NumberFactory nf = systemContext.getNumberFactory();
+//        int width = systemContext.getParamValue("width", Integer.class);
+//        int height = systemContext.getParamValue("height", Integer.class);
+//        Number zoom = systemContext.getZoom();
+//        //ComplexNumber anchor = getWorldCoords(nf.createComplexNumber(renderer.getXShift(), renderer.getYShift()));
+//        ComplexNumber anchor = clientSystem.anchor;
+//
+//        ComplexNumber gridPos = worldCoords.copy();
+//        gridPos.sub(anchor);
+//        gridPos.divNumber(zoom);
+////        ComplexNumber shift = nf.createComplexNumber(width/height/2f, 1/2f);
+////        gridPos.sub(shift);
+//        gridPos.multNumber(nf.createNumber(systemContext.getChunkSize()));
+//        gridPos.divNumber(nf.createNumber(30.4));
+//        //gridPos.divNumber(nf.createNumber(64*4));
+//        //gridPos.add(nf.createComplexNumber(0, 1));
+//        return gridPos;
+//    }
 
     public ComplexNumber getCurrentMidpoint(){
         return currentMidpoint;
