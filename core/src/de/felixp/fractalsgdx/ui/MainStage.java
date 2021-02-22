@@ -49,6 +49,7 @@ import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.MappedParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.Selection;
@@ -209,6 +210,9 @@ public class MainStage extends Stage {
         addFractalRenderer(renderer2);
         renderer2.init();
 
+        //reset ParamUI focus to first renderer
+        paramUI.setServerParameterConfiguration(renderer, renderer.getSystemContext().getParamContainer(), renderer.getSystemContext().getParamConfiguration());
+
 //        renderer.addParameterAnimationClient(new LinearDoubleParameterAnimation("edge glow sensitivity", 10, 0.01, 5));
 //        renderer.addParameterAnimationClient(new LinearDoubleParameterAnimation("color offset", 10, 1, 0));
 
@@ -219,14 +223,29 @@ public class MainStage extends Stage {
             public void panned(ComplexNumber midpoint) {
                 FractalRenderer renderer1 = getRenderer(0);
                 FractalRenderer renderer2 = getRenderer(1);
+                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
                 if (renderer1 != null && renderer2 != null)
                     mapJuliasetParams(renderer1, renderer2);
+            }
+        });
+        renderer2.addPanListener(new PanListener() {
+            @Override
+            public void panned(ComplexNumber midpoint) {
+                FractalRenderer renderer1 = getRenderer(0);
+                FractalRenderer renderer2 = getRenderer(1);
+                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
+                if (renderer1 != null && renderer2 != null && renderer1Juliaset)
+                    mapJuliasetParams(renderer2, renderer1);
             }
         });
         mapJuliasetParams(renderer, renderer2);
 
 
 //        renderer.setWidth(Gdx.graphics.getWidth()*0.5f);
+    }
+
+    public void updateClientParamConfiguration(){
+        paramUI.updateClientParamConfiguration(initRightParamConfiguration());
     }
 
     @Override
@@ -252,8 +271,10 @@ public class MainStage extends Stage {
             clientSystem.resetAnchor();//TODO integrate...
         }
         else if (renderer instanceof ShaderRenderer){
+            renderer.getSystemContext().setParameters(paramContainer);
             renderer.reset();
         }
+        renderer.getRendererContext().panned(paramContainer);
     }
 
     private void handleInput() {
@@ -431,8 +452,8 @@ public class MainStage extends Stage {
         paramContainer2.addClientParameter(new StaticParamSupplier("iterations", systemContext1.getParamValue("iterations")));
         paramContainer2.addClientParameter(new StaticParamSupplier("f(z)=", systemContext1.getParamValue("f(z)=")));
         paramContainer2.addClientParameter(new StaticParamSupplier("limit", systemContext1.getParamValue("limit")));
+        ((ShaderRenderer) targetRenderer).paramsChanged();
         targetRenderer.reset();
-//        ((ShaderRenderer) targetRenderer).paramsChanged();
     }
 
     public void addFractalRenderer(FractalRenderer renderer){

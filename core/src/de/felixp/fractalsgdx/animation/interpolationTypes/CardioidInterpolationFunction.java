@@ -1,10 +1,8 @@
 package de.felixp.fractalsgdx.animation.interpolationTypes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 
 public class CardioidInterpolationFunction extends AbstractInterpolationFunction{
@@ -16,12 +14,12 @@ public class CardioidInterpolationFunction extends AbstractInterpolationFunction
 
     @Override
     public Number getInterpolatedValue(int currentStartIndex, Number progressBetween) {
-        float separation = 0.25f;
 
         double timeAngle = (progressBetween.toDouble() * Math.PI * 2);
         double cardioidScale = defValues.get(0).toDouble();
-        double shiftReal = 0.0;
-        double shiftImag = 0.0;
+        double separation = 0.25;
+        double shiftReal = defValues.get(1).toDouble();
+        double shiftImag = defValues.get(2).toDouble();
 
         shiftReal += cardioidScale*separation;
 
@@ -43,20 +41,22 @@ public class CardioidInterpolationFunction extends AbstractInterpolationFunction
     }
 
     @Override
-    public List<List<String>> getDefValueNames() {
-        List<List<String>> list = new ArrayList<>();
-        List<String> sublist1 = new ArrayList<>();
-        sublist1.add("cardioid scale");
-        list.add(sublist1);
-        return list;
+    public String[][] getDefValueNames() {
+        return new String[][]{{
+            "cardioid scale",
+//                "separation",
+                "shift real",
+                "shift imag"
+        }};
     }
 
     @Override
-    public List<List<Number>> getDefValueDefaults() {
-        List<List<Number>> list = new ArrayList<>();
-        List<Number> sublist1 = new ArrayList<>();
-        sublist1.add(numberFactory.createNumber(1));
-        list.add(sublist1);
-        return list;
+    public Number[][] getDefValueDefaults() {
+        return new Number[][]{{
+            getNumber("1"),
+//            getNumber("0.25"),
+            getNumber("0"),
+            getNumber("0")
+        }};
     }
 }

@@ -2,6 +2,9 @@ package de.felixp.fractalsgdx.remoteclient;
 
 import com.badlogic.gdx.Gdx;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -10,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ParamContainer;
@@ -34,6 +38,8 @@ import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.task.Layer;
 
 public class ClientSystem {
+
+    private static Logger LOG = LoggerFactory.getLogger(ClientSystem.class);
 
     Managers managers;
     Client client;
@@ -139,22 +145,25 @@ public class ClientSystem {
 
     }
 
-    public void updatePosition(float deltaX, float deltaY) {
+    //TODO Number for arbitrary precision
+    public void updatePosition(double deltaX, double deltaY) {
         //TODO scaling
         ComplexNumber shift = systemContext.getNumberFactory().createComplexNumber(deltaX/ Gdx.graphics.getHeight(), -deltaY/Gdx.graphics.getHeight());
         shift.multNumber(systemContext.getZoom());
 //        System.out.println(shift.toString());
 //        midpoint.sub(shift);
-        ComplexNumber midpoint = systemContext.getMidpoint();
+        ComplexNumber midpoint = systemContext.getMidpoint().copy();
         midpoint.sub(shift);
+
+        LOG.warn("updating midpoint from "+systemContext.getMidpoint()+" to "+midpoint);
         systemContext.setMidpoint(midpoint);
         //systemClientData.getClientParameters().put("midpoint", new StaticParamSupplier("midpoint", midpoint));
         updateConfiguration();
     }
 
-    public void updateZoom(float zoomFactor){
+    public void updateZoom(Number zoomFactor){
         Number zoom = systemContext.getZoom();
-        zoom.mult(systemContext.getNumberFactory().createNumber(zoomFactor));
+        zoom.mult(zoomFactor);
         setOldParams(systemContext.getParamContainer().getClientParameters()); //TODO !
         systemContext.setZoom(zoom);
 //        systemClientData.getClientParameters().put("zoom", supplier);

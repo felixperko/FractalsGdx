@@ -1,6 +1,7 @@
 package de.felixp.fractalsgdx.animation.interpolationTypes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,23 +46,35 @@ public abstract class AbstractInterpolationFunction implements InterpolationFunc
     @Override
     public Map<String, Number> getDefValueDefaultsForActiveSet() {
         Map<String, Number> defValueMap = new LinkedHashMap<>();
-        List<List<String>> namesForSets = getDefValueNames();
+        List<List<String>> namesForSets = toNestedList(getDefValueNames());
         List<String> names = namesForSets.isEmpty() ? new ArrayList<>() : namesForSets.get(activeDefValueSet);
-        List<Number> defaults = namesForSets.isEmpty() ? new ArrayList<>() : getDefValueDefaults().get(activeDefValueSet);
+        List<Number> defaults = namesForSets.isEmpty() ? new ArrayList<>() : Arrays.asList(getDefValueDefaults()[activeDefValueSet]);
         for (int i = 0 ; i < names.size() ; i++) {
             defValueMap.put(names.get(i), defaults.get(i));
         }
         return defValueMap;
     }
 
-    @Override
-    public List<List<String>> getDefValueNames() {
-        return new ArrayList<>();
+    private <T> List<List<T>> toNestedList(T[][] array){
+        List<List<T>> list = new ArrayList<>();
+        for (T[] subArr : array){
+            List<T> sublist = new ArrayList<>();
+            for (T val : subArr){
+                sublist.add(val);
+            }
+            list.add(sublist);
+        }
+        return list;
     }
 
     @Override
-    public List<List<Number>> getDefValueDefaults() {
-        return new ArrayList<>();
+    public String[][] getDefValueNames() {
+        return new String[][]{};
+    }
+
+    @Override
+    public Number[][] getDefValueDefaults() {
+        return new Number[][]{};
     }
 
     @Override

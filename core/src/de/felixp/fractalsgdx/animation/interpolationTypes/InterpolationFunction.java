@@ -14,8 +14,8 @@ public interface InterpolationFunction {
     void setNumberFactory(NumberFactory numberFactory);
     int getActiveDefValueSet();
     Map<String, Number> getDefValueDefaultsForActiveSet();
-    List<List<String>> getDefValueNames();
-    List<List<Number>> getDefValueDefaults();
+    String[][] getDefValueNames();
+    Number[][] getDefValueDefaults();
 
     Number getInterpolatedValue(int currentStartIndex, Number progressBetween);
 

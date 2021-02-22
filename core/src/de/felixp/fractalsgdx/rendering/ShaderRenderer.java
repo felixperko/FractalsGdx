@@ -198,6 +198,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                     }
 
                     if (changed) {
+                        LOG.warn("tapped");
                         anchor = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
                         reset();
                     }

@@ -16,6 +16,9 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -37,6 +40,7 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
@@ -44,6 +48,8 @@ import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.util.NumberUtil;
 
 public class RemoteRenderer extends AbstractFractalRenderer {
+
+    private static Logger LOG = LoggerFactory.getLogger(RemoteRenderer.class);
 
     boolean outlineChunkBorders = false;
 
@@ -102,12 +108,13 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 
                 if (systemInterface != null) {
                     boolean changed = false;
+                    NumberFactory nf = getSystemContext().getNumberFactory();
                     if (button == Input.Buttons.LEFT) {
-                        systemInterface.getClientSystem().updatePosition(getWidth() * 0.5f - x, getHeight() * 0.5f - y);
-                        systemInterface.getClientSystem().updateZoom(0.5f);
+                        systemInterface.getClientSystem().updateZoom(nf.createNumber("0.5"));
+                        systemInterface.getClientSystem().updatePosition(getWidth() * 0.5 - x, getHeight() * 0.5 - y);
                         changed = true;
                     } else if (button == Input.Buttons.RIGHT) {
-                        systemInterface.getClientSystem().updateZoom(2f);
+                        systemInterface.getClientSystem().updateZoom(nf.createNumber("2"));
                         changed = true;
                     }
 

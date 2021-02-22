@@ -17,6 +17,7 @@ import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
@@ -34,6 +35,7 @@ public class ParamUI {
     boolean switchIsJulia = false;
     Number switchMandelbrotZoom = null;
     ComplexNumber switchMandelbrotMidpoint = null;
+    ComplexNumber switchJuliasetC = null;
 
     protected MainStage stage;
 
@@ -85,6 +87,10 @@ public class ParamUI {
         return clientParamsSideMenu;
     }
 
+    public void updateClientParamConfiguration(ParamConfiguration configuration){
+        clientParamsSideMenu.setParameterConfiguration(clientParamsSideMenu.getParamContainer(), configuration, clientPropertyEntryFactory);
+    }
+
     public CollapsiblePropertyListButton getSliderLimitsButton() {
         return new CollapsiblePropertyListButton("toggle slider limits", "settings", new ChangeListener() {
             @Override
@@ -98,6 +104,9 @@ public class ParamUI {
         return new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
+
+                //TODO include target renderer!
+
                 switchIsJulia = !switchIsJulia;
                 SystemContext systemContext = stage.focusedRenderer.getSystemContext();
 //                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
@@ -117,7 +126,7 @@ public class ParamUI {
                     newCSupp.setChanged(true);
                     serverParamContainer.getClientParameters().put("c", newCSupp);
 
-                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", systemContext.getNumberFactory().createComplexNumber(0, 0));
+                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
                     midpointSupp.setChanged(true);
                     midpointSupp.setLayerRelevant(true);
                     serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
@@ -127,6 +136,12 @@ public class ParamUI {
                     zoomSupp.setLayerRelevant(true);
                     serverParamContainer.getClientParameters().put("zoom", zoomSupp);
                 } else {
+                    ParamSupplier oldCSupp = serverParamContainer.getClientParameters().get("c");
+                    if (oldCSupp != null && oldCSupp instanceof StaticParamSupplier)
+                        switchJuliasetC = oldCSupp.getGeneral(ComplexNumber.class);
+                    else
+                        switchJuliasetC = systemContext.getNumberFactory().createComplexNumber(0,0);
+
                     StaticParamSupplier newStartSupp = new StaticParamSupplier("start", systemContext.getNumberFactory().createComplexNumber(0, 0));
 //                    newStartSupp.setChanged(true);
 //                    serverParamContainer.getClientParameters().put("start", newStartSupp);
@@ -150,7 +165,7 @@ public class ParamUI {
                     serverParamContainer.getClientParameters().put("zoom", zoomSupp);
                 }
                 FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).focusedRenderer;
-                focusedRenderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles
+                focusedRenderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles for remote renderer
                 stage.submitServer(focusedRenderer, serverParamContainer);
             }
         });

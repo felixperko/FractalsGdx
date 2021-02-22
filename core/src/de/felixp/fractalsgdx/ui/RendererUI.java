@@ -107,7 +107,7 @@ public class RendererUI {
                     return;
                 }
 
-                //set as main renderer if old renderer were
+                //set as main renderer if old renderer was
                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                 if (stage.focusedRenderer == oldRenderer)
                     stage.focusedRenderer = newRenderer;

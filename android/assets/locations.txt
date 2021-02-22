@@ -1,0 +1,213 @@
+"Butterfly Nebula"
+
+{
+  "parameters" : [ {
+    "type" : "staticSupplier",
+    "name" : "numberFactory",
+    "attr" : 0,
+    "obj" : {
+      "numberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "complexNumberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "type" : "numberFactory"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "iterations",
+    "attr" : 8,
+    "obj" : 1000
+  }, {
+    "type" : "staticSupplier",
+    "name" : "midpoint",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "val" : "0.0,0.0"
+    }
+  }, {
+    "type" : "coordinateBasicShiftSupplier",
+    "name" : "c",
+    "attr" : 8
+  }, {
+    "type" : "staticSupplier",
+    "name" : "zoom",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "val" : "3.0"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "start",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "val" : "0.0,0.0"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "f(z)=",
+    "attr" : 8,
+    "obj" : "z^2+c"
+  }, {
+    "type" : "staticSupplier",
+    "name" : "limit",
+    "attr" : 9,
+    "obj" : 256.0
+  }, {
+    "type" : "staticSupplier",
+    "name" : "shader grid dim",
+    "attr" : 8,
+    "obj" : 1
+  }, {
+    "type" : "staticSupplier",
+    "name" : "resolutionScale",
+    "attr" : 9,
+    "obj" : 1.0
+  }, {
+    "type" : "staticSupplier",
+    "name" : "calculator",
+    "attr" : 0,
+    "obj" : "CustomCalculator"
+  }, {
+    "type" : "staticSupplier",
+    "name" : "layerConfiguration",
+    "attr" : 0,
+    "obj" : {
+      "type" : "padovanLayerConfig",
+      "layers" : [ {
+        "type" : "bfUpsampleLayer",
+        "id" : 0,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 0.0,
+        "sampleCount" : 1,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "upsample" : 16,
+        "samples" : 1
+      }, {
+        "type" : "bfUpsampleLayer",
+        "id" : 1,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 10.0,
+        "sampleCount" : 1,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "upsample" : 8,
+        "samples" : 1
+      }, {
+        "type" : "bfUpsampleLayer",
+        "id" : 2,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 20.0,
+        "sampleCount" : 1,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "upsample" : 4,
+        "samples" : 1
+      }, {
+        "type" : "bfUpsampleLayer",
+        "id" : 3,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 30.0,
+        "sampleCount" : 1,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "upsample" : 2,
+        "samples" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 4,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 40.0,
+        "sampleCount" : 1,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 1,
+        "upsample" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 5,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 50.0,
+        "sampleCount" : 4,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 4,
+        "upsample" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 6,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 60.0,
+        "sampleCount" : 16,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 16,
+        "upsample" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 7,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 70.0,
+        "sampleCount" : 49,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 49,
+        "upsample" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 8,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 80.0,
+        "sampleCount" : 100,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 100,
+        "upsample" : 1
+      }, {
+        "type" : "bfLayer",
+        "id" : 9,
+        "priorityMultiplier" : 1.0,
+        "priorityShift" : 90.0,
+        "sampleCount" : 400,
+        "maxIterations" : -1,
+        "chunkSize" : 256,
+        "culling" : false,
+        "rendering" : true,
+        "samples" : 400,
+        "upsample" : 1
+      } ]
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "width",
+    "attr" : 0,
+    "obj" : 384
+  }, {
+    "type" : "staticSupplier",
+    "name" : "height",
+    "attr" : 0,
+    "obj" : 217
+  } ]
+}

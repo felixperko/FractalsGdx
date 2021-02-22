@@ -530,8 +530,8 @@ public class AnimationsUI {
     private static void updateInterpolationValueTable(VisWindow interpolationWindow, ParamInterpolation interpolation, VisTable table, NumberFactory numberFactory) {
         table.clearChildren();
         defValueFields.clear();
-        if (interpolation == null) {
-            //create dummy interpolation to access defs
+        boolean dummyInterpolation = interpolation == null;
+        if (dummyInterpolation) {
             interpolation = createParamInterpolationAsSelected("midpoint");
             interpolation.setControlPoints(
                     interpolation.getDefValues(false),
@@ -539,12 +539,30 @@ public class AnimationsUI {
                     interpolation.getControlDerivatives(false), numberFactory);
         }
         int i = 0;
+        final ParamInterpolation finalInterpolation = interpolation;
         for (Map.Entry<String, Number> e : interpolation.getInterpolationFunction().getDefValueDefaultsForActiveSet().entrySet()){
             String name = e.getKey();
             Number currentValue = (Number)interpolation.getDefValues(true).get(i);
             table.add(name);
             VisTextField valueField = new VisTextField(currentValue.toString());
             defValueFields.add(valueField);
+            if (!dummyInterpolation) {
+                valueField.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, Actor actor) {
+                        boolean valid = true;
+                        try {
+                            Number val = numberFactory.createNumber(valueField.getText());
+                            if (val == null)
+                                valid = false;
+                        } catch (NumberFormatException e){
+                            valid = false;
+                        }
+                        valueField.setInputValid(valid);
+                        applyInterpolationFields(finalInterpolation, defValueFields, numberFactory);
+                    }
+                });
+            }
             table.add(valueField).row();
             i++;
         }
