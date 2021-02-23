@@ -115,10 +115,10 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
 //            VisLabel testLabel2 = new VisLabel("teest");
 
-            Tree.Node node = new Tree.Node(headerTable);
+            Tree.Node node = new Tree.Node(headerTable){};
 //            node.setSelectable(true);
             tree.add(node);
-            Tree.Node node2 = new Tree.Node(subTable);
+            Tree.Node node2 = new Tree.Node(subTable){};
 //            node2.setSelectable(true);
             node.add(node2);
             node.setExpanded(true);

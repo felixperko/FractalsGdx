@@ -176,7 +176,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()){
             String category = e.getKey();
-            Table table = (Table)categoryNodes.get(category).getChildren().get(0).getActor();
+            Table table = (Table)((Tree.Node)categoryNodes.get(category).getChildren().get(0)).getActor();
             tableMap.put(category, table);
             for (AbstractPropertyEntry entry : e.getValue()){
                 closeEntryView(entry);
@@ -188,7 +188,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             Tree.Node catNode = categoryNodes.get(category);
             if (catNode == null)
                 catNode = addNodeForCategory(category);
-            Table table = (Table)catNode.getChildren().get(0).getActor();
+            Table table = (Table)((Tree.Node)catNode.getChildren().get(0)).getActor();
             for (CollapsiblePropertyListButton button : e.getValue()){
                 table.add();
                 table.add();
@@ -312,7 +312,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     private Tree.Node addNodeForCategory(String category) {
         VisLabel lbl = new VisLabel(category);
-        Tree.Node node = new Tree.Node(lbl);
+        Tree.Node node = new Tree.Node(lbl){};
         lbl.addListener(new ClickListener(0){
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -331,7 +331,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         tree.add(node);
 
         VisTable table = new VisTable();
-        node.add(new Tree.Node(table));
+        node.add(new Tree.Node(table){});
         node.setSelectable(true);
         return node;
     }
