@@ -24,6 +24,9 @@ public class FractalsGdxMain extends ApplicationAdapter {
     public final static String UI_PREFS_NAME = "de.felixp.fractalsgdx.FractalsGdxMain.ui";
     public final static String UI_PREFS_SCALE = "uiScale";
 
+    static boolean windowed = true;
+    static boolean updateWindowed = true;
+
 	SpriteBatch batch;
 //	Texture palette;
 
@@ -56,6 +59,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
         else
             VisUI.load(VisUI.SkinScale.X1);
 
+		setScreenMode(FractalsGdxMain.windowed, 1280, 720);
+
 		batch = new SpriteBatch();
 
 		viewport = new ScreenViewport();
@@ -74,7 +79,10 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		Gdx.input.setInputProcessor(stage);
 	}
 
-	boolean firstRender = true;
+	public static void setWindowed(boolean windowed){
+	    FractalsGdxMain.windowed = windowed;
+	    FractalsGdxMain.updateWindowed = true;
+    }
 
 	@Override
 	public void render () {
@@ -84,7 +92,9 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 		if (Gdx.input.isKeyJustPressed(Input.Keys.F11)){
 			boolean isFullScreen = Gdx.graphics.isFullscreen();
-			setScreenMode(!isFullScreen, 1280, 720);
+            FractalsGdxMain.windowed = !FractalsGdxMain.windowed;
+            FractalsGdxMain.updateWindowed = false;
+            setScreenMode(FractalsGdxMain.windowed, 1280, 720);
 		}
 
 
@@ -97,10 +107,11 @@ public class FractalsGdxMain extends ApplicationAdapter {
 			System.exit(0);
 		}
 
-		if (firstRender){
-			firstRender = false;
-			setScreenMode(true, 1280, 720);
-		}
+		//(hopefully temporary) workaround for windows 10 ui scaling: start in fullscreen, then set windowed if configured to do so
+//		if (updateWindowed){
+//			updateWindowed = false;
+//			setScreenMode(windowed, 1280, 720);
+//		}
 	}
 
 	protected void setScreenMode(Boolean windowed, int width, int height) {

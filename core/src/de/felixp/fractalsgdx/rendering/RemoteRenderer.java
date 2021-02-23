@@ -110,8 +110,8 @@ public class RemoteRenderer extends AbstractFractalRenderer {
                     boolean changed = false;
                     NumberFactory nf = getSystemContext().getNumberFactory();
                     if (button == Input.Buttons.LEFT) {
+//                        systemInterface.getClientSystem().updatePosition(getWidth() * 0.5 - x, getHeight() * 0.5 - y);
                         systemInterface.getClientSystem().updateZoom(nf.createNumber("0.5"));
-                        systemInterface.getClientSystem().updatePosition(getWidth() * 0.5 - x, getHeight() * 0.5 - y);
                         changed = true;
                     } else if (button == Input.Buttons.RIGHT) {
                         systemInterface.getClientSystem().updateZoom(nf.createNumber("2"));

@@ -792,7 +792,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         batch.setShader(coloringShader);
 //        batch.setShader(passthroughShader);
-        Texture dataTexture = fboDataCurr.getColorBufferTexture();
+        Texture dataTexture = getFboDataPrevious().getColorBufferTexture();
         palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         palette.bind(1);
         dataTexture.bind(0);

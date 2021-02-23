@@ -23,8 +23,9 @@ import de.felixperko.fractals.util.NumberUtil;
 public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
     public static final String NAME_LIST_TEXTFIELD = "LIST_TEXTFIELD";
-    double value;
 
+    //TODO arbitrary precision
+    double value;
     double min;
     double max;
 
@@ -82,7 +83,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                     public void changed(ChangeEvent event, Actor actor) {
                         value = slider.getValue()*(max-min)+min;
 //                        minusOffsetLabel.invalidate();
-                        updateLabelText();
+                        updateSideLabelText();
                     }
                 });
 
@@ -142,7 +143,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                         updateSlider();
                     }
                 });
-                updateLabelText();
+                updateSideLabelText();
 
                 controlTable = new VisTable();
                 controlTable.add(minField).padRight(2);
@@ -165,7 +166,10 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 valueLabel.invalidate();
             }
 
-            private void updateLabelText(){
+            /**
+             * update the side label in slider mode
+             */
+            private void updateSideLabelText(){
                 String labelText = String.format("%.2f", NumberUtil.getRoundedDouble(value, 3));
                 if (!labelText.startsWith("-"))
                     labelText = " "+labelText;
@@ -209,6 +213,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
 
                 if (textSupplier != null) {
+                    //TODO arbitrary precision
                     value = textSupplier.getGeneral(Double.class);
                     field.setText(value+"");
                 }
@@ -216,7 +221,9 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
                         if (field.isInputValid()) {
+                            //TODO arbitrary precision
                             value = Double.parseDouble(field.getText());
+                            field.setText(value+"");
                         }
                     }
                 });
