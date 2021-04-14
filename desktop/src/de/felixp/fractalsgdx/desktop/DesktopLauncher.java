@@ -32,7 +32,7 @@ public class DesktopLauncher {
 
 		config.fullscreen = false;
 
-//		config.samples = 4;
+		config.samples = 8;
 
 		//fullscreen -> true
 		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());

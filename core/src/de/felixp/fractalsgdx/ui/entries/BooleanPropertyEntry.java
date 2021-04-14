@@ -18,8 +18,8 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
-    public BooleanPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition);
+    public BooleanPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
     }
 
     VisLabel label;

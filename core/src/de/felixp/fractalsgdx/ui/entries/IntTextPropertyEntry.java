@@ -11,13 +11,15 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
-    public IntTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition, Validators.INTEGERS);
+    public IntTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, Validators.INTEGERS, submitValue);
+        sliderValueLabelPrecision = 0;
+        showMenu = true;
     }
 
     @Override
     public ParamSupplier getSupplier() {
-        int val = text == null ? 0 : Integer.parseInt(text);
+        int val = text == null ? 0 : (int)Double.parseDouble(text);
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
         supplier.setLayerRelevant(true);
         return supplier;

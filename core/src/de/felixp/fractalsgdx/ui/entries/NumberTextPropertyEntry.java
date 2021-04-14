@@ -15,9 +15,10 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     NumberFactory numberFactory;
 
-    public NumberTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator) {
-        super(node, paramContainer, parameterDefinition, inputValidator);
+    public NumberTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory, InputValidator inputValidator, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, inputValidator, submitValue);
         this.numberFactory = numberFactory;
+        showMenu = true;
     }
 
     @Override

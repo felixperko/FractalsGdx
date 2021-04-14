@@ -114,6 +114,7 @@ public class MainStageWindows {
         };
         settingsWindow.setResizable(true);
         ((VisWindow) settingsWindow).addCloseButton();
+        ((VisWindow) settingsWindow).closeOnEscape();
 
         Table categoryTable = new VisTable();
         Table contentTable = new VisTable();
@@ -199,7 +200,7 @@ public class MainStageWindows {
         VisTextButton addRendererButton = new VisTextButton("Add renderer", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.2f, 0.2f));
+                FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.2f, 0.2f, 0));
                 ((MainStage)stage).addFractalRenderer(renderer);
                 renderer.init();
                 addRendererToList(window, renderer);
@@ -208,6 +209,8 @@ public class MainStageWindows {
                 renderersTable.add(actor).row();
             }
         });
+
+        renderersTable.addSeparator();
         renderersTable.add(addRendererButton).row();
 
         return renderersTable;

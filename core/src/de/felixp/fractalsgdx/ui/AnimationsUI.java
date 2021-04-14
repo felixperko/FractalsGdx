@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.util.Validators;
+import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
@@ -28,6 +29,7 @@ import de.felixp.fractalsgdx.animation.interpolationTypes.CardioidInterpolationF
 import de.felixp.fractalsgdx.animation.interpolationTypes.CircleInterpolationFunction;
 import de.felixp.fractalsgdx.animation.interpolationTypes.InterpolationFunction;
 import de.felixp.fractalsgdx.animation.interpolationTypes.LinearInterpolationFunction;
+import de.felixp.fractalsgdx.animation.interpolationTypes.LogarithmicInterpolationFunction;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.NumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
@@ -199,16 +201,6 @@ public class AnimationsUI {
         outerTable.add(addInterpolationButton).left();
         outerTable.row();
 
-        VisTextButton recordButton = new VisTextButton("record animation");
-        recordButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                ScreenshotUI.recordScreenshots(animation.getName());
-            }
-        });
-        outerTable.add(recordButton).left();
-        outerTable.row();
-
     }
 
     public static String PARAM_TYPE_COMPLEXNUMBER = "complexnumber";
@@ -293,8 +285,9 @@ public class AnimationsUI {
     static String selectedParamType;
     static String selectedContainer = PARAM_CONTAINERKEY_SERVER;
     static Class<? extends InterpolationFunction> selectedInterpolationFunctionClass;
-    static ParamInterpolation dummyInterpolationFunction;
+    static ParamInterpolation currentInterpolationFunction;
     static List<VisTextField> defValueFields = new ArrayList<>();
+    static ParamInterpolation currentInterpolation = null;
 
     private static void openInterpolationAddWindow(MainStage stage, ParamAnimation animation, VisWindow animationsWindow, FractalRenderer selectedRenderer){
         openInterpolationSettingsWindow(stage, animation, null, animationsWindow, selectedRenderer);
@@ -326,11 +319,15 @@ public class AnimationsUI {
         VisSelectBox<String> paramTypeSelect = new VisSelectBox();
         VisSelectBox<String> paramSelect = new VisSelectBox();
         paramTypeSelect.setItems(paramTypes.keySet().toArray(new String[paramTypes.size()]));
+        paramTypeSelect.setSelected(selectedParamType);
         paramTypeSelect.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 selectedParamType = paramTypes.get(paramTypeSelect.getSelected());
                 updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
+                currentInterpolation = createParamInterpolationAsSelected(paramSelect.getSelected());
+                currentInterpolation.setNumberFactory(numberFactory);
+                updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
                 window.pack();
             }
         });
@@ -358,6 +355,14 @@ public class AnimationsUI {
         });
         updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
 
+        if (interpolation == null){
+            if (selectedParamType == null)
+                selectedParamType = PARAM_TYPE_COMPLEXNUMBER;
+            interpolation = createParamInterpolationAsSelected(paramSelect.getSelected());
+            interpolation.setNumberFactory(numberFactory);
+        }
+        currentInterpolation = interpolation;
+
         VisSelectBox<Map.Entry<String, ParamInterpolation>> inheritControlPointSelect = new VisSelectBox(){
             @Override
             protected String toString(Object item) {
@@ -379,6 +384,7 @@ public class AnimationsUI {
         interpolationFunctionOptions.put("linear", LinearInterpolationFunction.class);
         interpolationFunctionOptions.put("circle", CircleInterpolationFunction.class);
         interpolationFunctionOptions.put("cardioid", CardioidInterpolationFunction.class);
+        interpolationFunctionOptions.put("logarithmic", LogarithmicInterpolationFunction.class);
         VisSelectBox interpolationTypeSelect = new VisSelectBox();
         interpolationTypeSelect.setItems(interpolationFunctionOptions.keySet().toArray(new String[interpolationFunctionOptions.size()]));
 //        if (!createNew) {
@@ -388,15 +394,23 @@ public class AnimationsUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 selectedInterpolationFunctionClass = interpolationFunctionOptions.get(interpolationTypeSelect.getSelected());
-                if (interpolation != null)
-                    interpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
-                updateInterpolationValueTable(window, interpolation, interpolationValuesTable, numberFactory);
+                if (currentInterpolation != null)
+                    currentInterpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
+                updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
             }
         });
 
         VisTextButton deleteButton = null;
         if (!createNew){
             deleteButton = new VisTextButton("delete");
+            final ParamInterpolation finalInterpolation = interpolation;
+            deleteButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    animation.removeInterpolation(finalInterpolation.getParamName());
+                    closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
+                }
+            });
         }
 
         VisTextButton cancelButton = new VisTextButton("cancel");
@@ -412,7 +426,9 @@ public class AnimationsUI {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     String paramName = paramSelect.getSelected();
-                    ParamInterpolation interpolation = createParamInterpolationAsSelected(paramName);
+//                    ParamInterpolation interpolation = createParamInterpolationAsSelected(paramName);
+                    currentInterpolation.setParam(paramName, selectedParamType, selectedContainer);
+                    ParamInterpolation interpolation = currentInterpolation;
                     ParamInterpolation inheritValueInterpolation = inheritControlPointSelect.getSelected().getValue();
                     if (inheritValueInterpolation != null)
                         interpolation.setControlPointParent(inheritValueInterpolation);
@@ -426,21 +442,21 @@ public class AnimationsUI {
             });
         }
         else {
-            clientTargetButton.setChecked(interpolation.getParamContainerKey().equals(PARAM_CONTAINERKEY_CLIENT));
-            serverTargetButton.setChecked(interpolation.getParamContainerKey().equals(PARAM_CONTAINERKEY_SERVER));
-            Class<? extends InterpolationFunction> currFunctionClass = interpolation.getInterpolationFunctionClass();
+            clientTargetButton.setChecked(currentInterpolation.getParamContainerKey().equals(PARAM_CONTAINERKEY_CLIENT));
+            serverTargetButton.setChecked(currentInterpolation.getParamContainerKey().equals(PARAM_CONTAINERKEY_SERVER));
+            Class<? extends InterpolationFunction> currFunctionClass = currentInterpolation.getInterpolationFunctionClass();
             for (Map.Entry<String, Class<? extends InterpolationFunction>> e : interpolationFunctionOptions.entrySet()) {
                 if (e.getValue().equals(currFunctionClass)) {
                     interpolationTypeSelect.setSelected(e.getKey());
                     selectedInterpolationFunctionClass = e.getValue();
-                    updateInterpolationValueTable(window, interpolation, interpolationValuesTable, numberFactory);
+                    updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
                     break;
                 }
             }
             updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
-            paramSelect.setSelected(interpolation.getParamName());
-            ParamInterpolation controlPointParent = interpolation.getControlPointParent();
-            if (controlPointParent != null && controlPointParent != interpolation) {
+            paramSelect.setSelected(currentInterpolation.getParamName());
+            ParamInterpolation controlPointParent = currentInterpolation.getControlPointParent();
+            if (controlPointParent != null && controlPointParent != currentInterpolation) {
                 for (Map.Entry<String, ParamInterpolation> e : inheritControlPointOptions.entrySet()) {
                     if (e.getValue() != null && e.getValue().equals(controlPointParent)) {
                         inheritControlPointSelect.setSelected(e);
@@ -453,16 +469,15 @@ public class AnimationsUI {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     String paramName = paramSelect.getSelected();
-                    interpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
-                    interpolation.setParam(paramName, selectedParamType, selectedContainer);
-                    boolean applied = applyInterpolationFields(interpolation, defValueFields, numberFactory);
+                    currentInterpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
+                    currentInterpolation.setParam(paramName, selectedParamType, selectedContainer);
+                    boolean applied = applyInterpolationFields(currentInterpolation, defValueFields, numberFactory);
                     if (applied)
                         closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
                 }
             });
         }
-
-        updateInterpolationValueTable(window, interpolation, interpolationValuesTable, numberFactory);
+        currentInterpolationFunction = updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
 
         table.add("Parameter type:");
         table.add(paramTypeSelect).expandX().fillX().row();
@@ -484,15 +499,6 @@ public class AnimationsUI {
 
         table.add();
         table.add(interpolationValuesTable).colspan(2).row();
-
-        if (!createNew && interpolation.isPathBased()){
-            List<Object> controlPoints = interpolation.getControlPoints(false);
-            for (int i = 0 ; i < controlPoints.size() ; i++){
-                Object controlPoint = controlPoints.get(i);
-                List<VisTextField> pointValueFields = interpolation.addValueFieldsToTable(table, controlPoint, i);
-                valueFields.put(i, pointValueFields);
-            }
-        }
 
         VisTable buttonTable = new VisTable(true);
         buttonTable.add(cancelButton);
@@ -527,26 +533,23 @@ public class AnimationsUI {
         return true;
     }
 
-    private static void updateInterpolationValueTable(VisWindow interpolationWindow, ParamInterpolation interpolation, VisTable table, NumberFactory numberFactory) {
+    private static ParamInterpolation updateInterpolationValueTable(VisWindow interpolationWindow, ParamInterpolation interpolation, VisTable table, Map<Integer, List<VisTextField>> valueFields, NumberFactory numberFactory) {
+
+
         table.clearChildren();
         defValueFields.clear();
-        boolean dummyInterpolation = interpolation == null;
-        if (dummyInterpolation) {
-            interpolation = createParamInterpolationAsSelected("midpoint");
-            interpolation.setControlPoints(
-                    interpolation.getDefValues(false),
-                    interpolation.getControlPoints(false),
-                    interpolation.getControlDerivatives(false), numberFactory);
-        }
+
+//        final ParamInterpolation finalInterpolation = interpolation;
+
+        //DefValues (like radius for circle)
         int i = 0;
-        final ParamInterpolation finalInterpolation = interpolation;
         for (Map.Entry<String, Number> e : interpolation.getInterpolationFunction().getDefValueDefaultsForActiveSet().entrySet()){
             String name = e.getKey();
             Number currentValue = (Number)interpolation.getDefValues(true).get(i);
             table.add(name);
             VisTextField valueField = new VisTextField(currentValue.toString());
             defValueFields.add(valueField);
-            if (!dummyInterpolation) {
+            if (interpolation != null) {
                 valueField.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
@@ -559,15 +562,102 @@ public class AnimationsUI {
                             valid = false;
                         }
                         valueField.setInputValid(valid);
-                        applyInterpolationFields(finalInterpolation, defValueFields, numberFactory);
+                        applyInterpolationFields(currentInterpolation, defValueFields, numberFactory);
                     }
                 });
             }
             table.add(valueField).row();
             i++;
         }
-        //TODO dynamic values (control points)
+
+        //Control points
+        if (interpolation.isPathBased()){
+
+            List<Object> controlPoints = interpolation.getControlPoints(false);
+            List<Double> timings = interpolation.getTimings(false);
+
+            VisCheckBox autoTimes = new VisCheckBox("automatic timings");
+            String paramType = interpolation.getParamType();
+            autoTimes.setChecked(interpolation.isAutomaticTimings());
+            autoTimes.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    interpolation.setAutomaticTimings(autoTimes.isChecked());
+                    updateInterpolationValueTable(interpolationWindow, interpolation, table, valueFields, numberFactory);
+                }
+            });
+
+            table.setDebug(true);
+
+            if (controlPoints.size() > 0){
+                if (autoTimes.isChecked()) {
+                    table.add(autoTimes).colspan(3).row();
+                    table.add("Point").colspan(2);
+                    table.add("Values");
+                    table.add("");
+                    table.row();
+                }
+                else {
+                    table.add(autoTimes).colspan(4).row();
+                    table.add("Point");
+                    table.add("Time");
+                    table.add("Values");
+                    table.add("");
+                    table.row();
+                }
+            }
+
+            VisTextButton addInterpolationValueButton = new VisTextButton("Add control point");
+            for (int i2 = 0 ; i2 < controlPoints.size() ; i2++){
+                Object controlPoint = controlPoints.get(i2);
+                final int index = i2;
+                if (autoTimes.isChecked())
+                    table.add("#"+index).colspan(2);
+                else {
+                    table.add("#"+index);
+                    VisTextField timingField = new VisTextField();
+                    if (timings != null && timings.size() > index)
+                        timingField.setText("" + timings.get(index));
+                    timingField.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+                            try {
+                                double time = Double.parseDouble(timingField.getText());
+                                interpolation.setTiming(index, time);
+                                timingField.setInputValid(true);
+                            } catch (NumberFormatException e){
+                                timingField.setInputValid(false);
+                            }
+                        }
+                    });
+
+                    table.add(timingField);
+                }
+
+                List<VisTextField> pointValueFields = interpolation.addValueFieldsToTable(table, controlPoint, i2);
+
+                VisTextButton removeControlPointButton = new VisTextButton("-");
+
+                table.add(removeControlPointButton).colspan(3);
+                table.row();
+
+                valueFields.put(i2, pointValueFields);
+            }
+
+            table.add(addInterpolationValueButton).colspan(3).row();
+
+            addInterpolationValueButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    currentInterpolation.addControlPoint(currentInterpolation.getDefaultValue(), null, numberFactory);
+                    updateInterpolationValueTable(interpolationWindow, currentInterpolation, table, valueFields, numberFactory);
+                }
+            });
+        }
+
         interpolationWindow.pack();
+
+        return interpolation;
     }
 
     protected static ParamInterpolation createParamInterpolationAsSelected(String paramName) {
@@ -582,6 +672,7 @@ public class AnimationsUI {
             interpolation = new ComplexNumberParamInterpolation(paramName, paramType, container, interpolationFunctionClass);
         else if (isNumber)
             interpolation = new NumberParamInterpolation(paramName, paramType, container, interpolationFunctionClass);
+        interpolation.setAutomaticTimings(isComplexNumber);
         return interpolation;
     }
 

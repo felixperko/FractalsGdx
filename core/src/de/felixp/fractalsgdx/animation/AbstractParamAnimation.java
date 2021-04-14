@@ -76,6 +76,11 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
     }
 
     @Override
+    public String toString() {
+        return name;
+    }
+
+    @Override
     public void setSingleApply() {
         singleApply = true;
     }
@@ -104,6 +109,14 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
         double deltaTinS = deltaTinNS*NumberUtil.NS_TO_S;
         lastTimeProgressUpdate = newT;
         setTimeProgress(progress+deltaTinS);
+    }
+
+    @Override
+    public int getAnimationFrameCount(int targetFramerateIfTimeBased) {
+        if (isUsingFrameBasedProgress())
+            return frameCount;
+        else
+            return (int) (timeFactor*targetFramerateIfTimeBased);
     }
 
 //    @Override

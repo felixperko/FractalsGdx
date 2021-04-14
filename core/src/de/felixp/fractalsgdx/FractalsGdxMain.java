@@ -59,7 +59,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
         else
             VisUI.load(VisUI.SkinScale.X1);
 
-		setScreenMode(FractalsGdxMain.windowed, 1280, 720);
+		setScreenMode(FractalsGdxMain.windowed, 1920, 1080);
 
 		batch = new SpriteBatch();
 

@@ -1,5 +1,7 @@
 package de.felixp.fractalsgdx.animation.interpolations;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextField;
 
@@ -10,6 +12,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.animation.interpolationTypes.InterpolationFunction;
 import de.felixp.fractalsgdx.animation.interpolationTypes.LinearInterpolationFunction;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 
 public class NumberParamInterpolation extends AbstractParamInterpolation<Number> {
@@ -25,11 +28,27 @@ public class NumberParamInterpolation extends AbstractParamInterpolation<Number>
 
     @Override
     public List<VisTextField> addValueFieldsToTable(VisTable table, Object controlPoint, int index) {
+
         List<VisTextField> fields = new ArrayList<>();
-        VisTextField field = new VisTextField(controlPoint == null ? "" : controlPoint.toString());
-        fields.add(field);
-        table.add(""+index);
-        table.add(field).row();
+        VisTextField valueField  = new VisTextField(controlPoint == null ? "" : controlPoint.toString());
+        fields.add(valueField);
+
+        table.add(valueField);
+
+        valueField.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                String real = valueField.getText();
+                Number newVal;
+                try {
+                    newVal = getNumberFactory().createNumber(real);
+                } catch (NumberFormatException e){
+                    return;
+                }
+                setControlPoint(index, newVal, null, null);
+            }
+        });
+
         return fields;
     }
 
@@ -64,6 +83,8 @@ public class NumberParamInterpolation extends AbstractParamInterpolation<Number>
                 Number currentPoint = controlPoints.get(i);
                 Number delta = currentPoint.copy();
                 delta.sub(lastPoint);
+                if (delta.toDouble() < 0)
+                    delta = getNumberFactory().createNumber(-delta.toDouble());
 
                 totalLength.add(delta);
                 lengthPointIndexMapping.put(totalLength.copy(), i);

@@ -5,13 +5,17 @@ import com.badlogic.gdx.Gdx;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.PathParamAnimation;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
@@ -51,8 +55,12 @@ public class RendererContext {
     double time;
     long lastTimestamp = -1;
 
-    public RendererContext(float x, float y, float w, float h){
-        properties = new RendererProperties(x, y, w, h);
+    boolean disableContinuousRendering = false;
+
+    int rendererId = -1;
+
+    public RendererContext(float x, float y, float w, float h, int orientation){
+        properties = new RendererProperties(x, y, w, h, orientation);
 //        String param = "start";
         String param = null;
         String containerKey = "server";
@@ -62,7 +70,8 @@ public class RendererContext {
         addParamAnimation(pathAnimation);
     }
 
-    public void init(FractalRenderer renderer){
+    public void setRenderer(FractalRenderer renderer){
+        rendererId = renderer.getId();
         properties.setRendererClass(renderer.getClass());
         defaultNormal = renderer.getSystemContext().getNumberFactory().createComplexNumber(1, 0);
     }
@@ -106,11 +115,19 @@ public class RendererContext {
         return null;
     }
 
-    boolean disableContinuousRendering = false;
+    boolean changedMidpoint = false;
 
-    public boolean applyParameterAnimations(SystemContext systemContext, ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory){
+    /**
+     * applies the (active) animations and returns whether changes occurred and if a reset is advised.
+     * @param systemContext
+     * @param serverParamContainer
+     * @param clientParamContainer
+     * @param numberFactory
+     * @return changed, reset
+     */
+    public boolean[] applyParameterAnimations(SystemContext systemContext, ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory){
 
-        boolean reset = containsResetAnimations();
+        boolean reset = containsResetAnimations(systemContext.getParamConfiguration(), ((MainStage)FractalsGdxMain.stage).getClientParamConfiguration(), true);
         if (!Gdx.graphics.isContinuousRendering()){
             if (reset) {
                 Gdx.graphics.setContinuousRendering(true);
@@ -127,6 +144,7 @@ public class RendererContext {
         lastTimestamp = System.nanoTime();
 
         boolean changed = false;
+        changedMidpoint = false;
         if (serverParamContainer != null){
             for (ParamAnimation ani : paramAnimations){
                 ani.updateProgress();
@@ -145,9 +163,17 @@ public class RendererContext {
 //        }
         AnimationsUI.updateSliders();
         if (changed) {
-            systemContext.setParameters(serverParamContainer);
+            if (changedMidpoint)
+                panned(serverParamContainer);
+
+//            else
+                systemContext.setParameters(serverParamContainer);
+
+//            MainStage stage = (MainStage) FractalsGdxMain.stage;
+//            if (stage.getFocusedRenderer().getId() == rendererId)
+//                stage.submitServer(stage.getFocusedRenderer(), serverParamContainer);
         }
-        return changed;
+        return new boolean[]{changed, reset};
     }
 
     protected boolean applyAnimation(ParamContainer paramContainerCalculate, ParamContainer paramContainerDraw, NumberFactory numberFactory, ParamAnimation animation) {
@@ -158,37 +184,68 @@ public class RendererContext {
             String paramName = interpolation.getParamName();
             if (paramName != null) {
                 Object interpolatedValue = interpolation.getInterpolatedValue(animation.getLoopProgress(), numberFactory);
+
                 ParamContainer paramContainer = null;
-                if (interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_SERVER))
+                ParamConfiguration paramConfiguration = null;
+                boolean serverParamContainer = interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_SERVER);
+                boolean clientParamContainer = interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_CLIENT);
+
+                if (serverParamContainer) {
                     paramContainer = paramContainerCalculate;
-                else if (interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_CLIENT))
+                } else if (clientParamContainer) {
                     paramContainer = paramContainerDraw;
+                }
                 if (paramContainer == null)
                     throw new IllegalStateException("Unknown param container key: "+interpolation.getParamContainerKey());
+
                 ParamSupplier currentSupplier = paramContainer.getClientParameter(paramName);
                 if (currentSupplier instanceof StaticParamSupplier && !interpolatedValue.equals(currentSupplier.getGeneral())) {
-                    paramContainer.addClientParameter(new StaticParamSupplier(paramName, interpolatedValue));
+                    StaticParamSupplier paramSupplier = new StaticParamSupplier(paramName, interpolatedValue);
+//                    paramSupplier.setLayerRelevant(true);
+                    paramSupplier.setChanged(true);
+                    paramContainer.addClientParameter(paramSupplier);
                     changed = true;
+                    if (paramName.equalsIgnoreCase("midpoint"))
+                        changedMidpoint = true;
                 }
             }
         }
-        if (changed)
-            panned(paramContainerCalculate);
         return changed;
     }
 
-    public boolean containsResetAnimations(){
-            if (containsResetAnimations(paramAnimations))
-                return true;
+    public boolean containsResetAnimations(ParamConfiguration paramConfigurationCalculate, ParamConfiguration paramConfigurationDraw, boolean ignorePaused){
+        if (containsResetAnimations(paramAnimations, paramConfigurationCalculate, paramConfigurationDraw, ignorePaused))
+            return true;
         return false;
     }
 
-    protected boolean containsResetAnimations(List<ParamAnimation> animationList){
+    protected boolean containsResetAnimations(List<ParamAnimation> animationList, ParamConfiguration paramConfigurationCalculate, ParamConfiguration paramConfigurationDraw, boolean ignorePaused){
+
         for (ParamAnimation animation : animationList){
+            if (ignorePaused && animation.isPaused())
+                continue;
+
             for (ParamInterpolation interpolation : animation.getInterpolations().values()){
+                String name = interpolation.getParamName();
+                ParamConfiguration paramConfiguration = null;
                 if (interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_SERVER)){
-                    return true;
+                    paramConfiguration = paramConfigurationCalculate;
+                }else if (interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_CLIENT)) {
+                    paramConfiguration = paramConfigurationDraw;
                 }
+
+                boolean found = false;
+                for (ParamDefinition paramDef : paramConfiguration.getParameters()){
+                    if (paramDef.getName().equalsIgnoreCase(name)){
+                        if (paramDef.isResetRendererOnChange())
+                            return true;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                    return true;
             }
         }
         return false;
@@ -230,8 +287,9 @@ public class RendererContext {
     }
 
     public void panned(ParamContainer paramContainer) {
+        ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
         for (PanListener panListener : panListeners) {
-            panListener.panned(paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class));
+            panListener.panned(midpoint);
         }
     }
 
@@ -241,7 +299,7 @@ public class RendererContext {
 
     public void addPathPoint(ComplexNumber point, ComplexNumber normal, NumberFactory numberFactory){
         ParamInterpolation pathPI = getSelectedParamInterpolation();
-        if (pathPI != null)
+        if (pathPI != null && pathPI.getParamType().equals(AnimationsUI.PARAM_TYPE_COMPLEXNUMBER))
             pathPI.addControlPoint(point, normal, numberFactory);
     }
 

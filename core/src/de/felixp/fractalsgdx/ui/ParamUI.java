@@ -16,6 +16,7 @@ import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
+import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -47,15 +48,15 @@ public class ParamUI {
         //extra button to switch mandelbrot <-> juliaset
         //
 
-        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getJuliasetButton();
+        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getSwitchRenderersButton();
 
         //init menus at sides
         //
 
         serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
         clientParamsSideMenu = new CollapsiblePropertyList().addButton(getSliderLimitsButton());
-        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
-        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class));//TODO dynamic number factory
+        serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), true);//TODO dynamic number factory
+        clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), false);//TODO dynamic number factory
 
         clientParamsSideMenu.setParameterConfiguration(clientParams, clientParameterConfiguration, clientPropertyEntryFactory);
         ChangeListener listener = new ChangeListener() {
@@ -100,8 +101,8 @@ public class ParamUI {
         });
     }
 
-    public CollapsiblePropertyListButton getJuliasetButton() {
-        return new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
+    public CollapsiblePropertyListButton getSwitchRenderersButton() {
+        return new CollapsiblePropertyListButton("switch renderer", "Calculator", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
 
@@ -193,6 +194,8 @@ public class ParamUI {
         setParameterConfiguration(renderer, clientParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
     }
 
+    ChangeListener oldSubmitListener = null;
+
     public void setParameterConfiguration(FractalRenderer focusedRenderer, CollapsiblePropertyList list,
                                           ParamContainer paramContainer, ParamConfiguration parameterConfiguration, PropertyEntryFactory propertyEntryFactory){
 
@@ -205,9 +208,22 @@ public class ParamUI {
         };
 
         list.setParameterConfiguration(paramContainer, parameterConfiguration, propertyEntryFactory);
+        if (oldSubmitListener != null)
+            list.removeSubmitListener(oldSubmitListener);
+        oldSubmitListener = submitListener;
         list.addSubmitListener(submitListener);
 
-        focusedRenderer.setRefresh();
+        boolean reset = false;
+        for (ParamSupplier supp : paramContainer.getParameters()){
+            ParamDefinition paramDefinition = parameterConfiguration != null ? parameterConfiguration.getParamDefinition(supp.getName()) : null;
+            if (supp.isChanged() && paramDefinition != null && paramDefinition.isResetRendererOnChange())
+                reset = true;
+        }
+        if (reset)
+            focusedRenderer.reset();
+        else
+            focusedRenderer.setRefresh();
+
 //        stage.updateStateBar();
 //        for (AbstractPropertyEntry entry : propertyEntryList) {
 //            entry.closeView(AbstractPropertyEntry.VIEW_LIST);

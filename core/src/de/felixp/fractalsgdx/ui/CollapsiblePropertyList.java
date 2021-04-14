@@ -60,9 +60,40 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             propertyEntriesPerCategory.clear();
         }
 
+        //need to reset property table?
+        //first --> reset
+        boolean reset = this.paramContainer == null;
+        //check for new params
+        if (!reset) {
+            for (ParamSupplier supp : paramContainer.getParameters()) {
+                String name = supp.getName();
+                ParamSupplier oldSupp = this.paramContainer.getClientParameter(name);
+                if (oldSupp == null) {
+                    //new param --> reset to maintain proper order
+                    reset = true;
+                    break;
+                }
+            }
+        }
+        if (!reset){
+            //check for removed params
+            for (ParamSupplier supp : this.paramContainer.getParameters()){
+                String name = supp.getName();
+                ParamSupplier newSupp = paramContainer.getClientParameter(name);
+                if (newSupp == null){
+                    //removed param --> reset to remove property entry
+                    reset = true;
+                    break;
+                }
+            }
+        }
+
         this.paramContainer = paramContainer;
 
-        tree.clear();
+//        if (!reset)
+//            return;
+        if (reset)
+            tree.clear();
 
         if (submitButton != null)
             submitButton.remove();

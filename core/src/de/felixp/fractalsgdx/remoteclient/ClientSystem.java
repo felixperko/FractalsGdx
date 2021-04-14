@@ -56,8 +56,8 @@ public class ClientSystem {
 
     BFSystemContext systemContext;
 //    public Integer chunkSize = 128*2*2*2;
+//    public Integer chunkSize = 128*2*2;
     public Integer chunkSize = 128*2;
-//    public Integer chunkSize = 128*2;
 //    public Integer chunkSize = 128; ///TODO doesn't work
 
     ComplexNumber anchor;
@@ -140,7 +140,8 @@ public class ClientSystem {
         params.put("view", new StaticParamSupplier("view", 0));
 
         BFSystemContext systemContext = new BFSystemContext(null, paramConfiguration);
-        systemContext.setParameters(new ParamContainer(params));
+        ParamContainer paramContainer = new ParamContainer(params);
+        systemContext.setParameters(paramContainer);
         return systemContext;
 
     }
@@ -219,9 +220,17 @@ public class ClientSystem {
         this.systemInterface = systemInterface;
 
         systemInterface.setClientSystem(this);
+
+        //apply params from context
         ParamContainer contextParamContainer = this.systemInterface.getRenderer().getRendererContext().getParamContainer();
         if (contextParamContainer != null) {
             contextParamContainer.setParamConfiguration(getParamConfiguration());
+            //add additional params
+            for (Map.Entry<String, ParamSupplier> e : this.systemContext.getParameters().entrySet()){
+                Map<String, ParamSupplier> parameters = contextParamContainer.getClientParameters();
+                if (!parameters.containsKey(e.getKey()))
+                    parameters.put(e.getKey(), e.getValue());
+            }
             setParamContainer(contextParamContainer);
             systemContext.setViewId(0);
         } else {

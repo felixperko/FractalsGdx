@@ -24,14 +24,18 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     Selection<?> selection;
 
-    public SelectionPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
+    public SelectionPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
 
-        super(node, paramContainer, parameterDefinition);
+        super(node, paramContainer, parameterDefinition, submitValue);
 
         selection = parameterDefinition.getConfiguration().getSelection(propertyName);
+
+        ParamSupplier clientParameter = paramContainer.getClientParameter(propertyName);
+        if (clientParameter != null)
+            selectedValue = clientParameter.getGeneral().toString();
     }
 
-    String selectedValue = null;
+    Object selectedValue = null;
 
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
@@ -57,24 +61,32 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 for (String option : selection.getOptionNames())
                     arr.add(option);
                 box.setItems(arr);
+                if (selectedValue == null && box.getSelected() != null)
+                    selectedValue = box.getSelected();
                 ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
                 if (supplier == null)
-                    throw new IllegalArgumentException("Parameter missing: "+propertyName);
+                    throw new IllegalArgumentException("Parameter missing: " + propertyName);
+                contentFields.add(box);
                 Object newSelectedObj = supplier.getGeneral();
                 if (checkValue(newSelectedObj))
                     setCheckedValue(newSelectedObj);
                 else if (newSelectedObj != null)
-                    throw new IllegalArgumentException("Parameter invalid: "+propertyName);
+                    throw new IllegalArgumentException("Parameter invalid: " + propertyName + " selected: " + newSelectedObj.toString());
 
                 box.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
-                        selectedValue = (String)box.getSelected();
+                        selectedValue = selection.getOption(box.getSelected().toString());
                     }
                 });
+//                for (String name : selection.getOptionNames()){
+//                    if (name.equalsIgnoreCase(selectedValue)) {
+//                        box.setSelected(name);
+//                        break;
+//                    }
+//                }
                 for (ChangeListener listener : listeners)
                     box.addListener(listener);
-                contentFields.add(box);
 
                 table.add(label).left().padRight(3);
                 table.add();
@@ -92,7 +104,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyName, selection.getOption(selectedValue));
+        StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyName, selectedValue);
         staticParamSupplier.setSystemRelevant(true); //TODO only set system relevant if it really is!
         return staticParamSupplier;
     }
@@ -123,13 +135,16 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
     @Override
     protected void setCheckedValue(Object newSelectedObj) {
         String newSelectedName = null;
+        Object newSelectedValue = null;
         for (String s : selection.getOptionNames()){
             Object obj = selection.getOption(s);
-            if (obj.equals(newSelectedObj))
+            if (obj.equals(newSelectedObj)) {
                 newSelectedName = s;
+                newSelectedValue = obj;
+            }
         }
-        selectedValue = newSelectedName;
+        selectedValue = newSelectedValue;
         for (Actor contentField : contentFields)
-            ((VisSelectBox)contentField).setSelected(selectedValue);
+            ((VisSelectBox)contentField).setSelected(newSelectedName);
     }
 }

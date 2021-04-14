@@ -26,8 +26,8 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstUpsampleLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition);
+    public BreadthFirstUpsampleLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
         this.id = ID_COUNTER++;
     }
 

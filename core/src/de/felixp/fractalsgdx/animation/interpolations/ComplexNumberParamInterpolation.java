@@ -1,5 +1,7 @@
 package de.felixp.fractalsgdx.animation.interpolations;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextField;
 
@@ -32,11 +34,41 @@ public class ComplexNumberParamInterpolation extends AbstractParamInterpolation<
         fields.add(field);
         VisTextField field2 = new VisTextField(controlPoint == null ? "" : val.getImag().toString());
         fields.add(field2);
-        table.add("Point "+index);
+
+        field.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                String real = field.getText();
+                String imag = field2.getText();
+                ComplexNumber newVal;
+                try {
+                    newVal = getNumberFactory().createComplexNumber(real, imag);
+                } catch (NumberFormatException e){
+                    return;
+                }
+                setControlPoint(index, newVal, null, null);
+            }
+        });
+        field2.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                String real = field.getText();
+                String imag = field2.getText();
+                ComplexNumber newVal;
+                try {
+                    newVal = getNumberFactory().createComplexNumber(real, imag);
+                } catch (NumberFormatException e){
+                    return;
+                }
+                setControlPoint(index, newVal, null, null);
+            }
+        });
+
         VisTable innerTable = new VisTable(true);
         innerTable.add(field);
         innerTable.add(field2);
-        table.add(innerTable).row();
+        table.add(innerTable);
+
         return fields;
     }
 
@@ -73,6 +105,8 @@ public class ComplexNumberParamInterpolation extends AbstractParamInterpolation<
 
     @Override
     protected void resetProgressMapping(List<ComplexNumber> controlPoints, List<ComplexNumber> derivatives) {
+        if (!isAutomaticTimings())
+            return;
         LinkedHashMap<Number, Integer> lengthPointIndexMapping = new LinkedHashMap<>();
         if (controlPoints.size() > 0) {
             ComplexNumber lastPoint = controlPoints.get(0);

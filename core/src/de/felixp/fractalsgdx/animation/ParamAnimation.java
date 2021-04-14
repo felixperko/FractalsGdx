@@ -35,6 +35,8 @@ public interface ParamAnimation {
     void setFrameCounter(int frame);
     void incrementFrameCounter();
 
+    int getAnimationFrameCount(int targetFramerateIfTimeBased);
+
     boolean isUsingTimeBasedProgress();
     void setUsingTimeBasedProgress();
 

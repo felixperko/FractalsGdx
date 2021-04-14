@@ -3,6 +3,8 @@ package de.felixp.fractalsgdx.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
@@ -27,6 +29,7 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,9 +40,14 @@ import de.felixp.fractalsgdx.rendering.RemoteRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
+import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
+import de.felixperko.expressions.ComputeExpressionBuilder;
+import de.felixperko.expressions.FractalsExpression;
+import de.felixperko.expressions.FractalsExpressionParser;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
@@ -76,7 +84,11 @@ public class MainStage extends Stage {
     Preferences positions_prefs;
     Map<String, ParamContainer> locations = new HashMap<>();
 
+    Map<String, Texture> palettes = new LinkedHashMap<>();
+
     Table activeSettingsTable = null;
+
+    ParamConfiguration clientParamConfiguration;
 
     public MainStage(Viewport viewport, Batch batch){
         super(viewport, batch);
@@ -85,7 +97,15 @@ public class MainStage extends Stage {
 
     public void create(){
 
-
+//        Texture palette = new Texture("palette.png");
+//        palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+//        palettes.put("red", palette);
+        for (FileHandle fileHandle : Gdx.files.internal("palettes").list()){
+            String name = fileHandle.nameWithoutExtension();
+            if (name.startsWith("palette-"))
+                name = name.substring(8);
+            palettes.put(name, new Texture(fileHandle));
+        }
 
 //        Gdx.graphics.setContinuousRendering(false);
 
@@ -94,9 +114,7 @@ public class MainStage extends Stage {
 //        renderer = new ShaderRenderer(new RendererContext(0, 0, 0.5f, 1));
 //        renderer = new RemoteRenderer(new RendererContext(0, 0, 0.5f, 1));
 
-        renderer = new ShaderRenderer(new RendererContext(0, 0, 1f, 1)
-                , true
-        );
+        renderer = new ShaderRenderer(new RendererContext(0, 0, 1f, 1, RendererProperties.ORIENTATION_FULLSCREEN));
 
         this.focusedRenderer = renderer;
 
@@ -137,12 +155,12 @@ public class MainStage extends Stage {
         VisTable topButtons = new VisTable();
         //topButtons.align(Align.top);
 
-        VisTextButton connectBtn = new VisTextButton("Connect to Server", new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                openConnectWindow(null);
-            }
-        });
+//        VisTextButton connectBtn = new VisTextButton("Connect to Server", new ChangeListener() {
+//            @Override
+//            public void changed(ChangeEvent event, Actor actor) {
+//                openConnectWindow(null);
+//            }
+//        });
 
                 //TODO remove test
 //        new Tooltip.Builder("Coming soon").target(connect).build();
@@ -178,7 +196,7 @@ public class MainStage extends Stage {
             }
         });
 
-        topButtons.add(connectBtn).pad(2);
+//        topButtons.add(connectBtn).pad(2);
         topButtons.add(screenshotBtn).pad(2);
         topButtons.add(positionsBtn).pad(2);
         topButtons.add(animationsBtn).pad(2);
@@ -195,8 +213,7 @@ public class MainStage extends Stage {
 //        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
 
         FractalRenderer renderer2 = new ShaderRenderer(
-                new RendererContext(0.65f, 0.05f, 0.3f, 0.3f)
-                , true
+                new RendererContext(0.05f, 0.05f, 0.3f, 0.3f, RendererProperties.ORIENTATION_BOTTOM_RIGHT)
         );
 
         rendererGroup = new Group();
@@ -244,6 +261,13 @@ public class MainStage extends Stage {
 //        renderer.setWidth(Gdx.graphics.getWidth()*0.5f);
     }
 
+    public Texture getPaletteTexture() {
+        String paletteName = clientParams.getClientParameter("palette").getGeneral(String.class);
+        if (paletteName.equalsIgnoreCase("none"))
+            return null;
+        return palettes.get(paletteName);
+    }
+
     public void updateClientParamConfiguration(){
         paramUI.updateClientParamConfiguration(initRightParamConfiguration());
     }
@@ -255,6 +279,7 @@ public class MainStage extends Stage {
     }
 
     public void submitServer(FractalRenderer renderer, ParamContainer paramContainer){
+        ComplexNumber oldMidpoint = renderer.getSystemContext().getMidpoint();
         for (AbstractPropertyEntry entry : paramUI.getServerParamsSideMenu().getPropertyEntries()){
             entry.applyClientValue();
         }
@@ -263,18 +288,20 @@ public class MainStage extends Stage {
             if (paramContainer.needsReset(clientSystem.getOldParams())) {
                 clientSystem.incrementJobId();
                 paramContainer.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
-                renderer.reset();
             }
             clientSystem.setOldParams(paramContainer.getClientParameters());
             clientSystem.getSystemContext().setParameters(paramContainer);
             clientSystem.updateConfiguration();
             clientSystem.resetAnchor();//TODO integrate...
+            renderer.reset();
         }
         else if (renderer instanceof ShaderRenderer){
             renderer.getSystemContext().setParameters(paramContainer);
             renderer.reset();
         }
-        renderer.getRendererContext().panned(paramContainer);
+        ComplexNumber newMidpoint = renderer.getSystemContext().getMidpoint();
+        if (oldMidpoint != null && !oldMidpoint.equals(newMidpoint))
+            renderer.getRendererContext().panned(paramContainer);
     }
 
     private void handleInput() {
@@ -290,14 +317,14 @@ public class MainStage extends Stage {
 //        System.out.println("MainStage focus: " + (getKeyboardFocus() == null ? null : getKeyboardFocus()));
     }
 
-    public final static String PARAMS_COLOR_USE_PALETTE = "use palette";
+    public final static String PARAMS_COLOR_USE_PALETTE = "palette";
     public final static String PARAMS_COLOR_ADD = "color offset";
-    public final static String PARAMS_COLOR_MULT = "color change rate";
+    public final static String PARAMS_COLOR_MULT = "color period";
     public final static String PARAMS_COLOR_SATURATION = "saturation";
     //    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_SOBEL_GLOW_LIMIT = "edge glow brightness";
-    public final static String PARAMS_SOBEL_DIM_PERIOD = "edge glow sensitivity";
-    public final static String PARAMS_AMBIENT_GLOW = "background brightness";
+    public final static String PARAMS_SOBEL_GLOW_LIMIT = "glow";
+    public final static String PARAMS_SOBEL_DIM_PERIOD = "glow period";
+    public final static String PARAMS_AMBIENT_GLOW = "ambient light";
     public final static String PARAMS_EXTRACT_CHANNEL = "map channel";
     public final static String PARAMS_MAPPING_COLOR_R = "mapping red";
     public final static String PARAMS_MAPPING_COLOR_G = "mapping green";
@@ -323,18 +350,18 @@ public class MainStage extends Stage {
 
     protected void initRightParamContainer() {
         clientParams = new ParamContainer();
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_USE_PALETTE, false));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, 2.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, 0.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_SATURATION, 0.5));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_USE_PALETTE, "none"));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, numberFactory.createNumber(2.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, numberFactory.createNumber(0.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_SATURATION, numberFactory.createNumber(0.5)));
 //        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_FACTOR, 1.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, 0.2));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, 1.5));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, 3.0));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, numberFactory.createNumber(0.2)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, numberFactory.createNumber(1.5)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, numberFactory.createNumber(3.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_R, 1.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_G, 1.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_B, 1.0));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_R, numberFactory.createNumber(1.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_G, numberFactory.createNumber(1.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR_B, numberFactory.createNumber(1.0)));
 
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
@@ -366,22 +393,29 @@ public class MainStage extends Stage {
         clientParameterConfiguration.addValueType(stringType);
         ParamValueType complexNumberType = new ParamValueType("complexnumber");
         clientParameterConfiguration.addValueType(complexNumberType);
+        ParamValueType numberType = new ParamValueType("number");
+        clientParameterConfiguration.addValueType(numberType);
 
 
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_USE_PALETTE, "coloring", StaticParamSupplier.class, booleanType),
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_USE_PALETTE, "coloring", StaticParamSupplier.class, selectionType),
                 clientParams.getClientParameter(PARAMS_COLOR_USE_PALETTE));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, "coloring", StaticParamSupplier.class, doubleType)
+        Selection<String> paletteSelection = new Selection<>(PARAMS_COLOR_USE_PALETTE);
+        paletteSelection.addOption("none", "none", "No predefined palette");
+        for (String paletteName : palettes.keySet())
+            paletteSelection.addOption(paletteName, paletteName, "Palette '"+paletteName+"'");
+        clientParameterConfiguration.addSelection(paletteSelection);
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.02 max=10"), clientParams.getClientParameter(PARAMS_COLOR_MULT));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, "coloring", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_ADD));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, "coloring", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
 //        clientParameterConfiguration.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_GLOW));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=-1 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.01 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_DIM_PERIOD));
 
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, "channel mapping", StaticParamSupplier.class, selectionType),
@@ -392,11 +426,11 @@ public class MainStage extends Stage {
         extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
         extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");
         clientParameterConfiguration.addSelection(extractChannelSelection);
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_R, "channel mapping", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_R, "channel mapping", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.0 max=1.0"), clientParams.getClientParameter(PARAMS_MAPPING_COLOR_R));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_G, "channel mapping", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_G, "channel mapping", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.0 max=1.0"), clientParams.getClientParameter(PARAMS_MAPPING_COLOR_G));
-        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_B, "channel mapping", StaticParamSupplier.class, doubleType)
+        clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR_B, "channel mapping", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.0 max=1.0"), clientParams.getClientParameter(PARAMS_MAPPING_COLOR_B));
 
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, "interface", StaticParamSupplier.class, booleanType),
@@ -424,6 +458,12 @@ public class MainStage extends Stage {
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_LINE_TRANSPARENCY));
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, "traces", StaticParamSupplier.class, doubleType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_POINT_TRANSPARENCY));
+
+        //no client param resets the renderer
+        for (ParamDefinition paramDef : clientParameterConfiguration.getParameters())
+            paramDef.setResetRendererOnChange(false);
+
+        this.clientParamConfiguration = clientParameterConfiguration;
         return clientParameterConfiguration;
     }
 
@@ -439,6 +479,16 @@ public class MainStage extends Stage {
 
         boolean setJuliaset2 = (paramContainer1.getClientParameter("start") instanceof StaticParamSupplier);
 
+        String formula = (String)systemContext1.getParamValue("f(z)=");
+        paramContainer2.addClientParameter(new StaticParamSupplier("f(z)=", formula));
+        ComputeExpression computeExpression = new ComputeExpressionBuilder(formula, "z", new HashMap<>()).getComputeExpression();
+        if (computeExpression != null){
+            for (String name : computeExpression.getConstantNames()){
+                ParamSupplier actualSupp = (ParamSupplier) systemContext1.getParameters().get(name);
+                if (actualSupp != null)
+                    paramContainer2.addClientParameter(actualSupp);
+            }
+        }
         if (setJuliaset2) {
             paramContainer2.addClientParameter(new StaticParamSupplier("c", paramContainer1.getClientParameter("midpoint").getGeneral()));
             paramContainer2.addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
@@ -450,10 +500,20 @@ public class MainStage extends Stage {
                 paramContainer2.addClientParameter(new StaticParamSupplier("start", systemContext2.getNumberFactory().createComplexNumber(0,0)));
         }
         paramContainer2.addClientParameter(new StaticParamSupplier("iterations", systemContext1.getParamValue("iterations")));
-        paramContainer2.addClientParameter(new StaticParamSupplier("f(z)=", systemContext1.getParamValue("f(z)=")));
         paramContainer2.addClientParameter(new StaticParamSupplier("limit", systemContext1.getParamValue("limit")));
-        ((ShaderRenderer) targetRenderer).paramsChanged();
+
         targetRenderer.reset();
+        if (targetRenderer instanceof ShaderRenderer) {
+            ((ShaderRenderer) targetRenderer).paramsChanged();
+        }
+        else if (targetRenderer instanceof RemoteRenderer){
+            ClientSystem clientSystem = ((RemoteRenderer) targetRenderer).getSystemInterface().getClientSystem();
+            clientSystem.incrementJobId();
+            paramContainer2.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
+            clientSystem.getSystemContext().setParameters(paramContainer2);
+            clientSystem.updateConfiguration();
+            clientSystem.resetAnchor();//TODO integrate...
+        }
     }
 
     public void addFractalRenderer(FractalRenderer renderer){
@@ -733,5 +793,9 @@ public class MainStage extends Stage {
 
     public FractalRenderer getFocusedRenderer() {
         return focusedRenderer;
+    }
+
+    public ParamConfiguration getClientParamConfiguration() {
+        return clientParamConfiguration;
     }
 }

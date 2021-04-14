@@ -2,7 +2,17 @@ package de.felixp.fractalsgdx.rendering;
 
 import java.util.Properties;
 
-class RendererProperties extends Properties {
+public class RendererProperties extends Properties {
+
+    public static int ORIENTATION_FULLSCREEN = 0;
+    public static int ORIENTATION_TOP_LEFT = 1;
+    public static int ORIENTATION_TOP_RIGHT = 2;
+    public static int ORIENTATION_BOTTOM_LEFT = 3;
+    public static int ORIENTATION_BOTTOM_RIGHT = 4;
+    public static int ORIENTATION_LEFT = 5;
+    public static int ORIENTATION_RIGHT = 6;
+    public static int ORIENTATION_TOP = 7;
+    public static int ORIENTATION_BOTTOM = 8;
 
     static String KEY_RENDERER_CLASS = "rendererclass";
 
@@ -10,14 +20,16 @@ class RendererProperties extends Properties {
     static String KEY_Y = "y";
     static String KEY_W = "w";
     static String KEY_H = "h";
+    static String KEY_ORIENTATION = "orientation";
 
     public RendererProperties(
 //            Class<? extends FractalRenderer> rendererClass,
-            float x, float y, float w, float h){
+            float x, float y, float w, float h, int orientation){
         setX(x);
         setY(y);
         setW(w);
         setH(h);
+        setOrientation(orientation);
     }
 
     public void setRendererClass(Class<? extends FractalRenderer> rendererClass){
@@ -29,7 +41,11 @@ class RendererProperties extends Properties {
     }
 
     public float getX(){
-        return Float.parseFloat(getProperty(KEY_X));
+        float x = Float.parseFloat(getProperty(KEY_X));
+        int o = (int) getOrientation();
+        if (o == ORIENTATION_BOTTOM_RIGHT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_RIGHT)
+            x = 1f-getW()-x;
+        return x;
     }
 
     public void setX(float val){
@@ -37,7 +53,11 @@ class RendererProperties extends Properties {
     }
 
     public float getY(){
-        return Float.parseFloat(getProperty(KEY_Y));
+        float y = Float.parseFloat(getProperty(KEY_Y));
+        int o = (int) getOrientation();
+        if (o == ORIENTATION_TOP_LEFT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_TOP)
+            y = 1f-getH()-y;
+        return y;
     }
 
     public void setY(float val){
@@ -58,5 +78,13 @@ class RendererProperties extends Properties {
 
     public void setH(float val){
         setProperty(KEY_H, val+"");
+    }
+
+    public float getOrientation(){
+        return Float.parseFloat(getProperty(KEY_ORIENTATION));
+    }
+
+    public void setOrientation(float val){
+        setProperty(KEY_ORIENTATION, val+"");
     }
 }

@@ -16,8 +16,8 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
 
     NumberFactory numberFactory;
 
-    public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory) {
-        super(node, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS); //TODO custom Validator
+    public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS, submitValue); //TODO custom Validator
         this.numberFactory = numberFactory;
     }
 

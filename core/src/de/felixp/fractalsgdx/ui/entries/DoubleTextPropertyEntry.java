@@ -11,8 +11,8 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
-    public DoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition, Validators.FLOATS);
+    public DoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, Validators.FLOATS, submitValue);
     }
 
     @Override

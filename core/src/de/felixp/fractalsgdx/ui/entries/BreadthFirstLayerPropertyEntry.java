@@ -23,8 +23,8 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
     static int ID_COUNTER = 0;
     int id;
 
-    public BreadthFirstLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition);
+    public BreadthFirstLayerPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
         this.id = ID_COUNTER++;
     }
 

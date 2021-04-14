@@ -1,76 +1,25 @@
+z^2-abs(z_(n-1))^2+c
+0.2131665987429367 -0.04203309969612859
+0.22601382096515893 -0.06460254414057306
+
+
 "Butterfly Nebula"
 
 {
   "parameters" : [ {
     "type" : "staticSupplier",
-    "name" : "numberFactory",
-    "attr" : 0,
-    "obj" : {
-      "numberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
-      "complexNumberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
-      "type" : "numberFactory"
-    }
-  }, {
-    "type" : "staticSupplier",
-    "name" : "iterations",
-    "attr" : 8,
-    "obj" : 1000
-  }, {
-    "type" : "staticSupplier",
-    "name" : "midpoint",
-    "attr" : 8,
-    "obj" : {
-      "type" : "wrappedvalue",
-      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
-      "val" : "0.0,0.0"
-    }
+    "name" : "calculator",
+    "attr" : 4,
+    "obj" : "CustomCalculator"
   }, {
     "type" : "coordinateBasicShiftSupplier",
     "name" : "c",
     "attr" : 8
   }, {
     "type" : "staticSupplier",
-    "name" : "zoom",
-    "attr" : 8,
-    "obj" : {
-      "type" : "wrappedvalue",
-      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
-      "val" : "3.0"
-    }
-  }, {
-    "type" : "staticSupplier",
-    "name" : "start",
-    "attr" : 8,
-    "obj" : {
-      "type" : "wrappedvalue",
-      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
-      "val" : "0.0,0.0"
-    }
-  }, {
-    "type" : "staticSupplier",
-    "name" : "f(z)=",
-    "attr" : 8,
-    "obj" : "z^2+c"
-  }, {
-    "type" : "staticSupplier",
-    "name" : "limit",
-    "attr" : 9,
-    "obj" : 256.0
-  }, {
-    "type" : "staticSupplier",
-    "name" : "shader grid dim",
-    "attr" : 8,
-    "obj" : 1
-  }, {
-    "type" : "staticSupplier",
-    "name" : "resolutionScale",
-    "attr" : 9,
-    "obj" : 1.0
-  }, {
-    "type" : "staticSupplier",
-    "name" : "calculator",
+    "name" : "chunkSize",
     "attr" : 0,
-    "obj" : "CustomCalculator"
+    "obj" : 512
   }, {
     "type" : "staticSupplier",
     "name" : "layerConfiguration",
@@ -201,13 +150,140 @@
     }
   }, {
     "type" : "staticSupplier",
-    "name" : "width",
+    "name" : "numberFactory",
     "attr" : 0,
-    "obj" : 384
+    "obj" : {
+      "numberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "complexNumberClass" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "type" : "numberFactory"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "pixelzoom",
+    "attr" : 0,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "val" : "0.005555555555555556"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "task_buffer",
+    "attr" : 8,
+    "obj" : 5
+  }, {
+    "type" : "staticSupplier",
+    "name" : "chunkFactory",
+    "attr" : 0,
+    "obj" : {
+      "chunkClass" : "de.felixperko.fractals.data.ReducedNaiveChunk",
+      "chunkSize" : 512,
+      "type" : "arrayChunkFactory"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "start",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "val" : "0.0,0.0"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "border_generation",
+    "attr" : 8,
+    "obj" : 0.0
+  }, {
+    "type" : "staticSupplier",
+    "name" : "zoom",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "val" : "0.75"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "iterations",
+    "attr" : 8,
+    "obj" : 1000
+  }, {
+    "type" : "staticSupplier",
+    "name" : "samples",
+    "attr" : 0,
+    "obj" : 1
+  }, {
+    "type" : "staticSupplier",
+    "name" : "systemName",
+    "attr" : 4,
+    "obj" : "BreadthFirstSystem"
+  }, {
+    "type" : "staticSupplier",
+    "name" : "width",
+    "attr" : 8,
+    "obj" : 3840
+  }, {
+    "type" : "staticSupplier",
+    "name" : "limit",
+    "attr" : 9,
+    "obj" : 8192.0
+  }, {
+    "type" : "staticSupplier",
+    "name" : "midpoint",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "val" : "4.542211524704419,0.15979728123562992"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "pow",
+    "attr" : 8,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber",
+      "val" : "-2.0,0.0"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "border_dispose",
+    "attr" : 8,
+    "obj" : 7.0
+  }, {
+    "type" : "staticSupplier",
+    "name" : "chunkzoom",
+    "attr" : 0,
+    "obj" : {
+      "type" : "wrappedvalue",
+      "cls" : "de.felixperko.fractals.system.numbers.impl.DoubleNumber",
+      "val" : "2.8444444444444446"
+    }
+  }, {
+    "type" : "staticSupplier",
+    "name" : "f(z)=",
+    "attr" : 8,
+    "obj" : "sin(z)^pow+sin(c)"
   }, {
     "type" : "staticSupplier",
     "name" : "height",
+    "attr" : 8,
+    "obj" : 2160
+  }, {
+    "type" : "staticSupplier",
+    "name" : "view",
     "attr" : 0,
-    "obj" : 217
+    "obj" : 1
+  }, {
+    "type" : "staticSupplier",
+    "name" : "supersampling",
+    "attr" : 8,
+    "obj" : 1
+  }, {
+    "type" : "staticSupplier",
+    "name" : "resolutionScale",
+    "attr" : 9,
+    "obj" : 1.0
   } ]
 }

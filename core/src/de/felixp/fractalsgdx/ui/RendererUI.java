@@ -14,7 +14,9 @@ import net.dermetfan.utils.Pair;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,12 +25,14 @@ import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.RemoteRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.remoteclient.ChangedResourcesListener;
 import de.felixp.fractalsgdx.remoteclient.MessageInterfaceGdx;
 import de.felixperko.fractals.network.messages.ResourceRequestMessage;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.client;
+import static de.felixp.fractalsgdx.rendering.RendererProperties.*;
 
 public class RendererUI {
 
@@ -36,10 +40,10 @@ public class RendererUI {
     static String RENDERER_SHADER = "Shader";
 
     static Map<String, Class<? extends FractalRenderer>> availableRenderers =
-            new HashMap<String, Class<? extends FractalRenderer>>(){
+            new LinkedHashMap<String, Class<? extends FractalRenderer>>(){
         {
-            put(RENDERER_REMOTE, RemoteRenderer.class);
             put(RENDERER_SHADER, ShaderRenderer.class);
+            put(RENDERER_REMOTE, RemoteRenderer.class);
         }
     };
 
@@ -50,6 +54,7 @@ public class RendererUI {
 
     VisLabel xLabel, yLabel, widthLabel, heightLabel;
     VisTextField xField, yField, widthField, heightField;
+    VisSelectBox orientationSelect;
 
     VisTable resourcesTable = null;
     VisSlider cpuCoresSlider = null;
@@ -77,6 +82,14 @@ public class RendererUI {
                 infoTable.remove();
                 if (resourcesTable != null)
                     resourcesTable.remove();
+            }
+        });
+
+        VisTextButton connectToServerButton = new VisTextButton("Connect to server", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                ((MainStage) FractalsGdxMain.stage).openConnectWindow(null);
+                settingsWindow.remove();
             }
         });
 
@@ -125,7 +138,10 @@ public class RendererUI {
                 }
 
                 settingsWindow.remove();
-                MainStageWindows.openSettingsMenu(stage);
+//                MainStageWindows.openSettingsMenu(stage);
+
+                if (newRenderer instanceof RemoteRenderer)
+                    ((MainStage)FractalsGdxMain.stage).openConnectWindow(null);
 //                for (FractalRenderer renderer : renderers)
 //                    stage.addFractalRenderer((AbstractFractalRenderer)renderer);
             }
@@ -133,82 +149,176 @@ public class RendererUI {
 
 
 
-            xLabel = new VisLabel("x: ");
-            yLabel = new VisLabel("y: ");
-            widthLabel = new VisLabel("width: ");
-            heightLabel = new VisLabel("height: ");
+        xLabel = new VisLabel("x: ");
+        yLabel = new VisLabel("y: ");
+        widthLabel = new VisLabel("width: ");
+        heightLabel = new VisLabel("height: ");
 
-            xField = new VisTextField(getPercentage(renderer.getRelativeX()));
-            yField = new VisTextField(getPercentage(renderer.getRelativeY()));
-            widthField = new VisTextField(getPercentage(renderer.getRelativeWidth()));
-            heightField = new VisTextField(getPercentage(renderer.getRelativeHeight()));
+        int orientation = renderer.getOrientation();
+        boolean invertX = orientation == ORIENTATION_BOTTOM_RIGHT || orientation == ORIENTATION_TOP_RIGHT;
+        boolean invertY = orientation == ORIENTATION_TOP_LEFT || orientation == ORIENTATION_TOP_RIGHT;
 
-            xField.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    Integer value  = parseIntPercentage(xField.getText(), 0, (int)(100*(1f-renderer.getRelativeWidth())));
-                    xField.setInputValid(value != null);
-                    widthField.setInputValid(value != null);
-                    if  (value != null){
-                        renderer.setRelativeX(value / 100f);
-                    }
+        float x = renderer.getRelativeX();
+        float y = renderer.getRelativeY();
+        if (invertX)
+            x = 1-renderer.getRelativeWidth()-x;
+        if (invertY)
+            y = 1-renderer.getRelativeHeight()-y;
+        xField = new VisTextField(getPercentage(x));
+        yField = new VisTextField(getPercentage(y));
+        widthField = new VisTextField(getPercentage(renderer.getRelativeWidth()));
+        heightField = new VisTextField(getPercentage(renderer.getRelativeHeight()));
 
+        orientationSelect = new VisSelectBox();
+        orientationSelect.setItems("fullscreen", "top left", "top right", "bottom left", "bottom right", "left", "right", "top", "bottom");
+        orientationSelect.setSelectedIndex(orientation);
+
+        xField.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                updateRendererX();
+            }
+        });
+        yField.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                updateRendererY();
+            }
+        });
+        widthField.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                updateRendererWidth();
+            }
+        });
+        heightField.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                updateRendererHeight();
+            }
+        });
+        orientationSelect.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                int newO = orientationSelect.getSelectedIndex();
+                renderer.setOrientation(newO);
+                if (newO == ORIENTATION_LEFT){
+                    xField.setText("0");
+                    yField.setText("0");
+                    widthField.setText("50");
+                    heightField.setText("100");
+                    updateRendererDims();
                 }
-            });
-            yField.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    Integer value  = parseIntPercentage(yField.getText(), 0, (int)(100*(1f-renderer.getRelativeHeight())));
-                    yField.setInputValid(value != null);
-                    heightField.setInputValid(value != null);
-                    if  (value != null){
-                        renderer.setRelativeY(value / 100f);
-                    }
+                else if (newO == ORIENTATION_RIGHT){
+                    xField.setText("0");
+                    yField.setText("0");
+                    widthField.setText("50");
+                    heightField.setText("100");
+                    updateRendererDims();
                 }
-            });
-            widthField.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    Integer value  = parseIntPercentage(widthField.getText(), 1, (int)(100*(1f-renderer.getRelativeX())));
-                    xField.setInputValid(value != null);
-                    widthField.setInputValid(value != null);
-                    if  (value != null){
-                        renderer.setRelativeWidth(value / 100f);
-                    }
+                else if (newO == ORIENTATION_TOP){
+                    xField.setText("0");
+                    yField.setText("0");
+                    widthField.setText("100");
+                    heightField.setText("50");
+                    updateRendererDims();
                 }
-            });
-            heightField.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    Integer value  = parseIntPercentage(heightField.getText(), 1, (int)(100*(1f-renderer.getRelativeY())));
-                    yField.setInputValid(value != null);
-                    heightField.setInputValid(value != null);
-                    if  (value != null){
-                        renderer.setRelativeHeight(value / 100f);
-                    }
+                else if (newO == ORIENTATION_BOTTOM){
+                    xField.setText("0");
+                    yField.setText("0");
+                    widthField.setText("100");
+                    heightField.setText("50");
+                    updateRendererDims();
                 }
-            });
+                else if (newO == ORIENTATION_FULLSCREEN){
+                    xField.setText("0");
+                    yField.setText("0");
+                    widthField.setText("100");
+                    heightField.setText("100");
+                    updateRendererDims();
+                }
+                renderer.updateSize();
+            }
+        });
 
-            VisTable headerTable = new VisTable(true);
-            headerTable.add(rendererLabel);
-            headerTable.add(rendererSelection);
-            headerTable.add(removeButton);
+        VisTable headerTable = new VisTable(true);
+        headerTable.add(rendererLabel);
+        headerTable.add(rendererSelection);
+        headerTable.add(removeButton);
+        if (renderer instanceof RemoteRenderer) {
+            headerTable.row();
+            headerTable.add(connectToServerButton).colspan(3).left();
+        }
 
-            VisTable dimTable = new VisTable(true);
-            dimTable.add(xLabel);
-            dimTable.add(xField);
-            dimTable.add(yLabel);
-            dimTable.add(yField).row();
-            dimTable.add(widthLabel);
-            dimTable.add(widthField);
-            dimTable.add(heightLabel);
-            dimTable.add(heightField);
+        VisTable dimTable = new VisTable(true);
+        dimTable.add(xLabel);
+        dimTable.add(xField);
+        dimTable.add(yLabel);
+        dimTable.add(yField).row();
+        dimTable.add(widthLabel);
+        dimTable.add(widthField);
+        dimTable.add(heightLabel);
+        dimTable.add(heightField);
 
-            infoTable.addSeparator();
-            infoTable.add(headerTable).left().row();
-            infoTable.add(dimTable);
-//        }
+        infoTable.addSeparator();
+        infoTable.add(headerTable).left().row();
+        infoTable.add(dimTable).row();
+        infoTable.add(orientationSelect);
+
         return infoTable;
+    }
+
+    protected void updateRendererDims() {
+        updateRendererX();
+        updateRendererY();
+        updateRendererWidth();
+        updateRendererHeight();
+    }
+
+    protected void updateRendererHeight() {
+        float y = renderer.getRelativeY();
+        int o = renderer.getOrientation();
+        boolean invertY = o == ORIENTATION_TOP_LEFT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_TOP;
+        if (invertY)
+            y = 1-renderer.getRelativeHeight()-y;
+        Integer value  = parseIntPercentage(heightField.getText(), 1, (int)(100*(1f - y)));
+        yField.setInputValid(value != null);
+        heightField.setInputValid(value != null);
+        if  (value != null){
+            renderer.setRelativeHeight(value / 100f);
+        }
+    }
+
+    protected void updateRendererWidth() {
+        float x = renderer.getRelativeX();
+        int o = renderer.getOrientation();
+        boolean invertX = o == ORIENTATION_BOTTOM_RIGHT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_RIGHT;
+        if (invertX)
+            x = 1-renderer.getRelativeWidth()-x;
+        Integer value  = parseIntPercentage(widthField.getText(), 1, (int)(100*(1f - x)));
+        xField.setInputValid(value != null);
+        widthField.setInputValid(value != null);
+        if  (value != null){
+            renderer.setRelativeWidth(value / 100f);
+        }
+    }
+
+    protected void updateRendererY() {
+        Integer value  = parseIntPercentage(yField.getText(), 0, (int)(100*(1f-renderer.getRelativeHeight())));
+        yField.setInputValid(value != null);
+        heightField.setInputValid(value != null);
+        if  (value != null){
+            renderer.setRelativeY(value / 100f);
+        }
+    }
+
+    protected void updateRendererX() {
+        Integer value  = parseIntPercentage(xField.getText(), 0, (int)(100*(1f-renderer.getRelativeWidth())));
+        xField.setInputValid(value != null);
+        widthField.setInputValid(value != null);
+        if  (value != null){
+            renderer.setRelativeX(value / 100f);
+        }
     }
 
     /**
@@ -244,6 +354,7 @@ public class RendererUI {
 
         MessageInterfaceGdx messageInterface = client.getMessageInterface();
         Map<String, Float> gpus = messageInterface == null ? new HashMap<>() : messageInterface.getResourceGpus();
+
 
         VisLabel cpuCoresLabel = new VisLabel("CPU Threads");
         if (cpuCoresSlider == null) {

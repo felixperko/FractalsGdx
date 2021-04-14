@@ -14,6 +14,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
@@ -24,18 +25,18 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
 //        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
-        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_COLOR_USE_PALETTE).getGeneral(Boolean.class) ? 1 : 0);
-        shader.setUniformf("colorAdd", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Double.class));
-        shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Double.class));
-        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Double.class));
+        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_COLOR_USE_PALETTE).getGeneral(String.class).equalsIgnoreCase("none") ? 0 : 1);
+        shader.setUniformf("colorAdd", (float)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
 //        shader.setUniformf("sobelLuminance", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_FACTOR).getGeneral(Double.class));
-        shader.setUniformf("sobel_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_GLOW).getGeneral(Double.class));
-        shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Double.class));
-        shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Double.class));
+        shader.setUniformf("sobel_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_GLOW).getGeneral(Number.class).toDouble());
+        shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Number.class).toDouble());
         shader.setUniformi("extractChannel", (int)(int)stage.getClientParameter(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
-        shader.setUniformf("mappingColorR", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_R).getGeneral(Double.class));
-        shader.setUniformf("mappingColorG", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_G).getGeneral(Double.class));
-        shader.setUniformf("mappingColorB", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_B).getGeneral(Double.class));
+        shader.setUniformf("mappingColorR", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_R).getGeneral(Number.class).toDouble());
+        shader.setUniformf("mappingColorG", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_G).getGeneral(Number.class).toDouble());
+        shader.setUniformf("mappingColorB", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_B).getGeneral(Number.class).toDouble());
 //        shader.setUniformf("colorAdd", (float)(double)stage.colorAddSupplier.getGeneral(Double.class) + timeCounter*-0.2f);
 //        shader.setUniformf("colorMult", (float)(double)stage.colorMultSupplier.getGeneral(Double.class));
 //        shader.setUniformf("sobelLuminance", (float)(double)stage.glowFactorSupplier.getGeneral(Double.class));
@@ -147,7 +148,6 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     @Override
     public void setRefresh(){
-//        this.refresh = true;
         if (!Gdx.graphics.isContinuousRendering())
             Gdx.graphics.requestRendering();
     }
@@ -183,6 +183,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
         //get pixels
         byte[] pixels = ScreenUtils.getFrameBufferPixels(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), true);
+//        byte[] pixels = new byte[1];
 
         long t2 = System.nanoTime();
 
@@ -241,6 +242,15 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         updateSize();
     }
 
+    public int getOrientation() {
+        return (int)rendererContext.getProperties().getOrientation();
+    }
+
+    public void setOrientation(int orientation) {
+        rendererContext.getProperties().setOrientation(orientation);
+//        updateSize();
+    }
+
     public void addScreenshotListener(ScreenshotListener screenshotListener, boolean singleUse){
         rendererContext.addScreenshotListener(screenshotListener, singleUse);
     }
@@ -251,9 +261,11 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     @Override
     public void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory) {
-        boolean changed = rendererContext.applyParameterAnimations(getSystemContext(), serverParamContainer, clientParamContainer, numberFactory);
-        if (changed)
+        boolean[] res = rendererContext.applyParameterAnimations(getSystemContext(), serverParamContainer, clientParamContainer, numberFactory);
+        if (res[1])
             reset();
+        else if (res[0])
+            setRefresh();
     }
 
     public void addPanListener(PanListener panListener){

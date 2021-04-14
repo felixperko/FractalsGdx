@@ -3,6 +3,8 @@ package de.felixp.fractalsgdx.rendering;
 import com.badlogic.gdx.graphics.g2d.Batch;
 
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
@@ -15,6 +17,14 @@ public interface FractalRenderer {
     void init();
 
     void draw(Batch batch, float parentAlpha);
+
+    float getScreenX(double real);
+    float getScreenY(double imag);
+    float getScreenX(Number real);
+    float getScreenY(Number imag);
+    ComplexNumber getComplexMapping(float screenX, float screenY);
+    Number getReal(float screenX);
+    Number getImag(float screenY);
 
     abstract void setSingleScreenshotScheduled(boolean singleScreenshotScheduled);
 
@@ -46,13 +56,15 @@ public interface FractalRenderer {
 
     void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory);
 
-    void setRelativeX(float v);
+    void setRelativeX(float x);
 
-    void setRelativeY(float v);
+    void setRelativeY(float y);
 
-    void setRelativeWidth(float v);
+    void setRelativeWidth(float w);
 
-    void setRelativeHeight(float v);
+    void setRelativeHeight(float h);
+
+    void setOrientation(int orientation);
 
     float getRelativeX();
 
@@ -61,6 +73,8 @@ public interface FractalRenderer {
     float getRelativeWidth();
 
     float getRelativeHeight();
+
+    int getOrientation();
 
     void reset();
 

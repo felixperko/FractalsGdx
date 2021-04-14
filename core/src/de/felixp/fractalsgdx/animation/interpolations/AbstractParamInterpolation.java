@@ -15,6 +15,8 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
     private NumberFactory numberFactory;
 
+    boolean automaticTimings = true;
+
     String paramName;
     String paramType;
     String paramContainerKey;
@@ -115,6 +117,44 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
             this.derivatives = new ArrayList<>();
         setNumberFactory(numberFactory);
         controlPointsChanged();
+    }
+
+
+    @Override
+    public List<Double> getTimings(boolean inheritedValue) {
+        return pointIndexProgressMapping;
+    }
+
+    @Override
+    public void setTiming(int index, double time) {
+        Double oldTime = pointIndexProgressMapping.get(index);
+        if (oldTime != null) {
+            if (oldTime == time)
+                return;
+
+            LinkedHashMap<Double, Integer> newTimings = new LinkedHashMap<>();
+            int i = 0;
+            for (Map.Entry<Double, Integer> e : progressPointIndexMapping.entrySet()){
+                if (i != index)
+                    newTimings.put(e.getKey(), e.getValue());
+                else
+                    newTimings.put(time, index);
+                i++;
+            }
+            progressPointIndexMapping = newTimings;
+            pointIndexProgressMapping.set(index, time);
+//            progressPointIndexMapping.repl
+        }
+    }
+
+    @Override
+    public boolean isAutomaticTimings() {
+        return automaticTimings;
+    }
+
+    @Override
+    public void setAutomaticTimings(boolean automaticTimings) {
+        this.automaticTimings = automaticTimings;
     }
 
     @Override

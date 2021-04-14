@@ -198,10 +198,15 @@ public class ShaderBuilder {
                         "fromReal = fromReal - toReal;");
             } else if (instruction.type == ComputeInstruction.INSTR_MULT_COMPLEX){
                 String tempVarName = getTempVarName();
+                //real = ac-bd
+                //imag = ad+bc
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//mult_complex",
                         "float "+tempVarName+" = fromReal*toReal - fromImag*toImag;",
-                        "fromImag = (fromReal + fromImag)*(toReal + toImag) - "+tempVarName+";",
+                        "fromImag = (fromReal*toImag) + (fromImag*toReal);",
                         "fromReal = "+tempVarName+";");
+//                        "float "+tempVarName+" = fromReal*toReal - fromImag*toImag;",
+//                        "fromImag = (fromReal + fromImag)*(toReal + toImag) - "+tempVarName+";",
+//                        "fromReal = "+tempVarName+";");
             } else if (instruction.type == ComputeInstruction.INSTR_MULT_PART){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//mult_part",
                         "fromReal = fromReal*fromImag;");
@@ -236,7 +241,7 @@ public class ShaderBuilder {
                         "float "+temp3+" = sqrt(fromReal*fromReal + fromImag*fromImag);",
                         "float "+temp2+" = 0.0;",
                         "float "+temp1+" = 0.0;",
-                        "if ("+temp3+" != 0){",
+                        "if ("+temp3+" != 0) {",
                         "    "+temp3+" = log("+temp3+");",
                         "    "+temp1+" = atan(fromImag, fromReal);",
                         "    "+temp2+" = ("+temp3+"*toReal - "+temp1+"*toImag);",
@@ -249,6 +254,10 @@ public class ShaderBuilder {
 //                        "fromImag = fromReal*fromImag*2.0;",
 //                        "fromReal = "+temp1+";");
                         "}"
+//                        "else {",
+//                        "   fromReal = 0.0;",
+//                        "   fromImag = 0.0;",
+//                        "}"
                 );
             } else if (instruction.type == ComputeInstruction.INSTR_POW_PART){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//pow_part",

@@ -32,8 +32,8 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
 
-    public DoubleSliderPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
-        super(node, paramContainer, parameterDefinition);
+    public DoubleSliderPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
     }
 
     @Override
@@ -91,18 +91,8 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                     slider.addListener(listener);
                 contentFields.add(slider);
 
-                minField = new VisTextField(min + "") {
-                    @Override
-                    public float getPrefWidth() {
-                        return isVisible() ? super.getPrefWidth() : 0;
-                    }
-                };
-                maxField = new VisTextField(max + "") {
-                    @Override
-                    public float getPrefWidth() {
-                        return isVisible() ? super.getPrefWidth() : 0;
-                    }
-                };
+                minField = AbstractDoubleTextPropertyEntry.createCollapsedIfInvisibleTextField(min+"");
+                maxField = AbstractDoubleTextPropertyEntry.createCollapsedIfInvisibleTextField(max+"");
                 valueLabel = new VisLabel();
                 updateVisibilities();
 

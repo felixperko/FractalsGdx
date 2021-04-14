@@ -26,10 +26,13 @@ public class PropertyEntryFactory {
     Map<String, Tree.Node> categoryNodes;
     NumberFactory numberFactory;
 
-    public PropertyEntryFactory(Map<String, Tree.Node> categoryNodes, NumberFactory numberFactory) {
+    boolean submitValue;
+
+    public PropertyEntryFactory(Map<String, Tree.Node> categoryNodes, NumberFactory numberFactory, boolean submitValue) {
         ///this.tree = tree;
         this.categoryNodes = categoryNodes;
         this.numberFactory = numberFactory;
+        this.submitValue = submitValue;
     }
 
     static int ID_COUNTER_SUB_DEFINITIONS = 0;
@@ -74,29 +77,29 @@ public class PropertyEntryFactory {
         Tree.Node node = categoryNodes.get(parameterDefinition.getCategory());
         switch (type.getName()) {
             case ("integer"):
-                return new IntTextPropertyEntry(node, paramContainer, parameterDefinition);
+                return new IntTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("double"):
                 if (parameterDefinition.getHintValue("ui-element[default]:field", false) != null)
-                    return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition);
+                    return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
                 if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
-                    return new DoubleSliderPropertyEntry(node, paramContainer, parameterDefinition);
-                return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition);
+                    return new DoubleSliderPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("number"):
-                return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS); //TODO replace validator
+                return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS, submitValue); //TODO replace validator
             case ("string"):
-                return new ExpressionTextPropertyEntry(node, paramContainer, parameterDefinition);
+                return new ExpressionTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("complexnumber"):
-                return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory);
+                return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, submitValue);
             case ("boolean"):
-                return new BooleanPropertyEntry(node, paramContainer, parameterDefinition);
+                return new BooleanPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("selection"):
-                return new SelectionPropertyEntry(node, paramContainer, parameterDefinition);
+                return new SelectionPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("list"):
-                return new ListPropertyEntry(node, paramContainer, parameterDefinition, this);
+                return new ListPropertyEntry(node, paramContainer, parameterDefinition, this, submitValue);
             case ("BreadthFirstLayer"):
-                return new BreadthFirstLayerPropertyEntry(node, paramContainer, parameterDefinition);
+                return new BreadthFirstLayerPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("BreadthFirstUpsampleLayer"):
-                return new BreadthFirstUpsampleLayerPropertyEntry(node, paramContainer, parameterDefinition);
+                return new BreadthFirstUpsampleLayerPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
 //            case ("LayerConfiguration"):
 //                return new CompositePropertyEntry(node, paramContainer, parameterDefinition){
 //                    @Override

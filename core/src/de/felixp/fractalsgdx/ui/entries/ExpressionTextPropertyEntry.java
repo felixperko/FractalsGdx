@@ -13,7 +13,7 @@ import de.felixperko.expressions.FractalsExpressionParser;
 
 public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
-    public ExpressionTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition) {
+    public ExpressionTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, new InputValidator() {
             @Override
             public boolean validateInput(String input) {
@@ -23,12 +23,14 @@ public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry
                         return false;
                     //TODO update dynamic parameters
                     return true;
-                } catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     return false;
                 }
             }
-        });
-        text = paramContainer.getClientParameter(propertyName).getGeneral(String.class);
+        }, submitValue);
+        ParamSupplier clientParameter = paramContainer.getClientParameter(propertyName);
+        if (clientParameter != null)
+            text = clientParameter.getGeneral(String.class);
     }
 
     @Override

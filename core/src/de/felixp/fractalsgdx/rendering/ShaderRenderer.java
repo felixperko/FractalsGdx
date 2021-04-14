@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
+
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
@@ -59,6 +61,7 @@ import de.felixperko.fractals.system.task.Layer;
 import de.felixperko.fractals.system.task.TaskManager;
 import de.felixperko.fractals.system.thread.CalculateFractalsThread;
 import de.felixperko.expressions.ComputeExpressionBuilder;
+import de.felixperko.fractals.util.NumberUtil;
 
 public class ShaderRenderer extends AbstractFractalRenderer {
 
@@ -77,7 +80,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     boolean useFirstDataFbo = true;
     boolean prevDataFboOutdated = false;
 
-    Texture palette;
+//    Texture palette;
 
     boolean reuseEnabled = true;
     boolean renderedPart = false;
@@ -100,8 +103,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     boolean burningship = false;
     boolean juliaset = false;
 
-    float xPos;
-    float yPos;
+    double xPos;
+    double yPos;
 //    float biasReal = 0f;
 //    float biasImag = 0f;
 
@@ -130,14 +133,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     boolean drawTraces = true;
     float mouseX, mouseY;
 
+    PanListener panListener;
+
     public ShaderRenderer(RendererContext rendererContext){
         super(rendererContext);
-    }
-
-    public ShaderRenderer(RendererContext rendererContext, boolean juliaset){
-        super(rendererContext);
-        this.juliaset = juliaset;
-//        this.palette = new Texture(Gdx.files.internal("palette.png"));
+        rendererContext.setRenderer(this);
     }
 
     @Override
@@ -149,11 +149,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     @Override
     public void init(){
-		palette = new Texture("palette.png");
-		palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-//        fboDataFirst = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getScaledWidth(), (int)getScaledHeight(), false);
-//        fboDataSecond = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getScaledWidth(), (int)getScaledHeight(), false);
-//        fboImage = new FrameBuffer(Pixmap.Format.RGBA8888, (int)getScaledWidth(), (int)getScaledHeight(), false);
 
         ((GPUSystemContext)systemContext).init();
         updateExpression();
@@ -198,7 +193,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                     }
 
                     if (changed) {
-                        LOG.warn("tapped");
+                        LOG.debug("tapped");
                         anchor = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
                         reset();
                     }
@@ -296,6 +291,24 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                }
             }
         });
+
+        panListener = new PanListener() {
+            @Override
+            public void panned(ComplexNumber midpoint) {
+                double oldScreenX = getScreenX(xPos);
+                double oldScreenY = getScreenY(yPos);
+                double newScreenX = getScreenX(midpoint.realDouble());
+                double newScreenY = getScreenY(midpoint.imagDouble());
+                double deltaX = newScreenX - oldScreenX;
+                double deltaY = newScreenY - oldScreenY;
+                xPos = midpoint.realDouble();
+                yPos = midpoint.imagDouble();
+                pannedDeltaX += deltaX;
+                pannedDeltaY -= deltaY;
+                paramsChanged(getSystemContext().getParamContainer());
+            }
+        };
+        addPanListener(panListener);
     }
 
     protected boolean dragMovingControlPoint(float x, float y) {
@@ -304,7 +317,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             return false;
         float newScreenX = x;
         float newScreenY = y;
-        ComplexNumber newControlPoint = getComplex(newScreenX, getHeight()-newScreenY);
+        ComplexNumber newControlPoint = getComplexMapping(newScreenX, getHeight()-newScreenY);
         int selectedIndex = -1;
         for (int i = 0 ; i < selectedControlPoints.size() ; i++){
             if (selectedControlPoints.get(i).equals(movingControlPoint)){
@@ -352,7 +365,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //            if (isControlPointSelected(controlPoint)){
 //                if (controlPointCollision(x, y, controlPoint)) {
 //                    selectedControlPoints.remove(controlPoint);
-//                    ComplexNumber newControlPoint = getComplex(x, y);
+//                    ComplexNumber newControlPoint = getComplexMapping(x, y);
 //                    selectedControlPoints.add(newControlPoint);
 //                    AnimationsUI.getSelectedInterpolation().moveControlPoint(controlPoint, newControlPoint, true);
 //                    return true;
@@ -398,10 +411,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         panPartOffsetX = requestedDeltaX-deltaX;
         panPartOffsetY = requestedDeltaY-deltaY;
 
-        xPos += deltaX;
-        yPos += deltaY;
-        pannedDeltaX -= deltaX;
-        pannedDeltaY += deltaY;
         ParamContainer paramContainer = systemContext.getParamContainer();
         NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
         Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
@@ -411,8 +420,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         delta.multNumber(zoom);
         midpoint.sub(delta);
         systemContext.setMidpoint(midpoint);
-        paramsChanged(paramContainer);
         rendererContext.panned(systemContext.getParamContainer());
+        //see panned listener added at the end of init()...
     }
 
     private void paramsChanged(ParamContainer paramContainer) {
@@ -441,16 +450,16 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         updateExpression();
 
-        boolean changing = rendererContext.containsResetAnimations();
-        if (changing)
-            setRefresh();
+//        boolean changing = rendererContext.containsResetAnimations();
+//        if (changing)
+//            setRefresh();
 
         renderImage(batch);
 
     }
 
     float panSpeed = 0.5f;
-    float maxTimestep = 2.0f/Gdx.graphics.getDisplayMode().refreshRate;
+    float maxTimestep = 5.0f/Gdx.graphics.getDisplayMode().refreshRate;
 
     private void handleInput() {
 
@@ -482,6 +491,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             rendererContext.addPathPoint(systemContext.getNumberFactory().createComplexNumber(getReal(mouseX), getImag(mouseY)), systemContext.getNumberFactory());
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)){
+            rendererContext.getParameterAnimations().forEach(a -> a.setPaused(true));
             rendererContext.clearPath();
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.FORWARD_DEL)){
@@ -551,17 +561,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         computeShader.setUniformf("ratio", currentWidth/(float)currentHeight);
         computeShader.setUniformf("resolution", getScaledWidth(), getScaledHeight());
 
-        computeShader.setUniformf("colorShift", colorShift);
-
 //		long t = System.currentTimeMillis();
 //		if (t-lastIncrease > 1) {
 //			lastIncrease = t;
 //			iterations++;
 //		}
         computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
-        computeShader.setUniformf("limit", (float)(double)paramContainer.getClientParameter("limit").getGeneral(Double.class));
+        computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
 
-        float scale = (float)(paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble());
+        double scale = paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble();
         ComplexNumber midpoint = systemContext.getMidpoint();
 
         List<ParamSupplier> paramList = expression.getParameterList();
@@ -578,7 +586,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                CoordinateBasicShiftParamSupplier shiftSupp = (CoordinateBasicShiftParamSupplier) supp;
                 params[i*3] = (float)midpoint.realDouble();
                 params[i*3+1] = (float)midpoint.imagDouble();
-                params[i*3+2] = scale;
+                params[i*3+2] = (float)scale;
             }
             else
                 throw new IllegalArgumentException("Unsupported ParamSupplier "+supp.getName()+": "+supp.getClass().getName());
@@ -586,28 +594,18 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         computeShader.setUniform1fv("params", params, 0, params.length);
 
         //TODO remove instance variable
-        computeShader.setUniformf("scale", scale);
-
-        float xVariation = (float)((Math.random()-0.5)*(scale/width));
-        float yVariation = (float)((Math.random()-0.5)*(scale/width));
-
-        xVariation = 0;
-        yVariation = 0;
+        computeShader.setUniformf("scale", (float)scale);
 
 //        ComplexNumber c = paramContainer.getClientParameter("c").getGeneral(ComplexNumber.class);
-
-        computeShader.setUniformf("center", (float) midpoint.getReal().toDouble() + xVariation, (float) midpoint.getImag().toDouble() + yVariation);
-//        computeShader.setUniformf("biasReal", (float)c.getReal().toDouble());
-//        computeShader.setUniformf("biasImag", (float)c.getImag().toDouble());
-        computeShader.setUniformf("biasReal", (float)0); //TODO remove
-        computeShader.setUniformf("biasImag", (float)0);
-        computeShader.setUniformf("burningship", 0f);
-        computeShader.setUniformf("juliaset", 0f);
-//        computeShader.setUniformf("samples", currentRefreshes+1);
-//        computeShader.setUniformf("flip", currentRefreshes%2 == 1 ? -1 : 1);
+        double centerR = midpoint.getReal().toDouble();
+        double centerI = midpoint.getImag().toDouble();
+        computeShader.setUniformf("center", (float) centerR, (float) centerI);
+        float centerFp64LowR = (float) (centerR - (float) centerR);
+        float centerFp64LowI = (float) (centerI - (float) centerI);
+        computeShader.setUniformf("centerFp64Low", centerFp64LowR, centerFp64LowI);
         computeShader.setUniformf("logPow", (float)expression.getSmoothstepConstant());
-        computeShader.setUniformi("sampleCountRoot", paramContainer.getClientParameter("shader grid dim").getGeneral(Integer.class));
-//        computeShader.setUniformi("u_texture", 0);
+        computeShader.setUniformf("maxBorderSamples", paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_MAXBORDERSAMPLES).getGeneral(Integer.class));
+        computeShader.setUniformi("sampleCountRoot", paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_SUPERSAMPLING).getGeneral(Integer.class));
     }
 
 
@@ -626,7 +624,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     protected void setResolutionScale(double resolutionScale){
-        if (this.resolutionScale != resolutionScale) {
+        if (this.resolutionScale != resolutionScale && resolutionScale > 0) {
             this.resolutionScale = resolutionScale;
             sizeChanged();
         }
@@ -645,13 +643,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     private void resetFramebuffers() {
-//        useFirstDataFbo = true;
-        renderedPart = false;
-        if (fboDataFirst != null) {
-            fboDataFirst.dispose();
-            fboDataSecond.dispose();
-            fboImage.dispose();
-        }
+        disposeFramebuffers();
 
         GLFrameBuffer.FrameBufferBuilder fbb = new GLFrameBuffer.FrameBufferBuilder(resolutionX, resolutionY);
         fbb.addBasicColorTextureAttachment(Pixmap.Format.RGBA8888);
@@ -661,19 +653,62 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         fboDataFirst = new FrameBuffer(fbb){};
         fboDataSecond = new FractalsFrameBuffer(fbb);
+        fboImage = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
 
-        resetDebugFramebuffers();
+//        resetDebugFramebuffers();
 
 //        fboDataFirst = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
 //        fboDataSecond = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
 //        fboSampleCount = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
+    }
 
-        fboImage = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
+    private void disposeFramebuffers() {
+        renderedPart = false;
+        if (fboDataFirst != null) {
+            fboDataFirst.dispose();
+            fboDataSecond.dispose();
+            fboImage.dispose();
+        }
+    }
+
+    private boolean isRenderingDone(){
+
+        //TODO check if rendering done
+        return ((Integer)systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING)) == 1;
+
+//        Texture samplesTexture = getFboDataPrevious().getTextureAttachments().get(1);
+//        if (!samplesTexture.getTextureData().isPrepared()) {
+//            samplesTexture.getTextureData().prepare();
+//        }
+//        Pixmap pixmap = samplesTexture.getTextureData().consumePixmap();
+//        int w = pixmap.getWidth();
+//        int h = pixmap.getHeight();
+//        int maxSamples = ((Integer)systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING))^2;
+//        for (int x = 0 ; x < w ; x++){
+//            int samples0 = pixmapPixelToInt(pixmap, x, 0);
+//            int samples1 = pixmapPixelToInt(pixmap, x, h);
+//            if (samples0 < maxSamples || samples1 < maxSamples)
+//                return false;
+//        }
+//        for (int y = 0 ; y < h ; y++){
+//            int samples0 = pixmapPixelToInt(pixmap, 0, y);
+//            int samples1 = pixmapPixelToInt(pixmap, w, y);
+//            if (samples0 < maxSamples || samples1 < maxSamples)
+//                return false;
+//        }
+//        return true;
+    }
+
+    private int pixmapPixelToInt(Pixmap pixmap, int x, int y) {
+        return 0;
     }
 
     protected void renderImage(Batch batch) {
 
+        long t1 = System.nanoTime();
+
         setResolutionScale((double)systemContext.getParamValue("resolutionScale", Double.class));
+        float resolutionScaleF = (float) this.resolutionScale;
 
         Gdx.gl.glClearColor( 0, 0, 0, 1 );
 
@@ -686,10 +721,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         //determine if existing pixels can be reused
         boolean reusePixels = reuseEnabled && renderedPart && !prevDataFboOutdated;
-        float shiftedX = pannedDeltaX;
-        float shiftedY = pannedDeltaY;
-        pannedDeltaX = 0f;
-        pannedDeltaY = 0f;
+        float shiftedX = ((int)(pannedDeltaX*resolutionScaleF))/resolutionScaleF;
+        float shiftedY = ((int)(pannedDeltaY*resolutionScaleF))/resolutionScaleF;
+        pannedDeltaX = pannedDeltaX-shiftedX;
+        pannedDeltaY = pannedDeltaY-shiftedY;
+
         //alternate between two data fbos on refresh
         FrameBuffer fboDataCurr = getFboDataCurrent();
         FrameBuffer fboDataPrev = getFboDataPrevious();
@@ -703,9 +739,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         //calculate (and reuse) data and store in current data fbo
         fboDataCurr.begin();
 
+        long t2 = System.nanoTime();
+
         if (refresh) {
 
-            if (reusePixels)
+            if (reusePixels && isRenderingDone())
                 refresh = false;
             renderedPart = true;
 
@@ -723,12 +761,13 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             Texture computeBufferTexture = fboDataPrev.getColorBufferTexture();
             computeBufferTexture.bind(0);
 
-            fboDataPrev.getTextureAttachments().get(1).bind(1);
+            Texture samplesTexture = fboDataPrev.getTextureAttachments().get(1);
+            samplesTexture.bind(1);
 
 //            currTexture.bind(0);
             computeShader.setUniformi("u_texture", 0);
             computeShader.setUniformi("samplesTexture", 1);
-            computeShader.setUniformf("bufferOffset", Math.round(shiftedX*(float)resolutionScale), Math.round(shiftedY*(float)resolutionScale));
+            computeShader.setUniformf("bufferOffset", (float)Math.round(shiftedX* resolutionScaleF), (float)Math.round(shiftedY* resolutionScaleF));
             computeShader.setUniformi("discardBuffer", !reusePixels || prevDataFboOutdated  ? 1 : 0);
 
 //            if (reusePixels)
@@ -740,7 +779,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             Color c = batch.getColor();
             batch.setColor(c.r, c.g, c.b, 1.0f);
 
-            Texture tex = fboDataPrev.getTextureAttachments().get(1);
+            Texture tex = samplesTexture;
             tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             TextureRegion texReg = new TextureRegion(tex);
             texReg.flip(false, true);
@@ -761,9 +800,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             fboDataCurr.end();
             useFirstDataFbo = !useFirstDataFbo;
 
-            int width = fboImage.getWidth();
-            int sampleAmount = 10;
-            int step = 4;
+//            int width = fboImage.getWidth();
+//            int sampleAmount = 10;
+//            int step = 4;
 //            int step = 4*(height/sampleAmount);
 //            byte[] pixels = ScreenUtils.getFrameBufferPixels((int)0, (int)0, 1, height, false);
 //            for (int i = 0 ; i < sampleAmount ; i++) {
@@ -773,6 +812,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                LOG.warn("decodedValue["+i+"]: " + debugColorOutputValue+" ("+ Arrays.toString(debugColorInputData)+") -> ("+Arrays.toString(debugColorOutputData)+")");
 //            }
         }
+
+        long t3 = System.nanoTime();
+
 //        debugColorEncoding();
 
         //Pass 2: render fboData content to fboImage using coloringShader
@@ -793,8 +835,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         batch.setShader(coloringShader);
 //        batch.setShader(passthroughShader);
         Texture dataTexture = getFboDataPrevious().getColorBufferTexture();
-        palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-        palette.bind(1);
+        Texture palette = ((MainStage)getStage()).getPaletteTexture();
+        if (palette != null) {
+            palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            palette.bind(1);
+        }
         dataTexture.bind(0);
 //            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
         coloringShader.setUniformi("u_texture", 0);
@@ -809,6 +854,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         coloringShader.end();
 
         fboImage.end();
+
+        long t4 = System.nanoTime();
 
 
 //        }
@@ -827,9 +874,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         texReg2.flip(false, true);
         batch.draw(texReg2, getX(), getY(), getWidth(), getHeight());
 
-//        debugDrawFBOs(batch);
+        debugDrawFBOs(batch);
 
         batch.flush();
+
+        long t5 = System.nanoTime();
 
         ParamContainer clientParams = ((MainStage)getStage()).getClientParameters();
         boolean drawPath =      clientParams.getClientParameter(MainStage.PARAMS_DRAW_PATH).getGeneral(Boolean.class);
@@ -846,8 +895,58 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             batch.begin();
         }
 
+        long t6 = System.nanoTime();
+
         if (isScreenshot(true)) {
             makeScreenshot();
+        }
+
+        long t7 = System.nanoTime();
+
+        long t_setup = t2-t1;
+        long t_refresh = t3-t2;
+        long t_combine = t4-t3;
+        long t_color = t5-t4;
+        long t_resample = t6-t5;
+        long t_shapes = t7-t6;
+        double t_total = t7-t1;
+
+        double warn_limit = 40.0/NumberUtil.NS_TO_MS;
+
+        if (t_total > warn_limit) {
+
+            double r_setup = t_setup / t_total;
+            double r_refresh = t_refresh / t_total;
+            double r_combine = t_combine / t_total;
+            double r_color = t_color / t_total;
+            double r_resample = t_resample / t_total;
+            double r_shapes = t_shapes / t_total;
+
+            double factor = 1000.;
+            int prec = 4;
+            String tf_setup = NumberUtil.getTimeInS(t_setup, prec) * factor + "";
+            String tf_refresh = NumberUtil.getTimeInS(t_refresh, prec) * factor + "";
+            String tf_combine = NumberUtil.getTimeInS(t_combine, prec) * factor + "";
+            String tf_color = NumberUtil.getTimeInS(t_color, prec) * factor + "";
+            String tf_resample = NumberUtil.getTimeInS(t_resample, prec) * factor + "";
+            String tf_shapes = NumberUtil.getTimeInS(t_shapes, prec) * factor + "";
+            String tf_total = NumberUtil.getTimeInS((long) t_total, prec) * factor + "";
+
+            String s1 = "setup";
+            String s2 = "refresh";
+            String s3 = "combine";
+            String s4 = "color";
+            String s5 = "resample";
+            String s6 = "shapes";
+
+            LOG.warn("renderer " + id + " took " + tf_total + "ms  "
+                    + s1 + ": " + tf_setup + " "
+                    + s2 + ": " + tf_refresh + " "
+                    + s3 + ": " + tf_combine + " "
+                    + s4 + ": " + tf_color + " "
+                    + s5 + ": " + tf_resample + " "
+                    + s6 + ": " + tf_shapes
+            );
         }
 
 //        matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
@@ -950,7 +1049,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (offset < 0 || offset > pixels.length || posX < 0 || posX > getWidth())
             return;
         float mantissa = decodeMantissaV2(pixels, offset);
-        int exponent = -decodeExponent(pixels, offset+2);
+        int exponent = 128+decodeExponent(pixels, offset+2);
         float exponentScaling = (float) Math.pow(2, exponent);
         float decodedValue = mantissa * exponentScaling;
         float expectedValue = getDebugValue((int) (debugWidth * posX / getWidth()), (int) (debugHeight * posY / getHeight()), debugWidth);
@@ -1019,7 +1118,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         float pointSize = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Double.class);
         boolean tracesEnabled =         clientParams.getClientParameter(MainStage.PARAMS_TRACES_ENABLED).getGeneral(Boolean.class);
         int traceCount =                clientParams.getClientParameter(MainStage.PARAMS_TRACES_ITERATIONS).getGeneral(Integer.class);
-        boolean disabled = !drawMidpoint && !drawPath && (!tracesEnabled || traceCount < 1 || (lineWidth <= 0 && pointSize <= 0));
+        boolean disabled = !drawMidpoint && !drawPath && !drawAxis && (!tracesEnabled || traceCount < 1 || (lineWidth <= 0 && pointSize <= 0));
         if (disabled)
             return;
 
@@ -1034,11 +1133,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
 
         if (drawAxis){
-           shapeRenderer.setColor(new Color(1f, 1f, 1f, 0.3f));
-           float screenX = getScreenX(0);
-           float screenY = getScreenY(0);
-           shapeRenderer.line(screenX, 0, screenX, getHeight());
-           shapeRenderer.line(0, screenY, getWidth(), screenY);
+            shapeRenderer.setColor(new Color(1f, 1f, 1f, 0.3f));
+            float originX = getScreenX(0);
+            float originY = getScreenY(0);
+            float minX = getX();
+            float maxX = getWidth() + minX;
+            float minY = getY();
+            float maxY = getHeight() + minY;
+            shapeRenderer.line(minX, originY, maxX, originY);
+            shapeRenderer.line(originX, minY, originX, maxY);
         }
 
         if (drawOrigin){
@@ -1099,7 +1202,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             ParamSupplier posVar = systemContext.getParamContainer().getClientParameter(posVarName);
             boolean useMousePos = posVarName.equals("mouse") || posVar == null || !(posVar instanceof StaticParamSupplier) || (((StaticParamSupplier) posVar).getGeneral() instanceof ComplexNumber);
             if (useMousePos)
-                coords = getComplex(mouseX, mouseY);
+                coords = getComplexMapping(mouseX, mouseY);
             else {
                 float periodInS = 30;
                 float periodInS2 = 17;
@@ -1107,13 +1210,13 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 float time2 = ((timePassed / periodInS2) % 1);
 //            timePassed *= getWidth();
 
-//            traceChunk.chunkPos = getComplex(getWidth()-time, mouseY);
+//            traceChunk.chunkPos = getComplexMapping(getWidth()-time, mouseY);
 
                 float a = 0.2f;
 
                 float timeAngle = (float) (time * Math.PI * 2);
 
-//            traceChunk.chunkPos = getComplex(getScreenX((2*a*(1-Math.cos(timeAngle))*Math.cos(timeAngle))),
+//            traceChunk.chunkPos = getComplexMapping(getScreenX((2*a*(1-Math.cos(timeAngle))*Math.cos(timeAngle))),
 //                                             getScreenY((2*a*(1-Math.cos(timeAngle))*Math.sin(timeAngle))));
 
 //            float cardioidScale = (float)-Math.cos(time2*Math.PI*2)*0.2f+0.9f;
@@ -1156,7 +1259,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         traceChunk.setCurrentTask(new TraceTask(systemContext));
 //        BreadthFirstLayer layer = new BreadthFirstLayer().with_samples(1).with_rendering(false);
         boolean layerSet = false;
-        for (Layer layer : ((LayerConfiguration)systemContext.getParamValue(GPUSystemContext.PARAM_NAME_LAYER_CONFIG)).getLayers()){
+        for (Layer layer : ((LayerConfiguration)systemContext.getParamValue(GPUSystemContext.PARAMNAME_LAYER_CONFIG)).getLayers()){
             if (layer instanceof BreadthFirstLayer && !(layer instanceof BreadthFirstUpsampleLayer)){
                 traceChunk.getCurrentTask().getStateInfo().setLayer(layer);
                 layerSet = true;
@@ -1223,18 +1326,37 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         int radius = interpolation.isPathBased() ? 5 : 0;
         int lineWidth = 1;
 
+        NumberFactory nf = systemContext.getNumberFactory();
+
+        boolean isComplexNumber = interpolation.getParamType().equals(AnimationsUI.PARAM_TYPE_COMPLEXNUMBER);
+        boolean isNumber = interpolation.getParamType().equals(AnimationsUI.PARAM_TYPE_NUMBER);
+
         if (interpolation.isPathBased()){
             //TODO steps for other than linear
-            for (ComplexNumber controlPoint : controlPoints){
-                path.add(controlPoint);
+            if (isComplexNumber) {
+                for (ComplexNumber controlPoint : controlPoints) {
+                    path.add(controlPoint);
+                }
+            } else {
+                if (isNumber){
+                    List<Number> controlPointsNumber = interpolation.getControlPoints(true);
+                    for (Number controlPoint : controlPointsNumber) {
+                        path.add(nf.createComplexNumber(controlPoint, nf.createNumber(0.0)));
+                    }
+                }
             }
         }
         else {
             int steps = 100;
             for (int i = 0 ; i < steps ; i++){
                 double prog = (i/(steps-1.0));
-                ComplexNumber interpolated = (ComplexNumber)interpolation.getInterpolatedValue(prog, systemContext.getNumberFactory());
-                path.add(interpolated);
+                if (isComplexNumber) {
+                    ComplexNumber interpolated = (ComplexNumber) interpolation.getInterpolatedValue(prog, nf);
+                    path.add(interpolated);
+                } else if (isNumber){
+                    Number interpolated = (Number)interpolation.getInterpolatedValue(prog, nf);
+                    path.add(nf.createComplexNumber(interpolated, nf.createNumber(0.0)));
+                }
             }
         }
 
@@ -1287,36 +1409,95 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             shapeRenderer.setColor(controlPointColor);
     }
 
-    private float getScreenX(double real) {
-        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
-        double midpointReal = midpoint.realDouble();
-        return (float) (getX() + (real-midpointReal)/(zoom/getHeight()) + getWidth()/2);
+    @Override
+    public float getScreenX(double real) {
+        return getScreenX(systemContext.getNumberFactory().createNumber(real));
     }
 
-    private float getScreenY(double imag) {
-        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
-        double midpointImag = midpoint.imagDouble();
-        return (float) (getY() + getHeight()-((imag-midpointImag)/(zoom/getHeight()) + getHeight()/2));
+    @Override
+    public float getScreenY(double imag) {
+        return getScreenY(systemContext.getNumberFactory().createNumber(imag));
     }
 
-    private ComplexNumber getComplex(float screenX, float screenY){
+    @Override
+    public float getScreenX(Number real) {
+        Number zoom = (Number) systemContext.getParamValue("zoom");
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+
+        NumberFactory nf = systemContext.getNumberFactory();
+        Number res = real.copy();
+        res.sub(midpoint.getReal());
+        res.mult(nf.createNumber(getHeight()));
+        res.div(zoom);
+
+        res.add(nf.createNumber(getX()));
+        res.add(nf.createNumber(getWidth()*0.5f));
+        return (float)res.toDouble();
+//        return (float) (getX() + (real-midpointReal)/(zoom/getHeight()) + getWidth()/2);
+    }
+
+    @Override
+    public float getScreenY(Number imag) {
+        Number zoom = (Number) systemContext.getParamValue("zoom");
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+
+        NumberFactory nf = systemContext.getNumberFactory();
+        Number res0 = imag.copy();
+        res0.sub(midpoint.getImag());
+        res0.mult(nf.createNumber(getHeight()));
+        res0.div(zoom);
+
+        Number res = nf.createNumber(getHeight());
+        res.sub(res0);
+        res.add(nf.createNumber(getY()));
+        res.sub(nf.createNumber(getHeight()*0.5f));
+        return (float)res.toDouble();
+//        return (float) (getY() + getHeight()-((imag-midpointImag)/(zoom/getHeight()) + getHeight()/2));
+    }
+
+    @Override
+    public ComplexNumber getComplexMapping(float screenX, float screenY){
         return systemContext.getNumberFactory().createComplexNumber(getReal(screenX), getImag(screenY));
     }
 
-    private double getReal(float screenX) {
-        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+    @Override
+    public Number getReal(float screenX) {
+
         ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
-        double midpointReal = midpoint.realDouble();
-        return (screenX-getX()-getWidth()/2)*(zoom/getHeight())+midpointReal;
+        screenX -= getX()+getWidth()/2;
+
+        NumberFactory nf = systemContext.getNumberFactory();
+        Number zoomNumber = (Number) systemContext.getParamValue("zoom");
+        Number resultNumber = nf.createNumber(screenX);
+        Number heightNumber = nf.createNumber(getHeight());
+        resultNumber.div(heightNumber);
+        resultNumber.mult(zoomNumber);
+        resultNumber.add(midpoint.getReal());
+        return resultNumber;
+
+//        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+//        double midpointReal = midpoint.realDouble();
+//        return (screenX-getX()-getWidth()/2)*(zoom/getHeight())+midpointReal;
     }
 
-    private double getImag(float screenY) {
-        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+    @Override
+    public Number getImag(float screenY) {
         ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
-        double midpointImag = midpoint.imagDouble();
-        return ((screenY-(Gdx.graphics.getHeight()-getHeight()-getY()))-getHeight()/2)*(zoom/getHeight())+midpointImag;
+        screenY -= ((Gdx.graphics.getHeight()-getHeight()-getY()));
+        screenY -= getHeight()/2;
+
+        NumberFactory nf = systemContext.getNumberFactory();
+        Number zoomNumber = (Number) systemContext.getParamValue("zoom");
+        Number resultNumber = nf.createNumber(screenY);
+        Number heightNumber = nf.createNumber(getHeight());
+        resultNumber.div(heightNumber);
+        resultNumber.mult(zoomNumber);
+        resultNumber.add(midpoint.getImag());
+        return resultNumber;
+
+//        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+//        double midpointImag = midpoint.imagDouble();
+//        return ((screenY-(Gdx.graphics.getHeight()-getHeight()-getY()))-getHeight()/2)*(zoom/getHeight())+midpointImag;
     }
 
     /** for testing the palette */
@@ -1328,14 +1509,16 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (Gdx.graphics.getWidth() > 600 && Gdx.graphics.getHeight() > 600) {
             batch.setShader(passthroughShader);
             batch.begin();
-            batch.draw(palette, Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 300, 250, 250);
+            batch.draw(((MainStage)getStage()).getPaletteTexture(), Gdx.graphics.getWidth() - 300, Gdx.graphics.getHeight() - 300, 250, 250);
             batch.end();
         }
         passthroughShader.end();
     }
 
+    @Override
     public void setRefresh(){
         refresh = true;
+        super.setRefresh();
     }
 
     @Override
@@ -1364,11 +1547,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     @Override
     public void removed() {
-        //TODO
+        if (panListener != null) {
+            rendererContext.removePanListener(panListener);
+            panListener = null;
+        }
     }
 
     public void paramsChanged() {
         paramsChanged = true;
+        systemContext.setParameters(systemContext.getParamContainer());
         rendererContext.setParamContainer(systemContext.getParamContainer());
     }
 

@@ -12,7 +12,6 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
-@Deprecated
 public class PathParamAnimation extends AbstractParamAnimation<ComplexNumber> {
 
     NumberFactory numberFactory;

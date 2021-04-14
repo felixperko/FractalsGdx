@@ -22,6 +22,11 @@ public interface ParamInterpolation<T> {
     Class<? extends InterpolationFunction> getInterpolationFunctionClass();
     boolean isPathBased();
 
+    boolean isAutomaticTimings();
+    void setAutomaticTimings(boolean automaticTimings);
+    List<Double> getTimings(boolean inheritedValue);
+    void setTiming(int index, double time);
+
     T getInterpolatedValue(double progressInLoop, NumberFactory numberFactory);
     T getInterpolatedValue(int cpIndex0, int cpIndex1, Number progressBetween);
     T getControlPointValue(int controlPointIndex);

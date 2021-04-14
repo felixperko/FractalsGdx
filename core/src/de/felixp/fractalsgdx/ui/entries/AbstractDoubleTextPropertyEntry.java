@@ -6,7 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
 import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.MenuItem;
@@ -32,6 +31,23 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.NumberUtil;
 
 public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEntry {
+
+    static float RANGE_TEXTFIELD_SCALE = 0.5f;
+
+    public static VisTextField createCollapsedIfInvisibleTextField(String text) {
+        return createCollapsedIfInvisibleTextField(text, RANGE_TEXTFIELD_SCALE);
+    }
+
+    public static VisTextField createCollapsedIfInvisibleTextField(String text, float scale){
+        return new VisTextField(text) {
+            @Override
+            public float getPrefWidth() {
+                if (!isVisible())
+                    return 0;
+                return super.getPrefWidth()*scale;
+            }
+        };
+    }
 
     public static final String VIEWNAME_SLIDERS = "SLIDERS";
     public static final String VIEWNAME_FIELDS = "FIELDS";
@@ -60,8 +76,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     List<Actor> contentFields = new ArrayList<Actor>();
     List<ChangeListener> listeners = new ArrayList<>();
 
-    public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, InputValidator validator1, InputValidator validator2) {
-        super(node, paramContainer, parameterDefinition);
+    public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, InputValidator validator1, InputValidator validator2, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
 
         setPrefListView(VIEWNAME_FIELDS);
 
@@ -135,13 +151,13 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 if (!inputDisabled)
                     table.add(field1).fillX().expandX().row();
                 else
-                    table.add("variable").fillX().expandX().row();
+                    table.add("x").fillX().expandX().row();
                 table.add();
                 table.add();
                 if (!inputDisabled)
                     table.add(field2).fillX().expandX().padBottom(2).row();
                 else
-                    table.add("variable").fillX().expandX().padBottom(2).row();
+                    table.add("y * i").fillX().expandX().padBottom(2).row();
 
                 setOptionButtonListener(optionButton);
             }
@@ -245,8 +261,22 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 maxField1 = createCollapsedIfInvisibleTextField(max1 + "");
                 minField2 = createCollapsedIfInvisibleTextField(min2 + "");
                 maxField2 = createCollapsedIfInvisibleTextField(max2 + "");
-                valueLabel1 = new VisLabel();
-                valueLabel2 = new VisLabel();
+                valueLabel1 = new VisLabel(){
+                    @Override
+                    public float getPrefWidth() {
+                        float minWidth = 50;
+                        float prefWidth = super.getPrefWidth();
+                        return prefWidth > minWidth ? prefWidth : minWidth;
+                    }
+                };
+                valueLabel2 = new VisLabel(){
+                    @Override
+                    public float getPrefWidth() {
+                        float minWidth = 50;
+                        float prefWidth = super.getPrefWidth();
+                        return prefWidth > minWidth ? prefWidth : minWidth;
+                    }
+                };
                 updateVisibilities();
 
                 minField1.setTextFieldListener(new VisTextField.TextFieldListener() {
@@ -309,24 +339,24 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 //update disabled in case of invalid range
                 updateSlider(min1, max1, min2, max2);
 
-                VisTable innerTable1 = new VisTable(true);
+                VisTable innerTable1 = new VisTable();
                 innerTable1.add(minField1);
                 innerTable1.add(slider1);
-                innerTable1.add(maxField1);
-                innerTable1.add(valueLabel1);
+                innerTable1.add(valueLabel1).minWidth(70).padRight(3);
+                innerTable1.add(maxField1).row();
 
-                VisTable innerTable2 = new VisTable(true);
-                innerTable2.add(minField2);
-                innerTable2.add(slider2);
-                innerTable2.add(maxField2);
-                innerTable2.add(valueLabel2);
+//                VisTable innerTable2 = new VisTable(true);
+                innerTable1.add(minField2);
+                innerTable1.add(slider2);
+                innerTable1.add(valueLabel2).minWidth(70).padRight(3);
+                innerTable1.add(maxField2);
 
                 table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);
-                table.add(innerTable1).row();
-                table.add();
-                table.add();
-                table.add(innerTable2).padBottom(2).row();
+                table.add(innerTable1).padBottom(2).row();
+//                table.add();
+//                table.add();
+//                table.add(innerTable2).padBottom(2).row();
 
                 setOptionButtonListener(optionButton);
             }
@@ -385,15 +415,6 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 double sliderVal2 = getValueFromSlider(slider2, oldMin2, oldMax2);
                 slider1.setValue(getSliderPositionFromValue(sliderVal1, min1, max1));
                 slider2.setValue(getSliderPositionFromValue(sliderVal2, min2, max2));
-            }
-
-            protected VisTextField createCollapsedIfInvisibleTextField(String text) {
-                return new VisTextField(text) {
-                    @Override
-                    public float getPrefWidth() {
-                        return isVisible() ? super.getPrefWidth() : 0;
-                    }
-                };
             }
 
             @Override

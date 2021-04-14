@@ -80,6 +80,7 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 
     public RemoteRenderer(RendererContext rendererContext) {
         super(rendererContext);
+        rendererContext.setRenderer(this);
         createClientSystem();
     }
 
@@ -136,6 +137,42 @@ public class RemoteRenderer extends AbstractFractalRenderer {
                 }
             }
         });
+    }
+
+    //TODO implement coordinate conversion for RemoteRenderer
+    @Override
+    public float getScreenX(double real) {
+        return 0;
+    }
+
+    @Override
+    public float getScreenY(double imag) {
+        return 0;
+    }
+
+    @Override
+    public float getScreenX(Number real) {
+        return 0;
+    }
+
+    @Override
+    public float getScreenY(Number imag) {
+        return 0;
+    }
+
+    @Override
+    public ComplexNumber getComplexMapping(float screenX, float screenY) {
+        return null;
+    }
+
+    @Override
+    public Number getReal(float screenX) {
+        return null;
+    }
+
+    @Override
+    public Number getImag(float screenY) {
+        return null;
     }
 //    @Override
 //    public float getPrefWidth() {

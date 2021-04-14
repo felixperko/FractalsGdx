@@ -32,8 +32,8 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     PropertyEntryFactory entryFactory;
 
-    public ListPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, PropertyEntryFactory entryFactory) {
-        super(node, paramContainer, parameterDefinition);
+    public ListPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, PropertyEntryFactory entryFactory, boolean submitValue) {
+        super(node, paramContainer, parameterDefinition, submitValue);
         types = parameterDefinition.getConfiguration().getListTypes(propertyName);
         this.entryFactory = entryFactory;
     }

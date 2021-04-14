@@ -79,6 +79,7 @@ public class ScreenshotUI {
     static ImageRenderer imageRenderer;
 
     static VisTextButton cancelButton;
+    static VisTextButton recordAnimationButton;
     static VisTextButton previewButton;
     static VisTextButton saveButton;
 
@@ -216,6 +217,13 @@ public class ScreenshotUI {
                     window.remove();
                 }
             });
+            recordAnimationButton = new VisTextButton("Record...", new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    ScreenshotRecordUI.openRecordAnimationWindow(stage);
+                    window.remove();
+                }
+            });
             previewButton = new VisTextButton("Preview", new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
@@ -254,6 +262,7 @@ public class ScreenshotUI {
             previewTable.add(imageRenderer).colspan(3).center();
 
             buttonTable.add(cancelButton);
+            buttonTable.add(recordAnimationButton);
             buttonTable.add(previewButton);
             buttonTable.add(saveButton);
 
@@ -326,24 +335,29 @@ public class ScreenshotUI {
 
     static ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
+
     public static void recordScreenshots(String animationName){
-        //TODO get animation and start, disable recording when done
+        String screenshotFileName = getScreenshotFileName();
         FractalRenderer renderer = ((MainStage) FractalsGdxMain.stage).getFocusedRenderer();
         ParamAnimation animation = renderer.getRendererContext().getParamAnimation(animationName);
         if (animation == null)
             throw new IllegalArgumentException("Animation not found: "+animationName);
+        recordScreenshots(animation, renderer, screenshotFileName);
+    }
+
+    public static void recordScreenshots(ParamAnimation animation, FractalRenderer renderer, String path){
+        //TODO get animation and start, disable recording when done
         animation.setUsingFrameBasedProgress();
         animation.setPaused(true);
         animation.setFrameCounter(0);
-        String screenshotFileName = getScreenshotFileName();
 //        PixmapIO.PNG pixmapIO = new PixmapIO.PNG();
 //        pixmapIO.setCompression(7);
 //        pixmapIO.setFlipY(false);
         ScreenshotListener screenshotListener = new ScreenshotListener() {
             @Override
             public void madeScreenshot(byte[] data) {
-//                saveImage(data, getRecordingScreenshotPath(screenshotFileName+"\\", animation), extensionSelect.getSelected(), pixmapIO);
-                String screenshotPath = getRecordingScreenshotPath(screenshotFileName + "\\", animation);
+//                saveImage(data, getRecordingScreenshotPath(path+"\\", animation), extensionSelect.getSelected(), pixmapIO);
+                String screenshotPath = getRecordingScreenshotPath("", path + "\\", animation);
                 while (executor.getQueue().size() > 0){
                     try {
                         Thread.sleep(1);
@@ -412,16 +426,26 @@ public class ScreenshotUI {
 
     private static synchronized String getRecordingScreenshotPath(String prefix, ParamAnimation animation){
         int frame = animation.getFrameCounter();
-        String frameFormatted = String.format("%03d", frame);
+        String frameFormatted = String.format("%0"+(int)Math.ceil(Math.log10(animation.getFrameCount()))+"d", frame);
         String folderText = folderTextField.getText();
         if (!folderText.endsWith("\\") && !folderText.endsWith("/"))
             folderText += "\\";
         return folderText + prefix + frameFormatted + extensionSelect.getSelected();
     }
 
+    private static synchronized String getRecordingScreenshotPath(String prefix, String folder, ParamAnimation animation){
+        int frame = animation.getFrameCounter();
+        String frameFormatted = String.format("%0"+(int)Math.ceil(Math.log10(animation.getFrameCount()))+"d", frame);
+        if (!folder.endsWith("\\") && !folder.endsWith("/"))
+            folder += "\\";
+        return folder + prefix + frameFormatted + extensionSelect.getSelected();
+    }
+
     //Util
 
     public static void saveImage(byte[] pixels, String path, String extension, PixmapIO.PNG pixmapIO){
+        System.out.println("saving screenshot to "+path);
+//        Pixmap pixmap = Pixmap.createFromFrameBuffer(0,0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
         BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
         FileHandle fileHandle = Gdx.files.absolute(path);
@@ -437,10 +461,12 @@ public class ScreenshotUI {
                 else
                     PixmapIO.writePNG(fileHandle, pixmap);
             }
-            else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg"))
-                writeJpgWithQuality(new FileImageOutputStream(fileHandle.file()), pixmapToBufferedImage(pixmap), qualitySlider.getValue()/100f);
+            else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg")) {
+                fileHandle.parent().mkdirs();
+                writeJpgWithQuality(new FileImageOutputStream(fileHandle.file()), pixmapToBufferedImage(pixmap), qualitySlider.getValue() / 100f);
 //                ImageIO.write(pixmapToBufferedImage(pixmap), "JPG", fileHandle.file()); //TODO Android support?
-            else
+
+            } else
                 throw new IllegalArgumentException("unsupported file type: "+extension+" supported are: png, jpg");
 
 //            ImageMetadataHelper.copyFileWithMetadata(fileHandle.file().getAbsolutePath(), new HashMap<String, String>(){{put("parameters", "parameters go here...");}});

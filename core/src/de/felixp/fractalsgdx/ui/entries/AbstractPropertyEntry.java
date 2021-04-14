@@ -39,11 +39,14 @@ public abstract class AbstractPropertyEntry {
 
     String prefListView = VIEW_LIST;
 
-    public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition){
+    boolean submitValue = false;
+
+    public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
         this.node = node;
         this.paramContainer = paramContainer;
+        this.submitValue = submitValue;
     }
 
     public void init(){

@@ -1,0 +1,53 @@
+Bugs:
+
+- animations: time factors for number animations
+- animations: expresssion parameters
+- animations: correct renderer
+- sometimes low fps for no apparent reason, suddenly appears and disappears (measure why) (after using sliders? or shaperenderer? probably need to update parameters without new expression instance if compartible)
+
+
+TO-DO:
+
+- shader renderer: is done? -> Pixmap.createFromFrameBuffer(x, y, w, h); !!!
+
+Animations:
+- chained animations
+- custom expressions
+
+path:
+- animation/mouse selection
+
+Expressions:
+- z_(n-1) without dummy like *1.0
+- z_(n-2)...
+- precomputed static subexpressions ("1-f") (switch off while using slider/detect parameter changes that happen every frame to avoid shader recompilation)
+- derivatives (for newton fractals and coloring) (how to handle non-differentiable functions like abs()?)
+- optimization: exponentiation by squaring for others than ^4 and ^(-2)
+
+UI:
+- switch renderers: select renderer if more than 2 active
+- interactive graphs
+    - discrete time/scalarValue (use for number control points (+deriv bars in graph?), palette editing)
+    - function graphing (for custom animation functions)
+- renderer links:
+    - different modes (juliaset link, "minimap" link, select custom param links,...)
+    - communicating over different clients for multi-window?
+
+Shader Calculator:
+- newton fractals (depends on expression derivatives + shader method selection in ShaderBuilder)
+- dynamic end condition ("|z| >= 16", "|re(z)| <= 0.1",...)
+
+New Cpu/GpuCompute system:
+- basic implementation
+- based on ShaderRenderer to reuse texture buffering?
+- JobProviders
+    - select next samples (breadth-first/circular sampling/quadtrees?)
+    - CpuProvider (-> multithreading, native execution in C for SIMD?)
+    - AparapiProvider (prepare parameters for each sample, accumulate enough stripes to saturate GPU APUs or until queue empty, then enqueue as job and distribute to kernel(s))
+    - RemoteProvider
+- settings
+    - cpuCores (default: core count)
+    - gpuKernelSize (default: maybe gpu specific input from Aparapi?)
+    - precision (dafault: fp32, maybe auto which switches to fp64 for deeper zoom levels? (would'nt work for juliasets e.g.)) (different kernel sizes?)
+    - stripeLength
+- arbitrary precision (like thats ever gonna happen...)

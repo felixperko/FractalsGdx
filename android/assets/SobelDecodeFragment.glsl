@@ -25,8 +25,8 @@ const float resultOffset = 10.0;
 float DecodeExpV3( in vec3 pack )
 {
 //    float scale = 256.0/257.0;
-    int exponent = int( pack.z * 256.0 - 128.0 );
-    float value  = pack.x + pack.y/256.0 + 1.0;
+    int exponent = int(( pack.z * 256.0 - 127.0 ));
+    float value  = (pack.x + (pack.y+1.0)/256.0)*2.0;
     return value * exp2( float(exponent) );
 }
 
@@ -47,8 +47,10 @@ vec3 hsv2rgb(vec3 c) {
 float decode(in vec4 pixel){
     //return log(DecodeRangeV4(pixel, lowerborder, upperborder));
     float value = DecodeExpV3(vec3(pixel));
+    value -= resultOffset;
 //    return log(value/(pow(samples, 1.0+(samples-1.0)*0.00102)))*0.5;
     return log(value);
+//    return value;
     //return log(value*(10.0/samples));
     //return log(value)*0.5;
     //return DecodeExpV4(pixel);
@@ -129,7 +131,6 @@ void main(void){
         //gl_FragColor = rgb;
         int brightness256 = int(brightness*256.0);
 
-        //test: reduce brightness banding at low brightness, might not work
         float brightnessShift = float(brightness256)/128.0;
         float shiftG = 0.0;
         float shiftB = 0.0;
@@ -137,7 +138,6 @@ void main(void){
             shiftG = 1.0/256.0;
         if (brightnessShift == 2.0)
             shiftB = 1.0/256.0;
-        gl_FragColor = vec4(brightness, brightness+shiftG, brightness+shiftB, 1.0) * rgb;
 
         if (brightness > 1.0)
             brightness = 1.0;
@@ -147,7 +147,9 @@ void main(void){
             rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
 //            rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
 
-        gl_FragColor = vec4(brightness, brightness, brightness, 1.0) * rgb;
+        //test: reduce brightness banding at low brightness, might not work
+        gl_FragColor = vec4(brightness, brightness+shiftG, brightness+shiftB, 1.0) * rgb;
+//        gl_FragColor = vec4(brightness, brightness, brightness, 1.0) * rgb;
 
         //extract channel
         if (extractChannel == 1)
