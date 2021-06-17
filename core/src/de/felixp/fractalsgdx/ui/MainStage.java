@@ -447,7 +447,7 @@ public class MainStage extends Stage {
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_ITERATIONS, "traces", StaticParamSupplier.class, integerType)
                 , clientParams.getClientParameter(PARAMS_TRACES_ITERATIONS));
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VARIABLE, "traces", StaticParamSupplier.class, stringType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_VARIABLE));
+                , clientParams.getClientParameter(PARAMS_TRACES_VARIABLE));
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, "traces", StaticParamSupplier.class, complexNumberType),
                 clientParams.getClientParameter(PARAMS_TRACES_VALUE));
         clientParameterConfiguration.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, "traces", StaticParamSupplier.class, doubleType)

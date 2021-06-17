@@ -96,7 +96,7 @@ void main()
         resXSq = local_0*local_0;
         resYSq = local_1*local_1;
 
-		if (resXSq + resYSq > limit){
+		if (<CONDITION>){
 //		if (resXSq + resYSq > 6.7108864E7){
 		    resIterations = float(i);
 		    outputXSq = resXSq;
@@ -108,8 +108,8 @@ void main()
 	float resX = local_0;
 	float resY = local_1;
 
-	float lSq = outputXSq + outputYSq;
-	if (lSq > limit){
+	if (<CONDITION>){
+	    float lSq = outputXSq + outputYSq;
 		float smoothIterations = (resIterations + 1.0 - log(log(lSq)*0.5/log2)/(logPow));
         //gl_FragColor = encode(l);
         //addValue(gl_FragColor, l);

@@ -29,6 +29,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.infra.Selection;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewContainer;
 import de.felixperko.fractals.system.systems.stateinfo.SystemStateInfo;
@@ -41,6 +42,10 @@ public class GPUSystemContext implements SystemContext {
     public static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
     public static final String PARAMNAME_SUPERSAMPLING = "supersampling";
     public static final String PARAMNAME_MAXBORDERSAMPLES = "maxBorderSamples";
+
+    public static final String TEXT_COND_ABS = "|z| > limit";
+    public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
+    public static final String TEXT_COND_ABS_I = "|im(z)| > limit";
 
     ParamConfiguration paramConfiguration;
 
@@ -85,6 +90,7 @@ public class GPUSystemContext implements SystemContext {
         defs.add(midpointDef);
         defs.add(new ParamDefinition("c", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
         defs.add(new ParamDefinition("start", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType));
+        defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, BFOrbitCommon.selectionType));
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=256"));
         defs.add(new ParamDefinition(PARAMNAME_SUPERSAMPLING, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 1));
@@ -98,6 +104,12 @@ public class GPUSystemContext implements SystemContext {
 
         paramConfiguration.addParameterDefinitions(defs);
         paramConfiguration.addDefaultValues(defaultValues);
+
+        Selection<String> conditionSelection = new Selection<String>("condition");
+        conditionSelection.addOption(TEXT_COND_ABS, TEXT_COND_ABS, "");
+        conditionSelection.addOption(TEXT_COND_ABS_R, TEXT_COND_ABS_R, "");
+        conditionSelection.addOption(TEXT_COND_ABS_I, TEXT_COND_ABS_I, "");
+        paramConfiguration.addSelection(conditionSelection);
 
         LinkedHashMap<String, ParamSupplier> map = new LinkedHashMap<>();
         paramContainer = new ParamContainer(map);
@@ -114,10 +126,11 @@ public class GPUSystemContext implements SystemContext {
         else
             paramContainer.addClientParameter(new StaticParamSupplier("start", nf.createComplexNumber(0,0)));
         paramContainer.addClientParameter(new StaticParamSupplier("f(z)=", "z^2+c"));
+        paramContainer.addClientParameter(new StaticParamSupplier("condition", TEXT_COND_ABS));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
-        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 1));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
         paramContainer.addClientParameter(new StaticParamSupplier("resolutionScale", 1.0));
-        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 3));
         paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
         layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));

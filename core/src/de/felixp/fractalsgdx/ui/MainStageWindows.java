@@ -253,38 +253,43 @@ public class MainStageWindows {
         });
         Map<Graphics.DisplayMode, String> names = new HashMap<>();
         Map<String, Graphics.DisplayMode> fullscreenOptions = new HashMap<>();
-        Map<String, Graphics.DisplayMode> modePerResolution = new HashMap<>();
+        Map<String, List<Graphics.DisplayMode>> modesPerResolution = new HashMap<>();
+        Graphics.DisplayMode currentMode = Gdx.graphics.getDisplayMode();
         for (Graphics.Monitor monitor : Gdx.graphics.getMonitors()) {
             for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes(monitor)) {
                 String res = monitor.name + " " + mode.width + "x" + mode.height;
-                Graphics.DisplayMode oldMode = modePerResolution.get(res);
-                if (oldMode == null || oldMode.refreshRate < mode.refreshRate)
-                    modePerResolution.put(res, mode);
+                if (!modesPerResolution.containsKey(res))
+                    modesPerResolution.put(res, new ArrayList<>());
+                modesPerResolution.get(res).add(mode);
             }
         }
         List<Graphics.DisplayMode> items = new ArrayList<>();
         nextResolution:
-        for (Map.Entry<String, Graphics.DisplayMode> e: modePerResolution.entrySet()){
-            Graphics.DisplayMode mode = e.getValue();
+        for (Map.Entry<String, List<Graphics.DisplayMode>> e: modesPerResolution.entrySet()){
+            List<Graphics.DisplayMode> modes = e.getValue();
 //            String name = e.getKey()+"@"+mode.refreshRate+"hz";
-            String name = mode.width+"x"+mode.height+" @"+mode.refreshRate+"hz";
-            names.put(mode, name);
-            fullscreenOptions.put(name, mode);
-            for (int i = 0 ; i < items.size() ; i++) {
-                Graphics.DisplayMode other = items.get(i);
-                if (mode.width > other.width) {
-                    items.add(i, mode);
-                    continue nextResolution;
+            for (Graphics.DisplayMode mode : modes) {
+                if (mode.refreshRate != currentMode.refreshRate)
+                    continue;
+                String name = mode.width + "x" + mode.height + " @" + mode.refreshRate + "hz";
+                names.put(mode, name);
+                fullscreenOptions.put(name, mode);
+                for (int i = 0; i < items.size(); i++) {
+                    Graphics.DisplayMode other = items.get(i);
+                    if (mode.width > other.width) {
+                        items.add(i, mode);
+                        continue nextResolution;
+                    }
                 }
+                items.add(mode);
             }
-            items.add(mode);
         }
         String[] itemArray = new String[items.size()];
         for (int i = 0 ; i < itemArray.length ; i++)
             itemArray[i] = names.get(items.get(i));
         fullscreenSelect.setItems(itemArray);
         Graphics.DisplayMode current = Gdx.graphics.getDisplayMode();
-        fullscreenSelect.setSelected(names.get(modePerResolution.get(current.width+"x"+current.height)));
+        fullscreenSelect.setSelected(names.get(modesPerResolution.get(current.width+"x"+current.height)));
 
         VisSelectBox<String> windowedSelect = new VisSelectBox();
         windowedSelect.addListener(new ClickListener() {

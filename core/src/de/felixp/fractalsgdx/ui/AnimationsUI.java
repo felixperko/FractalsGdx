@@ -587,7 +587,7 @@ public class AnimationsUI {
                 }
             });
 
-            table.setDebug(true);
+//            table.setDebug(true);
 
             if (controlPoints.size() > 0){
                 if (autoTimes.isChecked()) {

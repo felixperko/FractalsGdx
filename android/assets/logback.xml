@@ -29,8 +29,11 @@
 
   <root level="DEBUG">
     <appender-ref ref="STDOUT" />
-    <appender-ref ref="FILE" />
   </root>
+
+    <logger name="de.felixp.fractals.files" level="WARN">
+        <appender-ref ref="FILE" />
+    </logger>
   
   <logger name="de.felixperko.fractals.network.threads.WriteThread" level="WARN">
     <appender-ref ref="STDOUT" />

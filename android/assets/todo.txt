@@ -18,6 +18,7 @@ path:
 - animation/mouse selection
 
 Expressions:
+- sec(), csc(), cot()
 - z_(n-1) without dummy like *1.0
 - z_(n-2)...
 - precomputed static subexpressions ("1-f") (switch off while using slider/detect parameter changes that happen every frame to avoid shader recompilation)

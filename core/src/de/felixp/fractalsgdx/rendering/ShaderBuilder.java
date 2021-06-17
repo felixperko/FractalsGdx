@@ -17,6 +17,7 @@ public class ShaderBuilder {
 
     final static String MAKRO_INIT = "<INIT>";
     final static String MAKRO_KERNEL = "<ITERATE>";
+    final static String MAKRO_CONDITION = "<CONDITION>";
 
     String[] localVariables;
     SystemContext systemContext;
@@ -52,7 +53,24 @@ public class ShaderBuilder {
         if (line.contains(MAKRO_KERNEL)){
             line = line.replaceAll(MAKRO_KERNEL, getKernelString());
         }
+        if (line.contains(MAKRO_CONDITION)){
+            line = line.replaceAll(MAKRO_CONDITION, getConditionString());
+        }
         return line;
+    }
+
+    private String getConditionString(){
+        String cond = (String)systemContext.getParamValue("condition");
+        switch (cond){
+            case GPUSystemContext.TEXT_COND_ABS:
+                return "resXSq + resYSq > limitSq";
+            case GPUSystemContext.TEXT_COND_ABS_R:
+                return "abs(local_0) > limit";
+            case GPUSystemContext.TEXT_COND_ABS_I:
+                return "abs(local_1) > limit";
+            default:
+                return "";
+        }
     }
 
     private String getInitString() {

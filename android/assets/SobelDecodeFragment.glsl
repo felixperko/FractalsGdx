@@ -21,6 +21,9 @@ uniform float sobelPeriod;
 uniform vec2 resolution;
 
 const float resultOffset = 10.0;
+const int kernelRadius = 1;
+const int kernelDim = (kernelRadius*2+1);
+const int kernelLength = kernelDim*kernelDim;
 
 float DecodeExpV3( in vec3 pack )
 {
@@ -56,20 +59,26 @@ float decode(in vec4 pixel){
     //return DecodeExpV4(pixel);
 }
 
-void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
-    float w = 1.0/resolution.x;
-    float h = 1.0/resolution.y;
+void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord){
 
+    for (int y = -kernelRadius ; y <= kernelRadius ; y++){
+        for (int x = -kernelRadius ; x <= kernelRadius ; x++){
+            n[(y+kernelRadius)*kernelDim+(x+kernelRadius)] = max(0.0, decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(x, y), 0)));
+        }
+    }
 
-    n[0] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, -1), 0));
-    n[1] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, -1), 0));
-    n[2] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, -1), 0));
-    n[3] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1,  0), 0));
-    n[4] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
-    n[5] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 0), 0));
-    n[6] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, 1), 0));
-    n[7] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, 1), 0));
-    n[8] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 1), 0));
+//    n[0] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, -1), 0));
+//    n[1] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, -1), 0));
+//    n[2] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, -1), 0));
+//    n[3] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1,  0), 0));
+//    n[4] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
+//    n[5] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 0), 0));
+//    n[6] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, 1), 0));
+//    n[7] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, 1), 0));
+//    n[8] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 1), 0));
+
+//    float w = 1.0/resolution.x;
+//    float h = 1.0/resolution.y;
 
 //    n[0] = decode(texture2D(tex, coord + vec2(-w, -h)));
 //    n[1] = decode(texture2D(tex, coord + vec2(0.0, -h)));
@@ -81,20 +90,21 @@ void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
 //    n[7] = decode(texture2D(tex, coord + vec2(0.0, h)));
 //    n[8] = decode(texture2D(tex, coord + vec2(w, h)));
 
-    n[0] = max(0.0, n[0]);
-    n[1] = max(0.0, n[1]);
-    n[2] = max(0.0, n[2]);
-    n[3] = max(0.0, n[3]);
-    n[4] = max(0.0, n[4]);
-    n[5] = max(0.0, n[5]);
-    n[6] = max(0.0, n[6]);
-    n[7] = max(0.0, n[7]);
-    n[8] = max(0.0, n[8]);
+//    n[0] = max(0.0, n[0]);
+//    n[1] = max(0.0, n[1]);
+//    n[2] = max(0.0, n[2]);
+//    n[3] = max(0.0, n[3]);
+//    n[4] = max(0.0, n[4]);
+//    n[5] = max(0.0, n[5]);
+//    n[6] = max(0.0, n[6]);
+//    n[7] = max(0.0, n[7]);
+//    n[8] = max(0.0, n[8]);
 }
 
 void main(void){
 
-    float n[9];
+
+    float n[kernelLength];
 
     make_kernel(n, u_texture, v_texCoords.xy);
 
@@ -106,6 +116,12 @@ void main(void){
         float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
         float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
         float sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
+
+        //https://stackoverflow.com/a/10032882
+
+        //https://stackoverflow.com/a/41065243
+        //Gx_ij = i / (i*i + j*j)
+        //Gy_ij = j / (i*i + j*j)
 
         float s = sobel;
         s = log(s+1.0);

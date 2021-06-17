@@ -513,6 +513,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
     }
 
+    String lastCondition = "";
+
     public void updateExpression(){
 //        String expr =
 //                "cos(z)^2+c"
@@ -520,7 +522,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                ;
         String newExpressionString = (String) systemContext.getParamValue("f(z)=", String.class);
 
-        boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged;
+        String currentCondition = (String) systemContext.getParamValue("condition");
+        boolean conditionChanged = !currentCondition.equals(lastCondition);
+        lastCondition = currentCondition;
+
+        boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged || conditionChanged;
         if (!update){
             for (ParamSupplier supp : systemContext.getParamContainer().getParameters()){
                 if (supp.isChanged()){
@@ -536,7 +542,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 ComputeExpression newExpression = new ComputeExpressionBuilder(expressionString, "z", systemContext.getParameters()).getComputeExpression();
                 boolean expressionChanged = !newExpression.equals(expression);
                 expression = newExpression;
-                if (expressionChanged) {
+                if (expressionChanged || conditionChanged) {
                     shaderBuilder = new ShaderBuilder(expression, systemContext);
                     setupShaders();
                 }
@@ -874,7 +880,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         texReg2.flip(false, true);
         batch.draw(texReg2, getX(), getY(), getWidth(), getHeight());
 
-        debugDrawFBOs(batch);
+//        debugDrawFBOs(batch);
 
         batch.flush();
 

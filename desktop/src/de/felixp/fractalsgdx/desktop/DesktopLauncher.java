@@ -11,6 +11,7 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		float scaledown = 0.5f;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
+
 		config.foregroundFPS = 120;
 
 		config.useGL30 = true;
@@ -32,13 +33,35 @@ public class DesktopLauncher {
 
 		config.fullscreen = false;
 
-		config.samples = 8;
+		config.samples = 4;
 
 		//fullscreen -> true
 		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
 
-		config.vSyncEnabled = true;
+//		config.vSyncEnabled = true;
 //		config.vSyncEnabled = false;
-		new LwjglApplication(new FractalsGdxMain(), config);
+
+		parseCommandLineArguments(arg, config);
+
+		FractalsGdxMain main = new FractalsGdxMain();
+		main.applyCommandLineArguments(arg);
+		new LwjglApplication(main, config);
+	}
+
+	private static void parseCommandLineArguments(String[] args, LwjglApplicationConfiguration config) {
+		for (String arg : args){
+			if (arg.contains("=")){
+				String[] s = arg.split("=", 2);
+				String key = s[0];
+				String value = s[1];
+
+				if (key.equalsIgnoreCase("msaa"))
+					config.samples = Integer.parseInt(value);
+				if (key.equalsIgnoreCase("undecorated"))
+					config.undecorated = Boolean.parseBoolean(value);
+				if (key.equalsIgnoreCase("fps"))
+					config.foregroundFPS = Integer.parseInt(value);
+			}
+		}
 	}
 }

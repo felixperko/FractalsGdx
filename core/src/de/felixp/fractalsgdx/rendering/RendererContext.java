@@ -73,7 +73,6 @@ public class RendererContext {
     public void setRenderer(FractalRenderer renderer){
         rendererId = renderer.getId();
         properties.setRendererClass(renderer.getClass());
-        defaultNormal = renderer.getSystemContext().getNumberFactory().createComplexNumber(1, 0);
     }
 
     public RendererProperties getProperties() {
@@ -126,6 +125,7 @@ public class RendererContext {
      * @return changed, reset
      */
     public boolean[] applyParameterAnimations(SystemContext systemContext, ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory){
+        defaultNormal = systemContext.getNumberFactory().createComplexNumber(1, 0);
 
         boolean reset = containsResetAnimations(systemContext.getParamConfiguration(), ((MainStage)FractalsGdxMain.stage).getClientParamConfiguration(), true);
         if (!Gdx.graphics.isContinuousRendering()){

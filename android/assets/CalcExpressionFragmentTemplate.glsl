@@ -36,7 +36,7 @@ const float log2 = log(2.0);
 //const float angle = radians(45.0);
 const float notEscapedValue = 1.175494351e-38;
 const float resultOffset = 10.0;
-const float maxSamplesPerFrame = 1.0;
+const float maxSamplesPerFrame = 100.0;
 const float maxSamplesNotEscaped = 1.0;
 
 uniform float burningship;
@@ -232,6 +232,8 @@ void main()
     //    }
     //    else {
 
+        float limitSq = limit*limit;
+
         for (int s = 0 ; s < frameSampleCount ; s++){
 
             float sampleNo = samples;
@@ -248,8 +250,8 @@ void main()
             float loopIterations = notEscapedValue;
 
             float trapX = 0.1;
-            float trapY = 0.2;
-            float trapRadius = 0.1;
+            float trapY = 0.25;
+            float trapRadius = 0.01;
 
             for (float i = 0.0 ; i < iterations ; i++){
 
@@ -270,16 +272,20 @@ void main()
                 float movedNow = sqrt(resXSq+resYSq)/maxSampleCount;
                 moved += movedNow;
 
-//                float xDistanceTrap = local_0 - trapX;
-//                float yDistanceTrap = local_1 - trapY;
-//                float distanceTrap = sqrt(xDistanceTrap*xDistanceTrap+yDistanceTrap*yDistanceTrap);
+                float xDistanceTrap = local_0 - trapX;
+                float yDistanceTrap = local_1 - trapY;
+                float distanceTrap = sqrt(xDistanceTrap*xDistanceTrap+yDistanceTrap*yDistanceTrap);
 //                if (distanceTrap < trapRadius){
-//                    loopIterations = float(i + 1.0);
-//                    break;
-//                }
+                if (
+                abs(xDistanceTrap) < trapRadius
+                || abs(yDistanceTrap) < trapRadius
+                ){
+                    loopIterations = float(i + 1.0);
+                    break;
+                }
 
 
-                if (sqrt(resXSq + resYSq) > limit || movedNow == 0.0){
+                if (<CONDITION> || movedNow == 0.0){
 //                    loopIterations = float(i+1);
                     loopIterations = float(i + 1.0 + resultOffset - log(log(resXSq+resYSq)*0.5/log2)/(logPow));
     //                outputX += local_0;
