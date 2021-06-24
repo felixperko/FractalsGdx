@@ -13,31 +13,33 @@ uniform sampler2D u_texture;
 uniform vec2 bufferOffset;
 uniform int discardBuffer;
 uniform float iterations;
-//uniform sampler1D palette;
 uniform vec2 center;
 //uniform vec2 centerFp64Low;
-//uniform float scale;
 uniform float ratio;
-//uniform float biasReal;
-//uniform float biasImag;
 uniform float samples;
-//uniform float flip;
 uniform float limit;
 uniform float logPow;
-//uniform vec4 renderBorders;
 uniform float[] params;
 uniform vec2 resolution;
 uniform int sampleCountRoot;
 uniform float maxBorderSamples;
-
-const float log2 = log(2.0);
+uniform float maxSamplesPerFrame;
+//uniform sampler1D palette;
+//uniform float scale;
+//uniform float biasReal;
+//uniform float biasImag;
+//uniform float flip;
+//uniform vec4 renderBorders;
 //const float upperborder = 100.0;
 //const float lowerborder = 0.0;
-//const float angle = radians(45.0);
-const float notEscapedValue = 1.175494351e-38;
+
 const float resultOffset = 10.0;
-const float maxSamplesPerFrame = 100.0;
 const float maxSamplesNotEscaped = 1.0;
+
+//const float angle = radians(45.0);
+
+const float notEscapedValue = 1.175494351e-38;
+const float log2 = log(2.0);
 
 uniform float burningship;
 uniform float juliaset;
@@ -224,22 +226,39 @@ void main()
 
         if (samples == 0.0)
             currentValue = 0.0;
-//        samples = 1.0;
-    //    if (v_texCoords.x < 0.9)
-    //        discard;
-    //    if (currentValue == 0.0){
-    //        gl_FragData[0] = vec4(0.0, 0.0, 0.0, 0.0);
-    //    }
-    //    else {
 
         float limitSq = limit*limit;
+
+        float g = 1.32471795724474602596;
+        float a1 = 1.0/g;
+        float a2 = 1.0/(g*g);
 
         for (int s = 0 ; s < frameSampleCount ; s++){
 
             float sampleNo = samples;
 
-            float deltaX = (pos.x - 0.5 + mod(sampleNo, sampleCountRoot)/(resolution.y*sampleCountRoot))*ratio;
-            float deltaY = (pos.y - 0.5 + (sampleNo / sampleCountRoot)/(resolution.x*sampleCountRoot));
+            //Padovan sequence for 2 dimensions
+            //			g = 1.32471795724474602596
+            //			a1 = 1.0/g
+            //			a2 = 1.0/(g*g)
+            //			x[n] = (0.5+a1*n) %1
+            //			y[n] = (0.5+a2*n) %1
+
+
+            float sampleDeltaX = mod(0.5+a1*sampleNo*0.5, 1.0)/resolution.x;
+            float sampleDeltaY = mod(0.5+a2*sampleNo*0.5, 1.0)/resolution.y;
+
+            //if (mod(sampleNo, 2.0) == 1.0){
+            //    sampleDeltaX = mod(sampleNo, sampleCountRoot/2.0)/(resolution.x*sampleCountRoot/2.0);
+            //    sampleDeltaY = (sampleNo / sampleCountRoot/2.0)/(resolution.y*sampleCountRoot/2.0);
+            //}
+
+            float deltaX = (pos.x - 0.5 + sampleDeltaX)*ratio;
+            float deltaY = (pos.y - 0.5 + sampleDeltaY);
+
+            //float deltaX = (pos.x - 0.5 + mod(sampleNo, sampleCountRoot)/(resolution.x*sampleCountRoot))*ratio;
+            //float deltaY = (pos.y - 0.5 + (sampleNo / sampleCountRoot)/(resolution.y*sampleCountRoot));
+
             <INIT>
 
             float resYSq = 0.0;
@@ -272,30 +291,12 @@ void main()
                 float movedNow = sqrt(resXSq+resYSq)/maxSampleCount;
                 moved += movedNow;
 
-                float xDistanceTrap = local_0 - trapX;
-                float yDistanceTrap = local_1 - trapY;
-                float distanceTrap = sqrt(xDistanceTrap*xDistanceTrap+yDistanceTrap*yDistanceTrap);
-//                if (distanceTrap < trapRadius){
-                if (
-                abs(xDistanceTrap) < trapRadius
-                || abs(yDistanceTrap) < trapRadius
-                ){
-                    loopIterations = float(i + 1.0);
-                    break;
-                }
-
-
                 if (<CONDITION> || movedNow == 0.0){
-//                    loopIterations = float(i+1);
                     loopIterations = float(i + 1.0 + resultOffset - log(log(resXSq+resYSq)*0.5/log2)/(logPow));
-    //                outputX += local_0;
-    //                outputY += local_1;
-//                    outputXSq += resXSq;
-//                    outputYSq += resYSq;
-    //                samplesCalculated += 1;
                     break;
                 }
             }
+
             if (loopIterations == notEscapedValue){
                 if (currentValue <= 0.0){
 //                    samplesCalculated = 0.0;
@@ -310,9 +311,9 @@ void main()
                             && n[4] <= resultOffset+1.0 && n[5] <= resultOffset+1.0 && n[6] <= resultOffset+1.0 && n[7] <= resultOffset+1.0)
                         break;
                 }
-//                else {
+                else {
 //                    samplesCalculated--;
-//                }
+                }
             } else {
 //                resIterations += loopIterations;
 //                float contrib = 1.0;

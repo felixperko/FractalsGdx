@@ -305,6 +305,8 @@ public class MainStage extends Stage {
     }
 
     private void handleInput() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
+            openSettingsWindow();
         boolean controlPressed = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
         boolean justNum1Pressed = Gdx.input.isKeyJustPressed(Input.Keys.NUM_1) || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_1);
         boolean justNum2Pressed = Gdx.input.isKeyJustPressed(Input.Keys.NUM_2) || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_2);
@@ -534,6 +536,8 @@ public class MainStage extends Stage {
     }
 
     public void resize(int width, int height){
+        int currW = Gdx.graphics.getWidth();
+        int currH = Gdx.graphics.getHeight();
         int i = 0;
         for (FractalRenderer renderer : renderers)
             renderer.updateSize();

@@ -12,10 +12,15 @@ import de.felixperko.fractals.system.numbers.NumberFactory;
 public interface ParamInterpolation<T> {
 
     String getParamName();
+    /**
+     * the attribute name if interpolation is for a ParamAttribute, null if interpolation is for a param object.
+     * @return
+     */
+    String getAttributeName();
     String getParamContainerKey();
     String getParamType();
     ParamInterpolation getControlPointParent();
-    void setParam(String paramName, String paramType, String paramContainer);
+    void setParam(String paramName, String paramType, String paramContainer, String attributeName);
 
     InterpolationFunction setInterpolationFunction(Class<? extends InterpolationFunction> interpolationFunctionClass);
     InterpolationFunction getInterpolationFunction();

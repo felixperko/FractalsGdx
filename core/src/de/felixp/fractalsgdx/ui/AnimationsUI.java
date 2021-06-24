@@ -38,10 +38,15 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class AnimationsUI {
+
+    static VisWindow animationsWindow = null;
+    static VisWindow addEditInterpolationWindow = null;
 
     static ParamInterpolation selectedInterpolation = null;
     static FractalRenderer selectedRenderer = null;
@@ -50,10 +55,14 @@ public class AnimationsUI {
 
     public static void openAnimationsWindow(MainStage stage){
 
+        if(animationsWindow != null && animationsWindow.getParent() != null)
+            animationsWindow.remove();
+
         selectedRenderer = ((MainStage)FractalsGdxMain.stage).focusedRenderer;
         sliders.clear();
 
         VisWindow window = new VisWindow("Animations");
+        animationsWindow = window;
         VisTable mainTable = new VisTable(true);
 
         for (ParamAnimation animation : selectedRenderer.getRendererContext().getParameterAnimations()){
@@ -289,16 +298,22 @@ public class AnimationsUI {
     static List<VisTextField> defValueFields = new ArrayList<>();
     static ParamInterpolation currentInterpolation = null;
 
+    static Map<String, String> paramOptions = null;
+
     private static void openInterpolationAddWindow(MainStage stage, ParamAnimation animation, VisWindow animationsWindow, FractalRenderer selectedRenderer){
         openInterpolationSettingsWindow(stage, animation, null, animationsWindow, selectedRenderer);
     }
 
     private static void openInterpolationSettingsWindow(MainStage stage, ParamAnimation animation, ParamInterpolation interpolation, VisWindow animationsWindow, FractalRenderer selectedRenderer){
 
-        boolean createNew =  interpolation == null;
+        boolean createNew = interpolation == null;
         Map<Integer, List<VisTextField>> valueFields = new HashMap<>();
 
+        if(addEditInterpolationWindow != null && addEditInterpolationWindow.getParent() != null)
+            addEditInterpolationWindow.remove();
+
         VisWindow window = new VisWindow(createNew ? "Add interpolation to "+animation.getName() : "Edit interpolation of "+animation.getName()+": "+interpolation.getParamContainerKey()+"."+interpolation.getParamName());
+        addEditInterpolationWindow = window;
         VisTable table = new VisTable(true);
         VisTable interpolationValuesTable = new VisTable(true);
         NumberFactory numberFactory = selectedRenderer.getSystemContext().getNumberFactory();
@@ -324,7 +339,7 @@ public class AnimationsUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 selectedParamType = paramTypes.get(paramTypeSelect.getSelected());
-                updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
+                paramOptions = updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
                 currentInterpolation = createParamInterpolationAsSelected(paramSelect.getSelected());
                 currentInterpolation.setNumberFactory(numberFactory);
                 updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
@@ -341,7 +356,7 @@ public class AnimationsUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 selectedContainer = PARAM_CONTAINERKEY_SERVER;
-                updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
+                paramOptions = updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
                 window.pack();
             }
         });
@@ -349,11 +364,11 @@ public class AnimationsUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 selectedContainer = PARAM_CONTAINERKEY_CLIENT;
-                updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
+                paramOptions = updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
                 window.pack();
             }
         });
-        updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
+        paramOptions = updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
 
         if (interpolation == null){
             if (selectedParamType == null)
@@ -425,9 +440,9 @@ public class AnimationsUI {
             okButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    String paramName = paramSelect.getSelected();
+                    String[] names = extractParamAttributeNames(paramSelect.getSelected());
 //                    ParamInterpolation interpolation = createParamInterpolationAsSelected(paramName);
-                    currentInterpolation.setParam(paramName, selectedParamType, selectedContainer);
+                    currentInterpolation.setParam(names[0], selectedParamType, selectedContainer, names[1]);
                     ParamInterpolation interpolation = currentInterpolation;
                     ParamInterpolation inheritValueInterpolation = inheritControlPointSelect.getSelected().getValue();
                     if (inheritValueInterpolation != null)
@@ -468,9 +483,9 @@ public class AnimationsUI {
             okButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    String paramName = paramSelect.getSelected();
+                    String[] names = extractParamAttributeNames(paramSelect.getSelected());
                     currentInterpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
-                    currentInterpolation.setParam(paramName, selectedParamType, selectedContainer);
+                    currentInterpolation.setParam(names[0], selectedParamType, selectedContainer, names[1]);
                     boolean applied = applyInterpolationFields(currentInterpolation, defValueFields, numberFactory);
                     if (applied)
                         closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
@@ -538,8 +553,6 @@ public class AnimationsUI {
 
         table.clearChildren();
         defValueFields.clear();
-
-//        final ParamInterpolation finalInterpolation = interpolation;
 
         //DefValues (like radius for circle)
         int i = 0;
@@ -660,18 +673,31 @@ public class AnimationsUI {
         return interpolation;
     }
 
-    protected static ParamInterpolation createParamInterpolationAsSelected(String paramName) {
-        return createParamInterpolation(paramName, selectedParamType, selectedContainer, selectedInterpolationFunctionClass);
+    protected static ParamInterpolation createParamInterpolationAsSelected(String selected) {
+        String[] names = extractParamAttributeNames(selected);
+        return createParamInterpolation(names[0], selectedParamType, selectedContainer, names[1], selectedInterpolationFunctionClass);
     }
 
-    protected static ParamInterpolation createParamInterpolation(String paramName, String paramType, String container, Class<? extends InterpolationFunction> interpolationFunctionClass) {
+    private static String[] extractParamAttributeNames(String selectedLabelName){
+        String selectedOption = paramOptions.get(selectedLabelName);
+        String paramName = selectedOption;
+        String attributeName = null;
+        if (paramName.contains(" ATTR=")){
+            String[] s = paramName.split(" ATTR=");
+            paramName = s[0];
+            attributeName = s[1];
+        }
+        return new String[]{paramName, attributeName};
+    }
+
+    protected static ParamInterpolation createParamInterpolation(String paramName, String paramType, String container, String attributeName, Class<? extends InterpolationFunction> interpolationFunctionClass) {
         boolean isNumber = selectedParamType.equals(PARAM_TYPE_NUMBER);
         boolean isComplexNumber = selectedParamType.equals(PARAM_TYPE_COMPLEXNUMBER);
         ParamInterpolation interpolation = null;
         if (isComplexNumber)
-            interpolation = new ComplexNumberParamInterpolation(paramName, paramType, container, interpolationFunctionClass);
+            interpolation = new ComplexNumberParamInterpolation(paramName, paramType, container, attributeName, interpolationFunctionClass);
         else if (isNumber)
-            interpolation = new NumberParamInterpolation(paramName, paramType, container, interpolationFunctionClass);
+            interpolation = new NumberParamInterpolation(paramName, paramType, container, attributeName, interpolationFunctionClass);
         interpolation.setAutomaticTimings(isComplexNumber);
         return interpolation;
     }
@@ -722,7 +748,7 @@ public class AnimationsUI {
         }
         else if (selectedParamType.equals(PARAM_TYPE_NUMBER)){
             checkClasses.add(Number.class);
-            checkClasses.add(Double.class);
+//            checkClasses.add(Double.class);
         }
 
         Map<String, String> paramOptions = getParamOptions(paramContainer, checkClasses);
@@ -746,8 +772,20 @@ public class AnimationsUI {
                     break;
                 }
             }
-            if (valid)
+            if (valid) {
                 paramOptions.put(paramSupplierName, paramSupplierName);
+            }
+            if (supplier.getGeneral() instanceof ParamAttributeHolder){
+                ParamAttributeHolder attributeHolder = (ParamAttributeHolder)supplier.getGeneral();
+                for (ParamAttribute attr : attributeHolder.getParamAttributeContainer().getAttributes().values()){
+                    for (Class<?> cls : checkClasses){
+                        if (cls.isAssignableFrom(attr.getAttributeClass())){
+                            paramOptions.put(paramSupplierName+"."+attr.getQualifiedName(), paramSupplierName+" ATTR="+attr.getQualifiedName());
+                            break;
+                        }
+                    }
+                }
+            }
         }
         return paramOptions;
     }

@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.ParamContainer;
@@ -42,6 +46,7 @@ public class GPUSystemContext implements SystemContext {
     public static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
     public static final String PARAMNAME_SUPERSAMPLING = "supersampling";
     public static final String PARAMNAME_MAXBORDERSAMPLES = "maxBorderSamples";
+    public static final String PARAMNAME_ORBITTRAPS = "orbittraps";
 
     public static final String TEXT_COND_ABS = "|z| > limit";
     public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
@@ -77,6 +82,8 @@ public class GPUSystemContext implements SystemContext {
                 new ParamValueField("simCount", BFOrbitCommon.integerType, 20),
                 new ParamValueField("seed", BFOrbitCommon.integerType, 42));
         paramConfiguration.addValueType(layerconfigurationType);
+        ParamValueType orbittrapContainerType = new ParamValueType(PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
+        paramConfiguration.addValueType(orbittrapContainerType);
 
         List<Class<? extends ParamSupplier>> supplierClasses = new ArrayList<>();
         supplierClasses.add(StaticParamSupplier.class);
@@ -98,9 +105,12 @@ public class GPUSystemContext implements SystemContext {
         defaultValues.add(new StaticParamSupplier("resolutionScale", 1.0));
         defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
+        defs.add(new ParamDefinition("frameSamples", "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defaultValues.add(new StaticParamSupplier("frameSamples", 1));
 //        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
 //        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defs.add(new ParamDefinition(PARAMNAME_LAYER_CONFIG, "Calculator", StaticParamSupplier.class, layerconfigurationType));
+        defs.add(new ParamDefinition(PARAMNAME_ORBITTRAPS, "Calculator", StaticParamSupplier.class, orbittrapContainerType));
 
         paramConfiguration.addParameterDefinitions(defs);
         paramConfiguration.addDefaultValues(defaultValues);
@@ -130,7 +140,8 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
         paramContainer.addClientParameter(new StaticParamSupplier("resolutionScale", 1.0));
-        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 3));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 1));
+        paramContainer.addClientParameter(new StaticParamSupplier("frameSamples", 1));
         paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
         layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));
@@ -144,6 +155,11 @@ public class GPUSystemContext implements SystemContext {
         layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(100).with_rendering(true).with_priority_shift(80));
         layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(400).with_rendering(true).with_priority_shift(90));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_LAYER_CONFIG, new PadovanLayerConfiguration(layers)));
+        List<Orbittrap> orbittraps = new ArrayList<>();
+//        orbittraps.add(new AxisOrbittrap(1, nf, nf.createNumber(0.1), nf.createNumber(0.05), nf.createNumber("0.0"), true));
+//        orbittraps.add(new AxisOrbittrap(2, nf, nf.createNumber(0.2), nf.createNumber(0.05), nf.createNumber("0.0"), false));
+//        orbittraps.add(new CircleOrbittrap(3, nf.createComplexNumber(-0.2, -0.3), nf.createNumber(0.01)));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_ORBITTRAPS, new OrbittrapContainer(orbittraps)));
 
         updateLayerConfig(paramContainer, PARAMNAME_LAYER_CONFIG, null, paramContainer.getClientParameters());
     }

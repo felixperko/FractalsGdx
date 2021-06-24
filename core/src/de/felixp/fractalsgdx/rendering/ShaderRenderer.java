@@ -36,6 +36,7 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
+import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.AbstractArrayChunk;
@@ -202,6 +203,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
             @Override
             public void touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                getStage().setKeyboardFocus(thisRenderer);
                 ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
                 if (selectedInterpolation instanceof ComplexNumberParamInterpolation){
                     List<ComplexNumber> controlPoints = selectedInterpolation.getControlPoints(true);
@@ -514,6 +516,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     String lastCondition = "";
+    OrbittrapContainer lastOrbittrapContainer = null;
 
     public void updateExpression(){
 //        String expr =
@@ -526,7 +529,16 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean conditionChanged = !currentCondition.equals(lastCondition);
         lastCondition = currentCondition;
 
-        boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged || conditionChanged;
+        ParamSupplier otSupp = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_ORBITTRAPS);
+        boolean trapsChanged = false;
+        if (otSupp != null){
+            OrbittrapContainer cont = otSupp.getGeneral(OrbittrapContainer.class);
+            if (lastOrbittrapContainer != null && !cont.equals(lastOrbittrapContainer))
+                trapsChanged = true;
+            lastOrbittrapContainer = cont.copy();
+        }
+
+        boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged || conditionChanged || trapsChanged;
         if (!update){
             for (ParamSupplier supp : systemContext.getParamContainer().getParameters()){
                 if (supp.isChanged()){
@@ -542,12 +554,14 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 ComputeExpression newExpression = new ComputeExpressionBuilder(expressionString, "z", systemContext.getParameters()).getComputeExpression();
                 boolean expressionChanged = !newExpression.equals(expression);
                 expression = newExpression;
-                if (expressionChanged || conditionChanged) {
+                if (expressionChanged || conditionChanged || trapsChanged) {
                     shaderBuilder = new ShaderBuilder(expression, systemContext);
                     setupShaders();
                 }
-                if (paramsChanged || expressionChanged)
+                if (paramsChanged || expressionChanged || conditionChanged)
                     setRefresh();
+                if (trapsChanged)
+                    reset();
             } catch (IllegalArgumentException e){
                 LOG.info("Couldn't parse expression: \n"+e.getMessage());
             }
@@ -574,6 +588,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //		}
         computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
         computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
+        Integer frameSamples = paramContainer.getClientParameter("frameSamples").getGeneral(Integer.class);
+        if (frameSamples < 1)
+            frameSamples = 1;
+        computeShader.setUniformf("maxSamplesPerFrame", (float) frameSamples);
 
         double scale = paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble();
         ComplexNumber midpoint = systemContext.getMidpoint();

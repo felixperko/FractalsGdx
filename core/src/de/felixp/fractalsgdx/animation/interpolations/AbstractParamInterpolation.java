@@ -20,6 +20,7 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     String paramName;
     String paramType;
     String paramContainerKey;
+    String attributeName;
 
     InterpolationFunction interpolationFunction;
 
@@ -37,12 +38,17 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
     Number totalLength = null;
 
-    public AbstractParamInterpolation(String paramName, String paramType, String paramContainerKey, Class<? extends InterpolationFunction> interpolationFunctionClass){
+    public AbstractParamInterpolation(String paramName, String paramType, String paramContainerKey, String attributeName, Class<? extends InterpolationFunction> interpolationFunctionClass){
         this.paramName = paramName;
         this.paramType = paramType;
         this.paramContainerKey = paramContainerKey;
         this.interpolationFunction = initInterpolationFunction(interpolationFunctionClass);
 //        updateInterpolationFunction();
+    }
+
+    @Override
+    public String getAttributeName() {
+        return attributeName;
     }
 
     /**
@@ -164,10 +170,11 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
 
     @Override
-    public void setParam(String paramName, String paramType, String paramContainerKey){
+    public void setParam(String paramName, String paramType, String paramContainerKey, String attributeName){
         this.paramName = paramName;
         this.paramType = paramType;
         this.paramContainerKey = paramContainerKey;
+        this.attributeName = attributeName;
     }
 
     @Override

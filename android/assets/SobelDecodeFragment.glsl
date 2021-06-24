@@ -63,7 +63,10 @@ void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord){
 
     for (int y = -kernelRadius ; y <= kernelRadius ; y++){
         for (int x = -kernelRadius ; x <= kernelRadius ; x++){
-            n[(y+kernelRadius)*kernelDim+(x+kernelRadius)] = max(0.0, decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(x, y), 0)));
+            float val = max(0.0, decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(x, y), 0)));
+            if (val == 0.0)
+                val = 10.0;
+            n[(y+kernelRadius)*kernelDim+(x+kernelRadius)] = val;
         }
     }
 

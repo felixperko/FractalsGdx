@@ -1,9 +1,14 @@
 package de.felixp.fractalsgdx.rendering;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
+import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.calculator.ComputeInstruction;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
@@ -175,14 +180,69 @@ public class ShaderBuilder {
     }
 
     private String getKernelString() {
-        StringBuilder stringBuilder = new StringBuilder();
+
+        StringBuilder sb = new StringBuilder();
+
+        //write iteration instructions
         List<ComputeInstruction> instructions = expression.getInstructions();
         for (ComputeInstruction instruction : instructions){
-            printKernelInstruction(stringBuilder, instruction);
+            printKernelInstruction(sb, instruction);
         }
+
+        //write orbittrap handling
+        ParamSupplier orbittrapSupp = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_ORBITTRAPS);
+        if (orbittrapSupp != null && orbittrapSupp instanceof StaticParamSupplier){
+            OrbittrapContainer trapContainer = orbittrapSupp.getGeneral(OrbittrapContainer.class);
+            List<Orbittrap> traps = trapContainer.getOrbittraps();
+            if (!traps.isEmpty()){
+                writeStringBuilderLines(sb, null, "",
+                        "if(");
+                Iterator<Orbittrap> it = traps.iterator();
+                while (it.hasNext()) {
+                    Orbittrap trap = it.next();
+                    HashMap<String, String> placeholderValues = new HashMap<>();
+
+                    if (trap instanceof AxisOrbittrap) {
+                        AxisOrbittrap aot = (AxisOrbittrap) trap;
+                        placeholderValues.put("width", "" + (float) aot.getWidth().toDouble());
+                        placeholderValues.put("offset", "(" + (float) aot.getOffset().toDouble()+")");
+                        double angle = aot.getAngle().toDouble();
+                        if (angle == 0.0) {
+                            writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
+                                    "abs(local_1 - offset) <= width");
+                        }
+                        else {
+                            double radians = Math.toRadians(angle);
+                            placeholderValues.put("factorR", "(" + (float) Math.cos(radians) + ")");
+                            placeholderValues.put("factorI", "(" + (float) Math.sin(radians) + ")");
+                            writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
+                                    "abs(local_1*factorR-local_0*factorI - offset) <= (width)");
+                        }
+                    }
+                    else if (trap instanceof CircleOrbittrap){
+                        CircleOrbittrap cot = (CircleOrbittrap) trap;
+                        placeholderValues.put("centerR", "(" + (float) cot.getCenter().getReal().toDouble()+")");
+                        placeholderValues.put("centerI", "(" + (float) cot.getCenter().getImag().toDouble()+")");
+                        placeholderValues.put("radius", "" + (float) cot.getRadius().toDouble());
+                        writeStringBuilderLines(sb, placeholderValues, "//circle orbittrap",
+                                "sqrt((local_0-centerR)*(local_0-centerR)+(local_1-centerI)*(local_1-centerI)) <= radius");
+                    }
+
+                    if (it.hasNext()){
+                        writeStringBuilderLine(sb, null, "||");
+                    }
+                }
+                writeStringBuilderLines(sb, null,
+                        "){",
+                        "   loopIterations = float(i + 1.0);",
+                        "   break;",
+                        "}");
+            }
+        }
+
         System.out.println("Shader iterate(): ");
-        System.out.println(stringBuilder.toString());
-        return stringBuilder.toString();
+        System.out.println(sb.toString());
+        return sb.toString();
     }
 
     int temp_counter = 0;
@@ -413,8 +473,10 @@ public class ShaderBuilder {
     }
 
     private void writeStringBuilderLine(StringBuilder stringBuilder, Map<String, String> placeholderValues, String text){
-        for (Map.Entry<String, String> e : placeholderValues.entrySet())
-            text = text.replaceAll(e.getKey(), e.getValue());
+        if (placeholderValues != null) {
+            for (Map.Entry<String, String> e : placeholderValues.entrySet())
+                text = text.replaceAll(e.getKey(), e.getValue());
+        }
         stringBuilder.append(text).append(System.getProperty("line.separator"));
     }
 }

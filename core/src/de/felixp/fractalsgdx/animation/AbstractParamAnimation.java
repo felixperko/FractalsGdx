@@ -176,9 +176,9 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 //    }
 
     @Override
-    public void changeInterpolationParamName(ParamInterpolation interpolation, String newName, String paramType, String paramContainer) {
+    public void changeInterpolationParamName(ParamInterpolation interpolation, String newParamName, String newAttributeName, String paramType, String paramContainer) {
         removeInterpolation(interpolation.getParamName());
-        interpolation.setParam(newName, paramType, paramContainer);
+        interpolation.setParam(newParamName, paramType, paramContainer, newAttributeName);
         setInterpolation(interpolation);
     }
 

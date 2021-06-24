@@ -101,6 +101,9 @@ public class MainStageWindows {
 
     public static void openSettingsMenu(final MainStage stage){
 
+        if(settingsWindow != null && settingsWindow.getParent() != null)
+            settingsWindow.remove();
+
         settingsWindow = new VisWindow("Settings"){
 //            @Override
 //            public float getPrefWidth() {

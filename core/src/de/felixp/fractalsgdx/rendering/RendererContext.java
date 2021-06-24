@@ -16,6 +16,9 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttributeContainer;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
@@ -199,14 +202,25 @@ public class RendererContext {
                     throw new IllegalStateException("Unknown param container key: "+interpolation.getParamContainerKey());
 
                 ParamSupplier currentSupplier = paramContainer.getClientParameter(paramName);
-                if (currentSupplier instanceof StaticParamSupplier && !interpolatedValue.equals(currentSupplier.getGeneral())) {
-                    StaticParamSupplier paramSupplier = new StaticParamSupplier(paramName, interpolatedValue);
+                Object currentValue = currentSupplier.getGeneral();
+
+                if (interpolation.getAttributeName() != null){ //set attribute
+                    if (!(currentValue instanceof ParamAttributeHolder))
+                        throw new IllegalStateException("Can't set ParamAttribute "+interpolation.getAttributeName()+
+                                " for param "+interpolation.getParamName()+": Param not a ParamAttributeHolder");
+                    ParamAttributeContainer attrCont = ((ParamAttributeHolder)currentValue).getParamAttributeContainer();
+                    ParamAttribute<?> attribute = attrCont.getAttribute(interpolation.getAttributeName());
+                    attribute.applyValue(interpolatedValue);
+                } else { //set parameter
+                    if (currentSupplier instanceof StaticParamSupplier && !interpolatedValue.equals(currentValue)) {
+                        StaticParamSupplier paramSupplier = new StaticParamSupplier(paramName, interpolatedValue);
 //                    paramSupplier.setLayerRelevant(true);
-                    paramSupplier.setChanged(true);
-                    paramContainer.addClientParameter(paramSupplier);
-                    changed = true;
-                    if (paramName.equalsIgnoreCase("midpoint"))
-                        changedMidpoint = true;
+                        paramSupplier.setChanged(true);
+                        paramContainer.addClientParameter(paramSupplier);
+                        changed = true;
+                        if (paramName.equalsIgnoreCase("midpoint"))
+                            changedMidpoint = true;
+                    }
                 }
             }
         }

@@ -28,7 +28,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	private static final String UI_PREFS_VSYNC = "vsync";
 
 	static boolean windowed = true;
-    static boolean uiScaleWorkaround = true;
+    static boolean uiScaleWorkaround = false;
     static int forceWidth = -1;
     static int forceHeight = -1;
 
@@ -58,7 +58,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
         if (uiPrefs.contains(UI_PREFS_SCALE)){
             uiScale = uiPrefs.getInteger(UI_PREFS_SCALE);
         }
-        if (uiScale == 2)
+        if (uiScale >= 2)
 		    VisUI.load(VisUI.SkinScale.X2);
         else
             VisUI.load(VisUI.SkinScale.X1);
@@ -90,7 +90,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		uiPrefs.flush();
 
 		setScreenMode(FractalsGdxMain.windowed, width, height);
-		Gdx.graphics.setVSync(vsync);
+//		Gdx.graphics.setVSync(vsync);
 
 		batch = new SpriteBatch();
 
@@ -145,7 +145,6 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		}
 
 
-		viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		try {
 			stage.act(Gdx.graphics.getDeltaTime());
 			stage.draw();
@@ -349,6 +348,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	public void resize(int width, int height) {
 		stage.getViewport().update(width, height, true);
 		((MainStage)stage).resize(width, height);
+		viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 	}
 
 	@Override
