@@ -39,7 +39,7 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
                         }
                     });
                 }
-                table.add(windowButton);
+                table.add(windowButton).colspan(2).left().row();
             }
 
             @Override

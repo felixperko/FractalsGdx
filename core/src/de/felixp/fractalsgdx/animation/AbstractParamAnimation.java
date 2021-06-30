@@ -10,35 +10,6 @@ import de.felixperko.fractals.util.NumberUtil;
 
 abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
-//    public static void main(String[] args){
-//        PathParamAnimation animation = new PathParamAnimation("dummy", null);
-//        NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-//        ArrayList<ComplexNumber> controlPoints = new ArrayList<>();
-//        controlPoints.add(nf.createComplexNumber(0,0));
-//        controlPoints.add(nf.createComplexNumber(0,1));
-//        controlPoints.add(nf.createComplexNumber(-2,1));
-//        animation.setControlPoints(controlPoints, nf);
-////               AbstractParamAnimation animation = new AbstractParamAnimation("dummy") {
-////            @Override
-////            public Object getInterpolatedValueInLoop(double progressInLoop, NumberFactory numberFactory) {
-////                return progressInLoop;
-////            }
-////        };
-//        animation.setReturnBack(true);
-//        animation.setRepeating(true);
-//        animation.setTimeFactor(2);
-//        double progress = 0.0;
-//        for (int i = 0 ; i < 100 ; i++){
-//            ComplexNumber rawVal = animation.getInterpolatedValue(progress, null);
-//            double roundedValR = NumberUtil.getRoundedDouble(rawVal.realDouble(), 3);
-//            double roundedValI = NumberUtil.getRoundedDouble(rawVal.imagDouble(), 3);
-//            String textValR = ("" + roundedValR).replace('.', ',');
-//            String textValI = ("" + roundedValI).replace('.', ',');
-//            System.out.println(textValR+";"+textValI);
-//            progress += 0.1;
-//        }
-//    }
-
     private Map<String, ParamInterpolation> interpolations = new LinkedHashMap<>();
 
     private List<AnimationListener> animationListeners = new CopyOnWriteArrayList<>();
@@ -177,7 +148,7 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
     @Override
     public void changeInterpolationParamName(ParamInterpolation interpolation, String newParamName, String newAttributeName, String paramType, String paramContainer) {
-        removeInterpolation(interpolation.getParamName());
+        removeInterpolation(interpolation.getParamName(), interpolation.getAttributeName());
         interpolation.setParam(newParamName, paramType, paramContainer, newAttributeName);
         setInterpolation(interpolation);
     }
@@ -209,8 +180,8 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
     }
 
     @Override
-    public ParamInterpolation getInterpolation(String paramName) {
-        return interpolations.get(paramName);
+    public ParamInterpolation getInterpolation(String paramName, String attrName) {
+        return interpolations.get(getKey(paramName, attrName));
     }
 
     @Override
@@ -220,12 +191,19 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
     @Override
     public void setInterpolation(ParamInterpolation interpolation) {
-        interpolations.put(interpolation.getParamName(), interpolation);
+        interpolations.put(getKey(interpolation.getParamName(), interpolation.getAttributeName()), interpolation);
     }
 
     @Override
-    public ParamInterpolation removeInterpolation(String paramName) {
-        return interpolations.remove(paramName);
+    public ParamInterpolation removeInterpolation(String paramName, String attrName) {
+        return interpolations.remove(getKey(paramName, attrName));
+    }
+
+    private String getKey(String paramName, String attrName){
+        if (attrName == null)
+            return paramName;
+        else
+            return paramName+"."+attrName;
     }
 
     @Override
@@ -235,8 +213,7 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
     @Override
     public void setFrameCounter(int frame){
-        System.out.println("set frame: "+this.frameCounter+" -> "+frame);
-//        Thread.dumpStack();
+//        System.out.println("set frame: "+this.frameCounter+" -> "+frame);
         this.frameCounter = frame % (frameCount+1);
         animationProgressUpdated();
         if (frameCounter == frameCount)

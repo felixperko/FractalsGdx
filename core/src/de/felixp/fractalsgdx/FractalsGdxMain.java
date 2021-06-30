@@ -9,10 +9,14 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.BufferUtils;
+import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.kotcrab.vis.ui.VisUI;
 
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +56,16 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	@Override
 	public void create () {
+
+		IntBuffer queryArr = BufferUtils.newIntBuffer(16);
+		Gdx.gl.glGetIntegerv(GL20.GL_MAX_FRAGMENT_UNIFORM_VECTORS, queryArr);
+		System.out.println("GL_MAX_FRAGMENT_UNIFORM_VECTORS: "+queryArr.get(0));
+		Gdx.gl.glGetIntegerv(GL20.GL_MAX_VERTEX_UNIFORM_VECTORS, queryArr);
+		System.out.println("GL_MAX_VERTEX_UNIFORM_VECTORS: "+queryArr.get(0));
+		Gdx.gl.glGetIntegerv(GL20.GL_MAX_VARYING_VECTORS, queryArr);
+		System.out.println("GL_MAX_VARYING_VECTORS: "+queryArr.get(0));
+		Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_SIZE, queryArr);
+		System.out.println("GL_MAX_TEXTURE_SIZE: "+queryArr.get(0));
 
         Preferences uiPrefs = Gdx.app.getPreferences(UI_PREFS_NAME);
 		uiScale = 1;
@@ -324,7 +338,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 //		shader.setUniformf("juliaset", juliaset ? 1f : 0f);
 //	}
 //
-//	public void setupShaders() {
+//	public void compileShaders() {
 //		ShaderProgram.pedantic = false;
 //		String vertexPassthrough = "PassthroughVertex.glsl";
 //		shader = compileShader(vertexPassthrough, shader1);

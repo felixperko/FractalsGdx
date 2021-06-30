@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import javax.annotation.PostConstruct;
-
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
@@ -70,6 +68,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     final static String shader1 = "CalcExpressionFragmentTemplate.glsl";
     final static String shader2 = "SobelDecodeFragment.glsl";
+    final static String vertexPassthrough = "PassthroughVertex.glsl";
 
     boolean refresh = true;
     boolean paramsChanged = false;
@@ -153,7 +152,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         ((GPUSystemContext)systemContext).init();
         updateExpression();
-        setupShaders();
+        compileShaders();
 
         ShaderRenderer thisRenderer = this;
 
@@ -430,15 +429,18 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(this, paramContainer, ((GPUSystemContext) systemContext).paramConfiguration);
     }
 
-    public void setupShaders() {
-        ShaderProgram.pedantic = false;
-        String vertexPassthrough = "PassthroughVertex.glsl";
-        computeShader = compileShader(vertexPassthrough, shader1);
+    public void compileShaders() {
+        compileComputeShader();
         coloringShader = compileShader(vertexPassthrough, shader2);
         passthroughShader = compileShader(vertexPassthrough, "PassthroughFragment.glsl");
         renderedPart = false;
 //        width = Gdx.graphics.getWidth();
 //        height = Gdx.graphics.getHeight();
+    }
+
+    public void compileComputeShader() {
+        ShaderProgram.pedantic = false;
+        computeShader = compileShader(vertexPassthrough, shader1);
     }
 
     @Override
@@ -530,12 +532,12 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         lastCondition = currentCondition;
 
         ParamSupplier otSupp = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_ORBITTRAPS);
+        OrbittrapContainer cont = null;
         boolean trapsChanged = false;
         if (otSupp != null){
-            OrbittrapContainer cont = otSupp.getGeneral(OrbittrapContainer.class);
+            cont = otSupp.getGeneral(OrbittrapContainer.class);
             if (lastOrbittrapContainer != null && !cont.equals(lastOrbittrapContainer))
                 trapsChanged = true;
-            lastOrbittrapContainer = cont.copy();
         }
 
         boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged || conditionChanged || trapsChanged;
@@ -554,18 +556,20 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 ComputeExpression newExpression = new ComputeExpressionBuilder(expressionString, "z", systemContext.getParameters()).getComputeExpression();
                 boolean expressionChanged = !newExpression.equals(expression);
                 expression = newExpression;
-                if (expressionChanged || conditionChanged || trapsChanged) {
+                if (expressionChanged || conditionChanged || (trapsChanged && (cont == null || cont.needsShaderRecompilation(lastOrbittrapContainer)))) {
                     shaderBuilder = new ShaderBuilder(expression, systemContext);
-                    setupShaders();
+                    compileComputeShader();
                 }
-                if (paramsChanged || expressionChanged || conditionChanged)
-                    setRefresh();
-                if (trapsChanged)
+//                if (paramsChanged || expressionChanged || conditionChanged)
+//                    setRefresh();
+                if (paramsChanged || expressionChanged || conditionChanged || trapsChanged)
                     reset();
             } catch (IllegalArgumentException e){
                 LOG.info("Couldn't parse expression: \n"+e.getMessage());
             }
         }
+
+        lastOrbittrapContainer = cont.copy();
         paramsChanged = false;
     }
 
@@ -630,6 +634,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         computeShader.setUniformf("logPow", (float)expression.getSmoothstepConstant());
         computeShader.setUniformf("maxBorderSamples", paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_MAXBORDERSAMPLES).getGeneral(Integer.class));
         computeShader.setUniformi("sampleCountRoot", paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_SUPERSAMPLING).getGeneral(Integer.class));
+
+        shaderBuilder.setUniforms(computeShader);
     }
 
 

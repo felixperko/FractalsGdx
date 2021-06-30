@@ -5,10 +5,16 @@ import java.util.List;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 
 public interface Orbittrap {
+
     int getId();
+
     String getName();
     void setName(String name);
+
     String getTypeName();
-    public List<ParamAttribute> getParamAttributes();
-    public Orbittrap copy();
+
+    List<ParamAttribute> getParamAttributes();
+    ParamAttribute getParamAttribute(String attrName);
+
+    Orbittrap copy();
 }

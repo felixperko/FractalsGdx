@@ -24,27 +24,27 @@ public class PathParamAnimation extends AbstractParamAnimation<ComplexNumber> {
 //        setInterpolation(new ComplexNumberParamInterpolation(parameterName, AnimationsUI.PARAM_TYPE_COMPLEXNUMBER, AnimationsUI.PARAM_CONTAINERKEY_SERVER));
     }
 
-    public void setControlPoints(String interpolationParamName, List<ComplexNumber> controlPoints, NumberFactory numberFactory){
-        setControlPoints(interpolationParamName, controlPoints, null, numberFactory);
+    public void setControlPoints(String interpolationParamName, String attrName, List<ComplexNumber> controlPoints, NumberFactory numberFactory){
+        setControlPoints(interpolationParamName, attrName, controlPoints, null, numberFactory);
     }
 
-    public void setControlPoints(String interpolationParamName, List<ComplexNumber> controlPoints, List<ComplexNumber> tangents, NumberFactory numberFactory){
+    public void setControlPoints(String interpolationParamName, String attrName, List<ComplexNumber> controlPoints, List<ComplexNumber> tangents, NumberFactory numberFactory){
 
         if (numberFactory != null)
             this.numberFactory = numberFactory;
         else if (this.numberFactory == null)
             throw new IllegalStateException("first setControlPoints() needs to supply a NumberFactory");
 
-        ParamInterpolation interpolation = getInterpolation(interpolationParamName);
+        ParamInterpolation interpolation = getInterpolation(interpolationParamName, attrName);
         interpolation.setControlPoints(interpolation.getDefValues(false), controlPoints, tangents, this.numberFactory);
 
     }
 
-    public void addControlPoint(String interpolationParamName, ComplexNumber controlPoint, ComplexNumber tangent, NumberFactory numberFactory){
+    public void addControlPoint(String interpolationParamName, String attrName, ComplexNumber controlPoint, ComplexNumber tangent, NumberFactory numberFactory){
 //        controlPoints.add(controlPoint);
 //        tangents.add(tangent);
 //        setControlPoints(controlPoints, tangents, numberFactory);
-        getInterpolation(interpolationParamName).addControlPoint(controlPoint, tangent, numberFactory);
+        getInterpolation(interpolationParamName, attrName).addControlPoint(controlPoint, tangent, numberFactory);
     }
 
 //    @Override

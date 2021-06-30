@@ -293,6 +293,7 @@ public class ScreenshotRecordUI {
                     Timer.schedule(getFFmpegUpdateRunnable(stageLabel, progressLabel, animation, process, path, deleteImages), 0, 0.2f);
 
                 } catch (IOException e) {
+                    stageLabel.setText("Error: "+e.getMessage());
                     e.printStackTrace();
                 }
             }

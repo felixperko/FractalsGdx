@@ -422,7 +422,7 @@ public class AnimationsUI {
             deleteButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    animation.removeInterpolation(finalInterpolation.getParamName());
+                    animation.removeInterpolation(finalInterpolation.getParamName(), finalInterpolation.getAttributeName());
                     closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
                 }
             });

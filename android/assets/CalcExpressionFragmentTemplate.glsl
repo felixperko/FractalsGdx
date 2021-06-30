@@ -33,6 +33,8 @@ uniform float maxSamplesPerFrame;
 //const float upperborder = 100.0;
 //const float lowerborder = 0.0;
 
+<FIELDS>
+
 const float resultOffset = 10.0;
 const float maxSamplesNotEscaped = 1.0;
 
@@ -195,9 +197,8 @@ void main()
     float outputY = 0.0;
     float resIterations = 0.0;
 
-    int maxSampleCount = sampleCountRoot*sampleCountRoot;
+    int maxSampleCount = sampleCountRoot;
 
-//    float samplesCalculated = samples+maxSamplesPerFrame;
     bool first = true;
 
     float moved = 0.0;
@@ -211,7 +212,6 @@ void main()
     vec4 samplesColor = texelFetch(samplesTexture, ivec2(gl_FragCoord.xy)+ivec2(bufferOffset.xy), 0);
     float samples = decodeInt(samplesColor);
 
-//    float samples = 1.0;
     if (discardBuffer == 1){
         samples = 0.0;
         currentValue = 0.0;
@@ -219,8 +219,6 @@ void main()
     float frameSampleCount = min(maxSampleCount-samples, maxSamplesPerFrame);
     if (frameSampleCount <= 0 || (samples >= maxBorderSamples && currentValue <= 0.0)){
         colour1 = currentColor;
-//        samples = samples+1.0;
-//        colour2 = encodeInt(samples);
     }
     else {
 
@@ -229,6 +227,13 @@ void main()
 
         float limitSq = limit*limit;
 
+
+         //Padovan sequence for 2 dimensions
+         //			g = 1.32471795724474602596
+         //			a1 = 1.0/g
+         //			a2 = 1.0/(g*g)
+         //			x[n] = (0.5+a1*n) %1
+         //			y[n] = (0.5+a2*n) %1
         float g = 1.32471795724474602596;
         float a1 = 1.0/g;
         float a2 = 1.0/(g*g);
@@ -236,14 +241,6 @@ void main()
         for (int s = 0 ; s < frameSampleCount ; s++){
 
             float sampleNo = samples;
-
-            //Padovan sequence for 2 dimensions
-            //			g = 1.32471795724474602596
-            //			a1 = 1.0/g
-            //			a2 = 1.0/(g*g)
-            //			x[n] = (0.5+a1*n) %1
-            //			y[n] = (0.5+a2*n) %1
-
 
             float sampleDeltaX = mod(0.5+a1*sampleNo*0.5, 1.0)/resolution.x;
             float sampleDeltaY = mod(0.5+a2*sampleNo*0.5, 1.0)/resolution.y;
@@ -276,22 +273,15 @@ void main()
 
                 <ITERATE>
 
-    //             if (lastR == local_0 && lastI == local_1){
-    //                resIterations = float(i);
-    //                outputXSq = resXSq;
-    //                outputYSq = resYSq;
-    //                break;
-    //             }
-    //             lastR = local_0;
-    //             lastI = local_1;
-
                 resXSq = float(local_0*local_0);
                 resYSq = float(local_1*local_1);
 
-                float movedNow = sqrt(resXSq+resYSq)/maxSampleCount;
-                moved += movedNow;
+                //float movedNow = sqrt(resXSq+resYSq)/maxSampleCount;
+                //moved += movedNow;
 
-                if (<CONDITION> || movedNow == 0.0){
+                if (<CONDITION>
+                //|| (resXSq == 0.0 && resYSq == 0.0)
+                ){
                     loopIterations = float(i + 1.0 + resultOffset - log(log(resXSq+resYSq)*0.5/log2)/(logPow));
                     break;
                 }

@@ -45,6 +45,24 @@ public class OrbittrapContainer implements Serializable, ParamAttributeHolder {
         }
     }
 
+    public boolean needsShaderRecompilation(OrbittrapContainer other){
+        if (this == other)
+            return false;
+        if (orbittraps.size() != other.orbittraps.size())
+            return true;
+        for (int i = 0 ; i < orbittraps.size() ; i++){
+            Orbittrap o1 = orbittraps.get(i);
+            Orbittrap o2 = other.orbittraps.get(i);
+            if (!o1.getName().equals(o2.getName()))
+                return true;
+            if (!o1.getTypeName().equals(o2.getTypeName()))
+                return true;
+            if (!o1.getClass().equals(o2.getClass()))
+                return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

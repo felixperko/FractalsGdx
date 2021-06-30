@@ -79,7 +79,7 @@ public class MainStage extends Stage {
 
     Group rendererGroup;
 
-//    Table stateBar;
+    Table stateBar;
 
     Preferences positions_prefs;
     Map<String, ParamContainer> locations = new HashMap<>();
@@ -207,10 +207,10 @@ public class MainStage extends Stage {
         paramUI.addToUiTable(ui);
 
 
-//        stateBar = new Table();
-//        stateBar.align(Align.left);
+        stateBar = new Table();
+        stateBar.align(Align.left);
 
-//        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
+        ui.add(stateBar).align(Align.bottomLeft).colspan(5);
 
         FractalRenderer renderer2 = new ShaderRenderer(
                 new RendererContext(0.05f, 0.05f, 0.3f, 0.3f, RendererProperties.ORIENTATION_BOTTOM_RIGHT)
@@ -275,6 +275,7 @@ public class MainStage extends Stage {
     @Override
     public void act(float delta) {
         handleInput();
+        updateStatebar();
         super.act(delta);
     }
 
@@ -545,7 +546,6 @@ public class MainStage extends Stage {
 
     @Override
     public boolean mouseMoved(int screenX, int screenY) {
-//        updateStateBar();
         return true;
     }
 
@@ -553,7 +553,37 @@ public class MainStage extends Stage {
         return clientParams.getClientParameter(name);
     }
 
-//    public void updateStateBar(){
+    VisLabel fpsLabel = null;
+    double updateInterval = 0.1;
+    double longestFrametime = -1;
+    long lastStatebarUpdate = -1;
+    long lastLongestFrametime = -1;
+    long longestFrametimeTimeout = 1*NumberUtil.S_TO_NS;
+
+    public void updateStatebar(){
+
+        boolean longestFrameExpired = (System.nanoTime()-lastLongestFrametime) > longestFrametimeTimeout;
+        if (Gdx.graphics.getDeltaTime() > longestFrametime || longestFrameExpired){
+            lastLongestFrametime = System.nanoTime();
+            longestFrametime = Gdx.graphics.getDeltaTime();
+        }
+
+        if ((System.nanoTime()-lastStatebarUpdate)*NumberUtil.NS_TO_S < updateInterval)
+            return;
+
+        if (fpsLabel == null){
+            fpsLabel = new VisLabel("FPS: ");
+
+            stateBar.add(fpsLabel);
+        }
+
+        lastStatebarUpdate = System.nanoTime();
+
+        double frametime = Gdx.graphics.getDeltaTime();
+        double fps = 1.0/frametime;
+        fpsLabel.setText("FPS: "+((int)(fps*10.0))/10.0+" ("+ formatFrametime(frametime) +" ms, max: "+formatFrametime(longestFrametime)+" ms)");
+
+
 //        int mouseX = Gdx.input.getX();
 //        int mouseY = Gdx.input.getY();
 //
@@ -576,7 +606,11 @@ public class MainStage extends Stage {
 //                return;
 //            }
 //        }
-//    }
+    }
+
+    public double formatFrametime(double frametime) {
+        return ((int)(frametime*1000.0*10.0))/10.0;
+    }
 
     public void openConnectWindow(String text){
         MainStageWindows.openConnectWindow(this, text);

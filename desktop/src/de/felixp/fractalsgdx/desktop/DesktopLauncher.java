@@ -3,13 +3,10 @@ package de.felixp.fractalsgdx.desktop;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 
-import java.util.ArrayList;
-
 import de.felixp.fractalsgdx.FractalsGdxMain;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
-		float scaledown = 0.5f;
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
 
 		config.foregroundFPS = 120;
@@ -39,7 +36,7 @@ public class DesktopLauncher {
 //		config.setFromDisplayMode(LwjglApplicationConfiguration.getDesktopDisplayMode());
 
 //		config.vSyncEnabled = true;
-//		config.vSyncEnabled = false;
+		config.vSyncEnabled = false;
 
 		parseCommandLineArguments(arg, config);
 

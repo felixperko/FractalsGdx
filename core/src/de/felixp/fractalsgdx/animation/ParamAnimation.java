@@ -43,10 +43,10 @@ public interface ParamAnimation {
     boolean isUsingFrameBasedProgress();
     void setUsingFrameBasedProgress();
 
-    ParamInterpolation getInterpolation(String paramName);
+    ParamInterpolation getInterpolation(String paramName, String attributeName);
     Map<String, ParamInterpolation> getInterpolations();
     void setInterpolation(ParamInterpolation interpolation);
-    ParamInterpolation removeInterpolation(String paramName);
+    ParamInterpolation removeInterpolation(String paramName, String attributeName);
 
     void changeInterpolationParamName(ParamInterpolation interpolation, String newParamName, String paramType, String paramContainer, String newAttributeName);
 

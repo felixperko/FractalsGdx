@@ -14,7 +14,6 @@ public class AxisOrbittrap extends AbstractOrbittrap{
     Number num_360;
     Number num_90;
 
-    List<ParamAttribute> attrs = new ArrayList<>();
     NumberFactory nf;
     Number offset;
     Number width;
@@ -66,11 +65,6 @@ public class AxisOrbittrap extends AbstractOrbittrap{
     @Override
     public String getTypeName() {
         return "line";
-    }
-
-    @Override
-    public List<ParamAttribute> getParamAttributes() {
-        return attrs;
     }
 
     @Override

@@ -127,6 +127,7 @@ public class ParamUI {
                     newCSupp.setChanged(true);
                     serverParamContainer.getClientParameters().put("c", newCSupp);
 
+//                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
                     StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
                     midpointSupp.setChanged(true);
                     midpointSupp.setLayerRelevant(true);

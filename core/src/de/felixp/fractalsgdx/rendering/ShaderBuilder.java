@@ -1,5 +1,7 @@
 package de.felixp.fractalsgdx.rendering;
 
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -9,10 +11,13 @@ import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
+import de.felixp.fractalsgdx.rendering.valuereference.ParamAttributeValueReference;
+import de.felixp.fractalsgdx.rendering.valuereference.ValueReference;
 import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.calculator.ComputeInstruction;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -20,13 +25,20 @@ import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ShaderBuilder {
 
+    final static String MAKRO_FIELDS = "<FIELDS>";
     final static String MAKRO_INIT = "<INIT>";
     final static String MAKRO_KERNEL = "<ITERATE>";
     final static String MAKRO_CONDITION = "<CONDITION>";
 
+    final static String PREFIX_BASE_ORBITTRAP = "ot";
+    Map<Orbittrap, String> orbittrapPrefixes = new HashMap<>();
+    int orbittrapCounter = 0;
+
     String[] localVariables;
     SystemContext systemContext;
     ComputeExpression expression;
+
+    Map<String, ValueReference> uniforms = new HashMap<>();
 
     String glslType = "float";
 
@@ -61,7 +73,37 @@ public class ShaderBuilder {
         if (line.contains(MAKRO_CONDITION)){
             line = line.replaceAll(MAKRO_CONDITION, getConditionString());
         }
+        if (line.contains(MAKRO_FIELDS)){
+            line = line.replaceAll(MAKRO_FIELDS, getFieldsString());
+        }
         return line;
+    }
+
+    public void setUniforms(ShaderProgram computeShader){
+        for (Map.Entry<String, ValueReference> e : uniforms.entrySet()){
+            computeShader.setUniformf(e.getKey(), getFloatValue(e));
+        }
+    }
+
+    private String getFieldsString() {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, ValueReference> e : uniforms.entrySet()){
+            float val = getFloatValue(e);
+            writeStringBuilderLine(sb, null, "uniform float "+e.getKey()+" = "+val+";");
+        }
+        return sb.toString();
+    }
+
+    private float getFloatValue(Map.Entry<String, ValueReference> e) {
+        Object val = e.getValue().getValue();
+        if (val instanceof Number)
+            return (float)((Number)val).toDouble();
+        else if (val instanceof Double)
+            return (float)(double)val;
+        else if (val instanceof Float)
+            return (float)val;
+        else
+            throw new IllegalStateException("Can't handle uniform type for "+e.getKey()+" :"+val.getClass().getName());
     }
 
     private String getConditionString(){
@@ -179,6 +221,17 @@ public class ShaderBuilder {
         return stringBuilder.toString();
     }
 
+    private String getOrbittrapPrefix(Orbittrap orbittrap){
+        if (orbittrapPrefixes.containsKey(orbittrap))
+            return orbittrapPrefixes.get(orbittrap);
+        else {
+            String prefix = PREFIX_BASE_ORBITTRAP+orbittrapCounter+"_";
+            orbittrapCounter++;
+            orbittrapPrefixes.put(orbittrap, prefix);
+            return prefix;
+        }
+    }
+
     private String getKernelString() {
 
         StringBuilder sb = new StringBuilder();
@@ -204,20 +257,43 @@ public class ShaderBuilder {
 
                     if (trap instanceof AxisOrbittrap) {
                         AxisOrbittrap aot = (AxisOrbittrap) trap;
-                        placeholderValues.put("width", "" + (float) aot.getWidth().toDouble());
-                        placeholderValues.put("offset", "(" + (float) aot.getOffset().toDouble()+")");
-                        double angle = aot.getAngle().toDouble();
-                        if (angle == 0.0) {
-                            writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
-                                    "abs(local_1 - offset) <= width");
-                        }
-                        else {
-                            double radians = Math.toRadians(angle);
-                            placeholderValues.put("factorR", "(" + (float) Math.cos(radians) + ")");
-                            placeholderValues.put("factorI", "(" + (float) Math.sin(radians) + ")");
+
+                        String otPrefix = getOrbittrapPrefix(trap);
+                        uniforms.put(otPrefix+"width", new ParamAttributeValueReference(trap.getParamAttribute("width")));
+                        uniforms.put(otPrefix+"offset", new ParamAttributeValueReference(trap.getParamAttribute("offset")));
+                        uniforms.put(otPrefix+"factorR", new ParamAttributeValueReference(trap.getParamAttribute("angle")){
+                            @Override
+                            public Object getValue() {
+                                double angle = ((Number)super.getValue()).toDouble();
+                                return Math.cos(Math.toRadians(angle));
+                            }
+                        });
+                        uniforms.put(otPrefix+"factorI", new ParamAttributeValueReference(trap.getParamAttribute("angle")){
+                            @Override
+                            public Object getValue() {
+                                double angle = ((Number)super.getValue()).toDouble();
+                                return Math.sin(Math.toRadians(angle));
+                            }
+                        });
+
+//                        placeholderValues.put("width", "" + (float) aot.getWidth().toDouble());
+//                        placeholderValues.put("offset", "(" + (float) aot.getOffset().toDouble()+")");
+                        placeholderValues.put("width", otPrefix+"width");
+                        placeholderValues.put("offset", otPrefix+"offset");
+                        placeholderValues.put("factorR", otPrefix+"factorR");
+                        placeholderValues.put("factorI", otPrefix+"factorI");
+//                        double angle = aot.getAngle().toDouble();
+//                        if (angle == 0.0) {
+//                            writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
+//                                    "abs(local_1 - offset) <= width");
+//                        }
+//                        else {
+//                            double radians = Math.toRadians(angle);
+//                            placeholderValues.put("factorR", "(" + (float) Math.cos(radians) + ")");
+//                            placeholderValues.put("factorI", "(" + (float) Math.sin(radians) + ")");
                             writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
                                     "abs(local_1*factorR-local_0*factorI - offset) <= (width)");
-                        }
+//                        }
                     }
                     else if (trap instanceof CircleOrbittrap){
                         CircleOrbittrap cot = (CircleOrbittrap) trap;
