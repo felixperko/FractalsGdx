@@ -27,10 +27,9 @@ const int kernelLength = kernelDim*kernelDim;
 
 float DecodeExpV3( in vec3 pack )
 {
-//    float scale = 256.0/257.0;
-    int exponent = int(( pack.z * 256.0 - 127.0 ));
-    float value  = (pack.x + (pack.y+1.0)/256.0)*2.0;
-    return value * exp2( float(exponent) );
+    float exponent = ( pack.z * 256.0 )-129.0;
+    float value  = (pack.x + (pack.y+0.42)/256.0);
+    return value * exp2( exponent+1.0 );
 }
 
 //float DecodeExpV3( in vec3 pack )
@@ -48,15 +47,7 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 float decode(in vec4 pixel){
-    //return log(DecodeRangeV4(pixel, lowerborder, upperborder));
-    float value = DecodeExpV3(vec3(pixel));
-    value -= resultOffset;
-//    return log(value/(pow(samples, 1.0+(samples-1.0)*0.00102)))*0.5;
-    return log(value);
-//    return value;
-    //return log(value*(10.0/samples));
-    //return log(value)*0.5;
-    //return DecodeExpV4(pixel);
+    return DecodeExpV3(vec3(pixel)) - resultOffset;
 }
 
 void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord){
@@ -66,6 +57,8 @@ void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord){
             float val = max(0.0, decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(x, y), 0)));
             if (val == 0.0)
                 val = 10.0;
+            else if (val > 0.0)
+                val = log(val);
             n[(y+kernelRadius)*kernelDim+(x+kernelRadius)] = val;
         }
     }
@@ -113,7 +106,10 @@ void main(void){
 
 //    float d = decode(texture2D(u_texture, v_texCoords.xy));
     float d = decode(texelFetch(u_texture, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
+
     if (d > 0.0){
+
+        d = log(d);
 
         //sobel edge detection
         float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);

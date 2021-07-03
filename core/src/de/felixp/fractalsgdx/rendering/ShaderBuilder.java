@@ -115,6 +115,8 @@ public class ShaderBuilder {
                 return "abs(local_0) > limit";
             case GPUSystemContext.TEXT_COND_ABS_I:
                 return "abs(local_1) > limit";
+            case GPUSystemContext.TEXT_COND_ABS_MULT_RI:
+                return "abs(local_0*local_1) > limit";
             default:
                 return "";
         }
@@ -490,7 +492,7 @@ public class ShaderBuilder {
             } else if (instruction.type == ComputeInstruction.INSTR_SQUARE_COMPLEX){
                 String tempVarName2 = getTempVarName();
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//square_complex",
-                        "float "+tempVarName2+" = fromReal*fromReal - fromImag*fromImag;", //TODO dynamic float/double
+                        "float "+tempVarName2+" = fromReal*fromReal - fromImag*fromImag;",
                         "fromImag = fromReal*fromImag*2.0;",
                         "fromReal = "+tempVarName2+";");
             } else if (instruction.type == ComputeInstruction.INSTR_SQUARE_PART){
@@ -512,6 +514,17 @@ public class ShaderBuilder {
                         "   fromImag = - fromImag / " + tempVarName9 + ";",
                         "}"
                 );
+            } else if (instruction.type == ComputeInstruction.INSTR_LOG_PART) {
+                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_part",
+                        "fromReal = log(fromReal)");
+            } else if (instruction.type == ComputeInstruction.INSTR_LOG_COMPLEX) {
+                String tempVarName10 = getTempVarName();
+                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_complex",
+                        "float "+tempVarName10+" = atan(fromImag, fromReal);",
+                        "fromReal = fromReal*fromReal;",
+                        "fromImag = fromImag*fromImag;",
+                        "fromReal = log(sqrt(fromReal+fromImag));",
+                        "fromImag = "+tempVarName10+";");
             }
 //        }
     }

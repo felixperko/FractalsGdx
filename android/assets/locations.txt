@@ -282,7 +282,7 @@ z^2-abs(z_(n-1))^2+c
     "obj" : 1
   }, {
     "type" : "staticSupplier",
-    "name" : "resolutionScale",
+    "name" : "resolution scale",
     "attr" : 9,
     "obj" : 1.0
   } ]

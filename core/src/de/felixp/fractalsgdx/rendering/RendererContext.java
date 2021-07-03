@@ -9,6 +9,7 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.PathParamAnimation;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
+import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
@@ -62,6 +63,9 @@ public class RendererContext {
 
     int rendererId = -1;
 
+    List<RendererLink> sourceLinks = new ArrayList<>();
+    List<RendererLink> targetLinks = new ArrayList<>();
+
     public RendererContext(float x, float y, float w, float h, int orientation){
         properties = new RendererProperties(x, y, w, h, orientation);
 //        String param = "start";
@@ -76,6 +80,34 @@ public class RendererContext {
     public void setRenderer(FractalRenderer renderer){
         rendererId = renderer.getId();
         properties.setRendererClass(renderer.getClass());
+        for (RendererLink link : getSourceLinks()){
+            link.setSourceRenderer(renderer);
+        }
+        for (RendererLink link : targetLinks){
+            link.setTargetRenderer(renderer);
+        }
+    }
+
+    public void setLinkSource(RendererLink rendererLink){
+        if (!sourceLinks.contains(rendererLink))
+            sourceLinks.add(rendererLink);
+    }
+
+    public void setLinkTarget(RendererLink rendererLink) {
+        if (!targetLinks.contains(rendererLink))
+            targetLinks.add(rendererLink);
+    }
+
+    public void removeLinkSource(RendererLink rendererLink, boolean cascade){
+        sourceLinks.remove(rendererLink);
+        if (cascade)
+            rendererLink.getTargetRenderer().getRendererContext().removeLinkTarget(rendererLink, false);
+    }
+
+    public void removeLinkTarget(RendererLink rendererLink, boolean cascade){
+        targetLinks.remove(rendererLink);
+        if (cascade)
+            rendererLink.getSourceRenderer().getRendererContext().removeLinkSource(rendererLink, false);
     }
 
     public RendererProperties getProperties() {
@@ -169,8 +201,10 @@ public class RendererContext {
             if (changedMidpoint)
                 panned(serverParamContainer);
 
-//            else
-                systemContext.setParameters(serverParamContainer);
+            systemContext.setParameters(serverParamContainer);
+            for (RendererLink link : getSourceLinks())
+                link.syncTargetRenderer();
+
 
 //            MainStage stage = (MainStage) FractalsGdxMain.stage;
 //            if (stage.getFocusedRenderer().getId() == rendererId)
@@ -305,6 +339,9 @@ public class RendererContext {
         for (PanListener panListener : panListeners) {
             panListener.panned(midpoint);
         }
+        for (RendererLink link : getSourceLinks()){
+            link.syncTargetRenderer();
+        }
     }
 
     public void addPathPoint(ComplexNumber point, NumberFactory numberFactory){
@@ -372,5 +409,13 @@ public class RendererContext {
 
     public List<ParamAnimation> getParameterAnimations() {
         return paramAnimations;
+    }
+
+    public List<RendererLink> getTargetLinks() {
+        return targetLinks;
+    }
+
+    public List<RendererLink> getSourceLinks() {
+        return new ArrayList<>(sourceLinks);
     }
 }

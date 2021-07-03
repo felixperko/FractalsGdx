@@ -14,7 +14,6 @@ import net.dermetfan.utils.Pair;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,10 +24,10 @@ import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.RemoteRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
-import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.remoteclient.ChangedResourcesListener;
 import de.felixp.fractalsgdx.remoteclient.MessageInterfaceGdx;
+import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixperko.fractals.network.messages.ResourceRequestMessage;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.client;
@@ -170,7 +169,7 @@ public class RendererUI {
         heightField = new VisTextField(getPercentage(renderer.getRelativeHeight()));
 
         orientationSelect = new VisSelectBox();
-        orientationSelect.setItems("fullscreen", "top left", "top right", "bottom left", "bottom right", "left", "right", "top", "bottom");
+        orientationSelect.setItems("fullscreen", "left", "right", "top", "bottom", "top left", "top right", "bottom left", "bottom right");
         orientationSelect.setSelectedIndex(orientation);
 
         xField.addListener(new ChangeListener() {
@@ -250,6 +249,14 @@ public class RendererUI {
             headerTable.add(connectToServerButton).colspan(3).left();
         }
 
+        VisTable controlsTable = new VisTable(true);
+        controlsTable.add(orientationSelect).left();
+        if (!renderer.getRendererContext().getTargetLinks().isEmpty()) {
+            controlsTable.add("Linked to: ");
+            for (RendererLink link : renderer.getRendererContext().getTargetLinks())
+                controlsTable.add(new VisTextButton("Renderer " + link.getSourceRenderer().getId()));
+        }
+
         VisTable dimTable = new VisTable(true);
         dimTable.add(xLabel);
         dimTable.add(xField);
@@ -262,8 +269,8 @@ public class RendererUI {
 
         infoTable.addSeparator();
         infoTable.add(headerTable).left().row();
-        infoTable.add(dimTable).row();
-        infoTable.add(orientationSelect);
+        infoTable.add(controlsTable).left().row();
+        infoTable.add(dimTable);
 
         return infoTable;
     }
@@ -281,7 +288,7 @@ public class RendererUI {
         boolean invertY = o == ORIENTATION_TOP_LEFT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_TOP;
         if (invertY)
             y = 1-renderer.getRelativeHeight()-y;
-        Integer value  = parseIntPercentage(heightField.getText(), 1, (int)(100*(1f - y)));
+        Float value  = parseValidPercentage(heightField.getText(), 1, (100*(1f - y)));
         yField.setInputValid(value != null);
         heightField.setInputValid(value != null);
         if  (value != null){
@@ -295,7 +302,7 @@ public class RendererUI {
         boolean invertX = o == ORIENTATION_BOTTOM_RIGHT || o == ORIENTATION_TOP_RIGHT || o == ORIENTATION_RIGHT;
         if (invertX)
             x = 1-renderer.getRelativeWidth()-x;
-        Integer value  = parseIntPercentage(widthField.getText(), 1, (int)(100*(1f - x)));
+        Float value  = parseValidPercentage(widthField.getText(), 1, (100*(1f - x)));
         xField.setInputValid(value != null);
         widthField.setInputValid(value != null);
         if  (value != null){
@@ -304,7 +311,7 @@ public class RendererUI {
     }
 
     protected void updateRendererY() {
-        Integer value  = parseIntPercentage(yField.getText(), 0, (int)(100*(1f-renderer.getRelativeHeight())));
+        Float value = parseValidPercentage(yField.getText(), 0, (100*(1f-renderer.getRelativeHeight())));
         yField.setInputValid(value != null);
         heightField.setInputValid(value != null);
         if  (value != null){
@@ -313,7 +320,7 @@ public class RendererUI {
     }
 
     protected void updateRendererX() {
-        Integer value  = parseIntPercentage(xField.getText(), 0, (int)(100*(1f-renderer.getRelativeWidth())));
+        Float value  = parseValidPercentage(xField.getText(), 0, (100*(1f-renderer.getRelativeWidth())));
         xField.setInputValid(value != null);
         widthField.setInputValid(value != null);
         if  (value != null){
@@ -321,16 +328,10 @@ public class RendererUI {
         }
     }
 
-    /**
-     * @param inputText
-     * @param min
-     * @param max
-     * @return parsed int value in the given range, null if not parsable or out of the given range
-     */
-    public static Integer parseIntPercentage(String inputText, int min, int max){
+    public static Float parseValidPercentage(String inputText, float min, float max){
 
         try {
-            int value = Integer.parseInt(inputText);
+            float value = Float.parseFloat(inputText);
             boolean valid = value >= min && value <= max;
             return valid ? value : null;
         } catch (NumberFormatException e){

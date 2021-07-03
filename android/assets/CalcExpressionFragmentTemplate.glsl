@@ -38,9 +38,8 @@ uniform float maxSamplesPerFrame;
 const float resultOffset = 10.0;
 const float maxSamplesNotEscaped = 1.0;
 
-//const float angle = radians(45.0);
-
-const float notEscapedValue = 1.175494351e-38;
+//const float notEscapedValue = 1.175494351e-38;
+const float notEscapedValue = -10.0;
 const float log2 = log(2.0);
 
 uniform float burningship;
@@ -68,59 +67,18 @@ uniform float juliaset;
 
 vec3 EncodeExpV3( in float value )
 {
-    int exponent  = int(( log( abs( value ) )/log2 )) ;
-//    if (exponent > -1)
-    value        /= exp2( float( exponent ) );
-//    value         = (value);
-//    vec3 encode   = fract( value * vec3(1.0, 256.0, 256.0*256.0) );
-//    return vec3( encode.xy - encode.yz / 256.0, (float(exponent) + 127.0) / 256.0 );
-//    vec2 encode   = fract( value * vec2(1.0, 256.0));
-//    value = mod(value, 1.0);
-//    value -= 1.0;
-value *= 0.5;
-//    value *= 257.0/256.0;
+    int exponent  = int(( log( abs( value ) )/log2 ))+1 ;
+    value        /= exp2( float( exponent ) ); //normalize to 0 ... 1
     float e0 = float(int(value*256.0))/256.0;
     float e1 = (value-e0)*256.0;
-//    float e1 = 0.0;
-    return vec3( e0, e1, (float(exponent+128.0)) / 256.0 );
+    return vec3( e0, e1, (float(exponent+129.0)) / 256.0 );
 }
-
-//vec3 EncodeExpV3( in float value )
-//{
-//    int exponent  = int( log( abs( value ) )/log2 );
-//    value        /= exp2( float( exponent ) );
-////    value         = (value);
-////    vec3 encode   = fract( value * vec3(1.0, 256.0, 256.0*256.0) );
-////    return vec3( encode.xy - encode.yz / 256.0, (float(exponent) + 127.0) / 256.0 );
-//    vec2 encode   = fract( value * vec2(1.0, 256.0));
-//    return vec3( encode.x, encode.y, (float(exponent) + 127.0) / 256.0 );
-//}
-
-/*
-    float decodeV3(byte[] encoded){
-        int exponent = (int) (encoded[2]);
-        float value = 1f;
-        value += (encoded[0]+128f)/256f;
-        value += (encoded[1]+128f)/(256f*256f);
-        float exponentScaling = (float) Math.pow(2, exponent);
-        return value * exponentScaling;
-    }
-*/
-
-//float DecodeExpV3( in vec3 pack )
-//{
-//    float scale = 256.0/257.0;
-//    int exponent = int( pack.z * 256.0 - 128.0 );
-//    float value  = pack.x + pack.y/256.0 + 1.0;
-//    return value * exp2( float(exponent) );
-//}
 
 float DecodeExpV3( in vec3 pack )
 {
-//    float scale = 256.0/257.0;
-    int exponent = int(( pack.z * 256.0 - 127.0 ));
-    float value  = (pack.x + (pack.y+1.0)/256.0)*2.0;
-    return value * exp2( float(exponent) );
+    float exponent = float(int(pack.z*256.0-129.0));
+    float value  = ((pack.x)+(pack.y+0.42)/256.0);
+    return (value) * exp2(exponent+1.0) ;
 }
 
 //float DecodeExpV3( in vec3 pack )
@@ -132,27 +90,23 @@ float DecodeExpV3( in vec3 pack )
 //}
 
 vec4 encode(in float value){
-    //return EncodeRangeV4(value, lowerborder, upperborder);
-    return vec4(EncodeExpV3(value), 1.0);
-    //return EncodeExpV4(value);
+    return vec4(EncodeExpV3(value + resultOffset), 1.0);
 }
 
 float decode(in vec4 pixel){
-    //return log(DecodeRangeV4(pixel, lowerborder, upperborder));
-    return DecodeExpV3(vec3(pixel));
-    //return DecodeExpV4(pixel);
+    return DecodeExpV3(vec3(pixel)) - resultOffset;
 }
 
 void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
 
-      n[0] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, -1), 0));
-      n[1] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, -1), 0));
-      n[2] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, -1), 0));
-      n[3] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1,  0), 0));
-      n[4] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 0), 0));
-      n[5] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2(-1, 1), 0));
-      n[6] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 0, 1), 0));
-      n[7] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y)+ivec2( 1, 1), 0));
+      n[0] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2(-1, -1), 0));
+      n[1] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2( 0, -1), 0));
+      n[2] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2( 1, -1), 0));
+      n[3] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2(-1,  0), 0));
+      n[4] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2( 1, 0), 0));
+      n[5] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2(-1, 1), 0));
+      n[6] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2( 0, 1), 0));
+      n[7] = decode(texelFetch(tex, ivec2(gl_FragCoord.x, gl_FragCoord.y)+ivec2( 1, 1), 0));
 
       n[0] = max(0.0, n[0]);
       n[1] = max(0.0, n[1]);
@@ -205,9 +159,6 @@ void main()
 
     vec4 currentColor = texelFetch(u_texture, ivec2(gl_FragCoord.xy)+ivec2(bufferOffset.xy), 0);
     float currentValue = decode(currentColor);
-    currentValue -= resultOffset;
-    if (currentValue < 0.0)
-        currentValue = 0.0;
 
     vec4 samplesColor = texelFetch(samplesTexture, ivec2(gl_FragCoord.xy)+ivec2(bufferOffset.xy), 0);
     float samples = decodeInt(samplesColor);
@@ -216,17 +167,16 @@ void main()
         samples = 0.0;
         currentValue = 0.0;
     }
+    float n[9];
+    make_kernel(n, u_texture, v_texCoords.xy);
     float frameSampleCount = min(maxSampleCount-samples, maxSamplesPerFrame);
-    if (frameSampleCount <= 0 || (samples >= maxBorderSamples && currentValue <= 0.0)){
+    if (frameSampleCount <= 0 || (samples > 0 && currentValue < 0.0 && n[0] <= resultOffset && n[1] <= resultOffset && n[2] <= resultOffset && n[3] <= resultOffset
+             && n[4] <= resultOffset && n[5] <= resultOffset && n[6] <= resultOffset && n[7] <= resultOffset)){
         colour1 = currentColor;
     }
     else {
 
-        if (samples == 0.0)
-            currentValue = 0.0;
-
         float limitSq = limit*limit;
-
 
          //Padovan sequence for 2 dimensions
          //			g = 1.32471795724474602596
@@ -244,11 +194,6 @@ void main()
 
             float sampleDeltaX = mod(0.5+a1*sampleNo*0.5, 1.0)/resolution.x;
             float sampleDeltaY = mod(0.5+a2*sampleNo*0.5, 1.0)/resolution.y;
-
-            //if (mod(sampleNo, 2.0) == 1.0){
-            //    sampleDeltaX = mod(sampleNo, sampleCountRoot/2.0)/(resolution.x*sampleCountRoot/2.0);
-            //    sampleDeltaY = (sampleNo / sampleCountRoot/2.0)/(resolution.y*sampleCountRoot/2.0);
-            //}
 
             float deltaX = (pos.x - 0.5 + sampleDeltaX)*ratio;
             float deltaY = (pos.y - 0.5 + sampleDeltaY);
@@ -280,25 +225,21 @@ void main()
                 //moved += movedNow;
 
                 if (<CONDITION>
-                //|| (resXSq == 0.0 && resYSq == 0.0)
                 ){
-                    loopIterations = float(i + 1.0 + resultOffset - log(log(resXSq+resYSq)*0.5/log2)/(logPow));
+                    loopIterations = float(i + 5.0 - log(log(resXSq+resYSq)*0.5/log2)/(logPow));
                     break;
                 }
             }
 
             if (loopIterations == notEscapedValue){
                 if (currentValue <= 0.0){
-//                    samplesCalculated = 0.0;
                     samples += 1.0;
                     if (sampleNo < maxSamplesNotEscaped-1.0)
                         continue;
                     if (sampleNo >= maxBorderSamples-1.0)
                         break;
-                    float n[9];
-                    make_kernel(n, u_texture, v_texCoords.xy);
-                    if (n[0] <= resultOffset+1.0 && n[1] <= resultOffset+1.0 && n[2] <= resultOffset+1.0 && n[3] <= resultOffset+1.0
-                            && n[4] <= resultOffset+1.0 && n[5] <= resultOffset+1.0 && n[6] <= resultOffset+1.0 && n[7] <= resultOffset+1.0)
+                    if (n[0] <= resultOffset && n[1] <= resultOffset && n[2] <= resultOffset && n[3] <= resultOffset
+                            && n[4] <= resultOffset && n[5] <= resultOffset && n[6] <= resultOffset && n[7] <= resultOffset)
                         break;
                 }
                 else {
@@ -308,7 +249,7 @@ void main()
 //                resIterations += loopIterations;
 //                float contrib = 1.0;
                 float contrib = 1.0/(1.0+sampleNo);
-                if (sampleNo <= 1.0)
+                if (sampleNo <= 1.0 || currentValue < 0.0)
                     currentValue = loopIterations;
                 else
                     currentValue = currentValue*(1.0-contrib) + loopIterations*contrib;
@@ -316,18 +257,8 @@ void main()
             samples += 1.0;
         }
 
-    //    samplesCalculated = samplesCalculated + 1;
-    //    if (samplesCalculated == -1)
-    //        samplesCalculated = maxSampleCount;
-//        if (samplesCalculated > 0){
-//            resIterations = resIterations/samplesCalculated + resultOffset;
-//        }
-
         if (currentValue > 0.0){
-            currentValue += resultOffset;
             colour1 = encode(currentValue);
-//            float decoded = decode(colour1);
-//            colour1 = encode(decoded);
         } else {
             colour1 = encode(notEscapedValue);
         }

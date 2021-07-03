@@ -5,14 +5,14 @@ import java.util.Properties;
 public class RendererProperties extends Properties {
 
     public static int ORIENTATION_FULLSCREEN = 0;
-    public static int ORIENTATION_TOP_LEFT = 1;
-    public static int ORIENTATION_TOP_RIGHT = 2;
-    public static int ORIENTATION_BOTTOM_LEFT = 3;
-    public static int ORIENTATION_BOTTOM_RIGHT = 4;
-    public static int ORIENTATION_LEFT = 5;
-    public static int ORIENTATION_RIGHT = 6;
-    public static int ORIENTATION_TOP = 7;
-    public static int ORIENTATION_BOTTOM = 8;
+    public static int ORIENTATION_LEFT = 1;
+    public static int ORIENTATION_RIGHT = 2;
+    public static int ORIENTATION_TOP = 3;
+    public static int ORIENTATION_BOTTOM = 4;
+    public static int ORIENTATION_TOP_LEFT = 5;
+    public static int ORIENTATION_TOP_RIGHT = 6;
+    public static int ORIENTATION_BOTTOM_LEFT = 7;
+    public static int ORIENTATION_BOTTOM_RIGHT = 8;
 
     static String KEY_RENDERER_CLASS = "rendererclass";
 

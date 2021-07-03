@@ -45,12 +45,15 @@ public class GPUSystemContext implements SystemContext {
 
     public static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
     public static final String PARAMNAME_SUPERSAMPLING = "supersampling";
-    public static final String PARAMNAME_MAXBORDERSAMPLES = "maxBorderSamples";
-    public static final String PARAMNAME_ORBITTRAPS = "orbittraps";
+    public static final String PARAMNAME_MAXBORDERSAMPLES = "max attempts";
+    public static final String PARAMNAME_ORBITTRAPS = "orbit traps";
+    public static final String PARAMNAME_SAMPLESPERFRAME = "frame samples";
+    public static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";
 
     public static final String TEXT_COND_ABS = "|z| > limit";
     public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
     public static final String TEXT_COND_ABS_I = "|im(z)| > limit";
+    public static final String TEXT_COND_ABS_MULT_RI = "|re(z)*im(z)| > limit";
 
     ParamConfiguration paramConfiguration;
 
@@ -101,12 +104,12 @@ public class GPUSystemContext implements SystemContext {
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=256"));
         defs.add(new ParamDefinition(PARAMNAME_SUPERSAMPLING, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 1));
-        defs.add(new ParamDefinition("resolutionScale", "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType).withHints("ui-element:slider min=0.0 max=2"));
-        defaultValues.add(new StaticParamSupplier("resolutionScale", 1.0));
+        defs.add(new ParamDefinition(PARAMNAME_RESOLUTIONSCALE, "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType).withHints("ui-element:slider min=0.0 max=2"));
+        defaultValues.add(new StaticParamSupplier("resolution scale", 1.0));
         defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
-        defs.add(new ParamDefinition("frameSamples", "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
-        defaultValues.add(new StaticParamSupplier("frameSamples", 1));
+        defs.add(new ParamDefinition(PARAMNAME_SAMPLESPERFRAME, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defaultValues.add(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
 //        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
 //        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defs.add(new ParamDefinition(PARAMNAME_LAYER_CONFIG, "Calculator", StaticParamSupplier.class, layerconfigurationType));
@@ -119,6 +122,7 @@ public class GPUSystemContext implements SystemContext {
         conditionSelection.addOption(TEXT_COND_ABS, TEXT_COND_ABS, "");
         conditionSelection.addOption(TEXT_COND_ABS_R, TEXT_COND_ABS_R, "");
         conditionSelection.addOption(TEXT_COND_ABS_I, TEXT_COND_ABS_I, "");
+        conditionSelection.addOption(TEXT_COND_ABS_MULT_RI, TEXT_COND_ABS_MULT_RI, "");
         paramConfiguration.addSelection(conditionSelection);
 
         LinkedHashMap<String, ParamSupplier> map = new LinkedHashMap<>();
@@ -139,9 +143,9 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new StaticParamSupplier("condition", TEXT_COND_ABS));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
-        paramContainer.addClientParameter(new StaticParamSupplier("resolutionScale", 1.0));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_RESOLUTIONSCALE, 1.0));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 1));
-        paramContainer.addClientParameter(new StaticParamSupplier("frameSamples", 1));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
         paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
         layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));

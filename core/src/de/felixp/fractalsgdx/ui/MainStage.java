@@ -42,6 +42,8 @@ import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
+import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.expressions.FractalsExpression;
@@ -89,6 +91,8 @@ public class MainStage extends Stage {
     Table activeSettingsTable = null;
 
     ParamConfiguration clientParamConfiguration;
+
+    RendererLink juliasetLink;
 
     public MainStage(Viewport viewport, Batch batch){
         super(viewport, batch);
@@ -235,30 +239,38 @@ public class MainStage extends Stage {
 
 //        renderer2.getSystemContext().getParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
 
-        renderer.addPanListener(new PanListener() {
-            @Override
-            public void panned(ComplexNumber midpoint) {
-                FractalRenderer renderer1 = getRenderer(0);
-                FractalRenderer renderer2 = getRenderer(1);
-                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
-                if (renderer1 != null && renderer2 != null)
-                    mapJuliasetParams(renderer1, renderer2);
-            }
-        });
-        renderer2.addPanListener(new PanListener() {
-            @Override
-            public void panned(ComplexNumber midpoint) {
-                FractalRenderer renderer1 = getRenderer(0);
-                FractalRenderer renderer2 = getRenderer(1);
-                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
-                if (renderer1 != null && renderer2 != null && renderer1Juliaset)
-                    mapJuliasetParams(renderer2, renderer1);
-            }
-        });
-        mapJuliasetParams(renderer, renderer2);
+
+        juliasetLink = new JuliasetRendererLink(renderer, renderer2);
+        juliasetLink.syncTargetRenderer();
+
+//        renderer.addPanListener(new PanListener() {
+//            @Override
+//            public void panned(ComplexNumber midpoint) {
+//                FractalRenderer renderer1 = getRenderer(0);
+//                FractalRenderer renderer2 = getRenderer(1);
+//                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
+//                if (renderer1 != null && renderer2 != null)
+//                    mapJuliasetParams(renderer1, renderer2);
+//            }
+//        });
+//        renderer2.addPanListener(new PanListener() {
+//            @Override
+//            public void panned(ComplexNumber midpoint) {
+//                FractalRenderer renderer1 = getRenderer(0);
+//                FractalRenderer renderer2 = getRenderer(1);
+//                boolean renderer1Juliaset = renderer1.getSystemContext().getParamContainer().getClientParameter("c") instanceof StaticParamSupplier;
+//                if (renderer1 != null && renderer2 != null && renderer1Juliaset)
+//                    mapJuliasetParams(renderer2, renderer1);
+//            }
+//        });
+//        mapJuliasetParams(renderer, renderer2);
 
 
 //        renderer.setWidth(Gdx.graphics.getWidth()*0.5f);
+    }
+
+    public void pressedSwitchRenderers(){
+        juliasetLink.switchRenderers();
     }
 
     public Texture getPaletteTexture() {
@@ -474,50 +486,50 @@ public class MainStage extends Stage {
         return position < 0 ? null : position >= renderers.size() ? null : renderers.get(position);
     }
 
-    protected void mapJuliasetParams(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
-        SystemContext systemContext1 = sourceRenderer.getSystemContext();
-        SystemContext systemContext2 = targetRenderer.getSystemContext();
-        ParamContainer paramContainer1 = systemContext1.getParamContainer();
-        ParamContainer paramContainer2 = systemContext2.getParamContainer();
-
-        boolean setJuliaset2 = (paramContainer1.getClientParameter("start") instanceof StaticParamSupplier);
-
-        String formula = (String)systemContext1.getParamValue("f(z)=");
-        paramContainer2.addClientParameter(new StaticParamSupplier("f(z)=", formula));
-        ComputeExpression computeExpression = new ComputeExpressionBuilder(formula, "z", new HashMap<>()).getComputeExpression();
-        if (computeExpression != null){
-            for (String name : computeExpression.getConstantNames()){
-                ParamSupplier actualSupp = (ParamSupplier) systemContext1.getParameters().get(name);
-                if (actualSupp != null)
-                    paramContainer2.addClientParameter(actualSupp);
-            }
-        }
-        if (setJuliaset2) {
-            paramContainer2.addClientParameter(new StaticParamSupplier("c", paramContainer1.getClientParameter("midpoint").getGeneral()));
-            paramContainer2.addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
-        }
-        else {
-            paramContainer2.addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
-            ParamSupplier existingStartSupp = paramContainer2.getClientParameter("start");
-            if (existingStartSupp == null || !(existingStartSupp instanceof StaticParamSupplier))
-                paramContainer2.addClientParameter(new StaticParamSupplier("start", systemContext2.getNumberFactory().createComplexNumber(0,0)));
-        }
-        paramContainer2.addClientParameter(new StaticParamSupplier("iterations", systemContext1.getParamValue("iterations")));
-        paramContainer2.addClientParameter(new StaticParamSupplier("limit", systemContext1.getParamValue("limit")));
-
-        targetRenderer.reset();
-        if (targetRenderer instanceof ShaderRenderer) {
-            ((ShaderRenderer) targetRenderer).paramsChanged();
-        }
-        else if (targetRenderer instanceof RemoteRenderer){
-            ClientSystem clientSystem = ((RemoteRenderer) targetRenderer).getSystemInterface().getClientSystem();
-            clientSystem.incrementJobId();
-            paramContainer2.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
-            clientSystem.getSystemContext().setParameters(paramContainer2);
-            clientSystem.updateConfiguration();
-            clientSystem.resetAnchor();//TODO integrate...
-        }
-    }
+//    protected void mapJuliasetParams(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
+//        SystemContext systemContext1 = sourceRenderer.getSystemContext();
+//        SystemContext systemContext2 = targetRenderer.getSystemContext();
+//        ParamContainer paramContainer1 = systemContext1.getParamContainer();
+//        ParamContainer paramContainer2 = systemContext2.getParamContainer();
+//
+//        boolean setJuliaset2 = (paramContainer1.getClientParameter("start") instanceof StaticParamSupplier);
+//
+//        String formula = (String)systemContext1.getParamValue("f(z)=");
+//        paramContainer2.addClientParameter(new StaticParamSupplier("f(z)=", formula));
+//        ComputeExpression computeExpression = new ComputeExpressionBuilder(formula, "z", new HashMap<>()).getComputeExpression();
+//        if (computeExpression != null){
+//            for (String name : computeExpression.getConstantNames()){
+//                ParamSupplier actualSupp = (ParamSupplier) systemContext1.getParameters().get(name);
+//                if (actualSupp != null)
+//                    paramContainer2.addClientParameter(actualSupp);
+//            }
+//        }
+//        if (setJuliaset2) {
+//            paramContainer2.addClientParameter(new StaticParamSupplier("c", paramContainer1.getClientParameter("midpoint").getGeneral()));
+//            paramContainer2.addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
+//        }
+//        else {
+//            paramContainer2.addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
+//            ParamSupplier existingStartSupp = paramContainer2.getClientParameter("start");
+//            if (existingStartSupp == null || !(existingStartSupp instanceof StaticParamSupplier))
+//                paramContainer2.addClientParameter(new StaticParamSupplier("start", systemContext2.getNumberFactory().createComplexNumber(0,0)));
+//        }
+//        paramContainer2.addClientParameter(new StaticParamSupplier("iterations", systemContext1.getParamValue("iterations")));
+//        paramContainer2.addClientParameter(new StaticParamSupplier("limit", systemContext1.getParamValue("limit")));
+//
+//        targetRenderer.reset();
+//        if (targetRenderer instanceof ShaderRenderer) {
+//            ((ShaderRenderer) targetRenderer).paramsChanged();
+//        }
+//        else if (targetRenderer instanceof RemoteRenderer){
+//            ClientSystem clientSystem = ((RemoteRenderer) targetRenderer).getSystemInterface().getClientSystem();
+//            clientSystem.incrementJobId();
+//            paramContainer2.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
+//            clientSystem.getSystemContext().setParameters(paramContainer2);
+//            clientSystem.updateConfiguration();
+//            clientSystem.resetAnchor();//TODO integrate...
+//        }
+//    }
 
     public void addFractalRenderer(FractalRenderer renderer){
         if (!(renderer instanceof Actor))

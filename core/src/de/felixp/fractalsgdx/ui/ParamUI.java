@@ -102,73 +102,75 @@ public class ParamUI {
     }
 
     public CollapsiblePropertyListButton getSwitchRenderersButton() {
-        return new CollapsiblePropertyListButton("switch renderer", "Calculator", new ChangeListener() {
+        return new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
 
+                stage.pressedSwitchRenderers();
+
                 //TODO include target renderer!
 
-                switchIsJulia = !switchIsJulia;
-                SystemContext systemContext = stage.focusedRenderer.getSystemContext();
-//                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
-                ParamContainer serverParamContainer = new ParamContainer(systemContext.getParamContainer(), true);
-                if (switchIsJulia) {
-                    switchMandelbrotZoom = serverParamContainer.getClientParameter("zoom").getGeneral(Number.class).copy();
-                    switchMandelbrotMidpoint = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class).copy();
-                    CoordinateBasicShiftParamSupplier newStartSupp = new CoordinateBasicShiftParamSupplier("start");
+//                switchIsJulia = !switchIsJulia;
+//                SystemContext systemContext = stage.focusedRenderer.getSystemContext();
+////                systemContext.incrementViewId(); //TODO integrate... (why do i need this here? Does the copy really work?)
+//                ParamContainer serverParamContainer = new ParamContainer(systemContext.getParamContainer(), true);
+//                if (switchIsJulia) {
+//                    switchMandelbrotZoom = serverParamContainer.getClientParameter("zoom").getGeneral(Number.class).copy();
+//                    switchMandelbrotMidpoint = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class).copy();
+//                    CoordinateBasicShiftParamSupplier newStartSupp = new CoordinateBasicShiftParamSupplier("start");
+////                    newStartSupp.setChanged(true);
+////                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+////                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+////                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
 //                    newStartSupp.setChanged(true);
 //                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
-                    newStartSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-
-                    StaticParamSupplier newCSupp = new StaticParamSupplier("c", switchMandelbrotMidpoint);
-                    newCSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("c", newCSupp);
-
+//
+//                    StaticParamSupplier newCSupp = new StaticParamSupplier("c", switchMandelbrotMidpoint);
+//                    newCSupp.setChanged(true);
+//                    serverParamContainer.getClientParameters().put("c", newCSupp);
+//
+////                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
 //                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
-                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchJuliasetC != null ? switchJuliasetC : systemContext.getNumberFactory().createComplexNumber(0, 0));
-                    midpointSupp.setChanged(true);
-                    midpointSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
-
-                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", systemContext.getNumberFactory().createNumber(3.0));
-                    zoomSupp.setChanged(true);
-                    zoomSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
-                } else {
-                    ParamSupplier oldCSupp = serverParamContainer.getClientParameters().get("c");
-                    if (oldCSupp != null && oldCSupp instanceof StaticParamSupplier)
-                        switchJuliasetC = oldCSupp.getGeneral(ComplexNumber.class);
-                    else
-                        switchJuliasetC = systemContext.getNumberFactory().createComplexNumber(0,0);
-
-                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", systemContext.getNumberFactory().createComplexNumber(0, 0));
+//                    midpointSupp.setChanged(true);
+//                    midpointSupp.setLayerRelevant(true);
+//                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
+//
+//                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", systemContext.getNumberFactory().createNumber(3.0));
+//                    zoomSupp.setChanged(true);
+//                    zoomSupp.setLayerRelevant(true);
+//                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
+//                } else {
+//                    ParamSupplier oldCSupp = serverParamContainer.getClientParameters().get("c");
+//                    if (oldCSupp != null && oldCSupp instanceof StaticParamSupplier)
+//                        switchJuliasetC = oldCSupp.getGeneral(ComplexNumber.class);
+//                    else
+//                        switchJuliasetC = systemContext.getNumberFactory().createComplexNumber(0,0);
+//
+//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", systemContext.getNumberFactory().createComplexNumber(0, 0));
+////                    newStartSupp.setChanged(true);
+////                    serverParamContainer.getClientParameters().put("start", newStartSupp);
+////                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+////                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
 //                    newStartSupp.setChanged(true);
 //                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-//                    ComplexNumber pos = serverParamContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-//                    StaticParamSupplier newStartSupp = new StaticParamSupplier("start", pos);
-                    newStartSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("start", newStartSupp);
-
-                    CoordinateBasicShiftParamSupplier newCSupp = new CoordinateBasicShiftParamSupplier("c");
-                    newCSupp.setChanged(true);
-                    serverParamContainer.getClientParameters().put("c", newCSupp);
-
-                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchMandelbrotMidpoint);
-                    midpointSupp.setChanged(true);
-                    midpointSupp.setLayerRelevant(true);
-                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
-
-                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", switchMandelbrotZoom);
-                    zoomSupp.setChanged(true);//TODO test if required -> integrate...
-                    zoomSupp.setLayerRelevant(true);//TODO integrate...
-                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
-                }
-                FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).focusedRenderer;
-                focusedRenderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles for remote renderer
-                stage.submitServer(focusedRenderer, serverParamContainer);
+//
+//                    CoordinateBasicShiftParamSupplier newCSupp = new CoordinateBasicShiftParamSupplier("c");
+//                    newCSupp.setChanged(true);
+//                    serverParamContainer.getClientParameters().put("c", newCSupp);
+//
+//                    StaticParamSupplier midpointSupp = new StaticParamSupplier("midpoint", switchMandelbrotMidpoint);
+//                    midpointSupp.setChanged(true);
+//                    midpointSupp.setLayerRelevant(true);
+//                    serverParamContainer.getClientParameters().put("midpoint", midpointSupp);
+//
+//                    StaticParamSupplier zoomSupp = new StaticParamSupplier("zoom", switchMandelbrotZoom);
+//                    zoomSupp.setChanged(true);//TODO test if required -> integrate...
+//                    zoomSupp.setLayerRelevant(true);//TODO integrate...
+//                    serverParamContainer.getClientParameters().put("zoom", zoomSupp);
+//                }
+//                FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).focusedRenderer;
+//                focusedRenderer.reset();//TODO I shouldn't need this, its in submitServer(). Still doesnt reset old tiles for remote renderer
+//                stage.submitServer(focusedRenderer, serverParamContainer);
             }
         });
     }

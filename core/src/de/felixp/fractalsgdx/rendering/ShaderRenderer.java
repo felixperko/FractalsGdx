@@ -35,6 +35,7 @@ import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
+import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.AbstractArrayChunk;
@@ -134,6 +135,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     float mouseX, mouseY;
 
     PanListener panListener;
+
+    int progressiveRenderingMissingFrames;
 
     public ShaderRenderer(RendererContext rendererContext){
         super(rendererContext);
@@ -422,6 +425,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         midpoint.sub(delta);
         systemContext.setMidpoint(midpoint);
         rendererContext.panned(systemContext.getParamContainer());
+        resetProgressiveRendering();
         //see panned listener added at the end of init()...
     }
 
@@ -448,7 +452,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (fboDataFirst == null) //init() not called
             return;
 
-        applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParameters(), systemContext.getNumberFactory());
+        if (isProgressiveRenderingFinished())
+            applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParameters(), systemContext.getNumberFactory());
 
         handleInput();
 
@@ -592,7 +597,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //		}
         computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
         computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
-        Integer frameSamples = paramContainer.getClientParameter("frameSamples").getGeneral(Integer.class);
+        Integer frameSamples = paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_SAMPLESPERFRAME).getGeneral(Integer.class);
         if (frameSamples < 1)
             frameSamples = 1;
         computeShader.setUniformf("maxSamplesPerFrame", (float) frameSamples);
@@ -737,7 +742,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         long t1 = System.nanoTime();
 
-        setResolutionScale((double)systemContext.getParamValue("resolutionScale", Double.class));
+        setResolutionScale((double)systemContext.getParamValue(GPUSystemContext.PARAMNAME_RESOLUTIONSCALE, Double.class));
         float resolutionScaleF = (float) this.resolutionScale;
 
         Gdx.gl.glClearColor( 0, 0, 0, 1 );
@@ -812,7 +817,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             Texture tex = samplesTexture;
             tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             TextureRegion texReg = new TextureRegion(tex);
-            texReg.flip(false, true);
+//            if (refresh)
+//                texReg.flip(false, true);
             batch.draw(texReg, 0, 0);
             batch.end();
 
@@ -904,7 +910,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         texReg2.flip(false, true);
         batch.draw(texReg2, getX(), getY(), getWidth(), getHeight());
 
-//        debugDrawFBOs(batch);
+        debugDrawFBOs(batch);
 
         batch.flush();
 
@@ -927,7 +933,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         long t6 = System.nanoTime();
 
-        if (isScreenshot(true)) {
+        updateProgressiveRendering();
+        if (isScreenshot(true) && isProgressiveRenderingFinished()) {
             makeScreenshot();
         }
 
@@ -985,6 +992,22 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //        batch.draw(texReg2, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 //        batch.end();
 //        super.draw(batch, parentAlpha);
+    }
+
+    private boolean isProgressiveRenderingFinished(){
+        return progressiveRenderingMissingFrames == 0;
+    }
+
+    private void updateProgressiveRendering(){
+        int newSampleCount = (Integer) systemContext.getParamValue(GPUSystemContext.PARAMNAME_SAMPLESPERFRAME, Integer.class);
+        progressiveRenderingMissingFrames = progressiveRenderingMissingFrames - newSampleCount;
+        if (progressiveRenderingMissingFrames < 0)
+            progressiveRenderingMissingFrames = 0;
+    }
+
+    private void resetProgressiveRendering(){
+        int samples = (Integer) systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING, Integer.class);
+        progressiveRenderingMissingFrames = samples;
     }
 
     private FrameBuffer getFboDataPrevious() {
@@ -1570,6 +1593,12 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     public void reset() {
         setRefresh();
         paramsChanged();
+        resetProgressiveRendering();
+        ComplexNumber midpoint = getSystemContext().getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        xPos = midpoint.realDouble();
+        yPos = midpoint.imagDouble();
+        pannedDeltaX = 0f;
+        pannedDeltaY = 0f;
 //        useFirstDataFbo = true;
         prevDataFboOutdated = true;
         renderedPart = false;
@@ -1584,6 +1613,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     public void paramsChanged() {
+        for (RendererLink link : rendererContext.getSourceLinks())
+            link.syncTargetRenderer();
         paramsChanged = true;
         systemContext.setParameters(systemContext.getParamContainer());
         rendererContext.setParamContainer(systemContext.getParamContainer());

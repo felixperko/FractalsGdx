@@ -32,6 +32,7 @@ import java.util.Map;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_NAME;
@@ -203,7 +204,7 @@ public class MainStageWindows {
         VisTextButton addRendererButton = new VisTextButton("Add renderer", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.2f, 0.2f, 0));
+                FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.3f, 0.3f, RendererProperties.ORIENTATION_BOTTOM_LEFT));
                 ((MainStage)stage).addFractalRenderer(renderer);
                 renderer.init();
                 addRendererToList(window, renderer);
