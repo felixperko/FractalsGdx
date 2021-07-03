@@ -596,6 +596,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //			iterations++;
 //		}
         computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
+        computeShader.setUniformf("firstIterations", (float)paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_FIRSTITERATIONS).getGeneral(Integer.class));
         computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
         Integer frameSamples = paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_SAMPLESPERFRAME).getGeneral(Integer.class);
         if (frameSamples < 1)

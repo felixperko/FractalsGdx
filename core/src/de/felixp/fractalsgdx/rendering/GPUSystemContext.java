@@ -48,7 +48,8 @@ public class GPUSystemContext implements SystemContext {
     public static final String PARAMNAME_MAXBORDERSAMPLES = "max attempts";
     public static final String PARAMNAME_ORBITTRAPS = "orbit traps";
     public static final String PARAMNAME_SAMPLESPERFRAME = "frame samples";
-    public static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";
+    public static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";;
+    public static final String PARAMNAME_FIRSTITERATIONS = "first iterations";
 
     public static final String TEXT_COND_ABS = "|z| > limit";
     public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
@@ -94,6 +95,8 @@ public class GPUSystemContext implements SystemContext {
 
         defs.add(new ParamDefinition("f(z)=", "Calculator", StaticParamSupplier.class, BFOrbitCommon.stringType));
         defs.add(new ParamDefinition("iterations", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10000"));
+        defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10000"));
+        defaultValues.add(new StaticParamSupplier(PARAMNAME_FIRSTITERATIONS, 200));
         defs.add(new ParamDefinition("zoom", "Position", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=0.0001 max=10"));
         ParamDefinition midpointDef = new ParamDefinition("midpoint", "Position", StaticParamSupplier.class, BFOrbitCommon.complexnumberType);
         midpointDef.setResetRendererOnChange(false);

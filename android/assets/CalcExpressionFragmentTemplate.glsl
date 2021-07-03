@@ -13,6 +13,7 @@ uniform sampler2D u_texture;
 uniform vec2 bufferOffset;
 uniform int discardBuffer;
 uniform float iterations;
+uniform float firstIterations;
 uniform vec2 center;
 //uniform vec2 centerFp64Low;
 uniform float ratio;
@@ -120,16 +121,15 @@ void make_kernel(inout float n[9], sampler2D tex, vec2 coord){
 
 vec4 encodeInt(in float value){
     float valueLocal = value;
-    float r = float(int(mod(valueLocal, 256.0)))/256.0;
-    valueLocal /= 256.0;
-    float g = float(int(valueLocal))/256.0;
+    float r = float(int(mod(value, 128.0)))/256.0;
+    float g = float(int(mod(value/128.0, 128.0)))/256.0;
 //    float r = mod((value-mod(value, 256.0))/256.0, 256.0)/256.0;
 //    float g = mod(value, 256.0)/256.0;
     return vec4(r, g, 0.0, 1.0);
 }
 
 float decodeInt(in vec4 pixel){
-    return (pixel.r + pixel.g*256.0)*256.0;
+    return (pixel.r + pixel.g*128.0)*256.0;
 //    return pixel.r*256.0;
 //    return (pixel.r*256.0 + pixel.g)*256.0;
 }
@@ -170,7 +170,7 @@ void main()
     float n[9];
     make_kernel(n, u_texture, v_texCoords.xy);
     float frameSampleCount = min(maxSampleCount-samples, maxSamplesPerFrame);
-    if (frameSampleCount <= 0 || (samples > 0 && currentValue < 0.0 && n[0] <= resultOffset && n[1] <= resultOffset && n[2] <= resultOffset && n[3] <= resultOffset
+    if (frameSampleCount <= 0 || (samples > 0.0 && currentValue < 0.0 && n[0] <= resultOffset && n[1] <= resultOffset && n[2] <= resultOffset && n[3] <= resultOffset
              && n[4] <= resultOffset && n[5] <= resultOffset && n[6] <= resultOffset && n[7] <= resultOffset)){
         colour1 = currentColor;
     }
@@ -214,7 +214,9 @@ void main()
             float trapY = 0.25;
             float trapRadius = 0.01;
 
-            for (float i = 0.0 ; i < iterations ; i++){
+            float requestedIterations = sampleNo == 0.0 ? firstIterations : iterations;
+
+            for (float i = 0.0 ; i < requestedIterations ; i++){
 
                 <ITERATE>
 
