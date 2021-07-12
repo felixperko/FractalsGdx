@@ -88,4 +88,9 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
     protected void setCheckedValue(Object newValue) {
         checkBox.setChecked((Boolean)newValue);
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

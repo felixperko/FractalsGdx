@@ -35,4 +35,8 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         text = ""+newValue;
     }
 
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

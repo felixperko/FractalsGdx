@@ -11,7 +11,10 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.MappedParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
@@ -19,7 +22,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 public class JuliasetRendererLink extends DefaultRendererLink{
 
     public JuliasetRendererLink(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
-        super(sourceRenderer, targetRenderer, Arrays.asList("limit", "iterations", "f(z)=", GPUSystemContext.PARAMNAME_ORBITTRAPS));
+        super(sourceRenderer, targetRenderer, Arrays.asList("limit", "iterations", "f(z)=", "condition", GPUSystemContext.PARAMNAME_ORBITTRAPS));
     }
 
     @Override
@@ -33,7 +36,10 @@ public class JuliasetRendererLink extends DefaultRendererLink{
 
         super.switchRenderers();
 
-        ComplexNumber newSourceStart = getSourceRenderer().getSystemContext().getNumberFactory().createComplexNumber(0, 0);
+//        ComplexNumber newSourceStart = getSourceRenderer().getSystemContext().getNumberFactory().createComplexNumber(0, 0);
+        ParamSupplier newSourceStartSupp = getTargetParamContainer().getClientParameter("start");
+        NumberFactory nf = getSourceRenderer().getSystemContext().getNumberFactory();
+        ComplexNumber newSourceStart = newSourceStartSupp instanceof StaticParamSupplier ? newSourceStartSupp.getGeneral(ComplexNumber.class) : nf.createComplexNumber(0,0);
         getSourceParamContainer().addClientParameter(new StaticParamSupplier("start", newSourceStart));
         getSourceParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
         getSourceParamContainer().addClientParameter(new StaticParamSupplier("midpoint", preservedSourceMidpoint.copy()));
@@ -81,7 +87,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
             targetContainer.addClientParameter(new StaticParamSupplier("c", sourceMidpoint.copy()));
             changed = true;
         }
-        if (!(targetContainer.getClientParameter("start") instanceof MappedParamSupplier)){
+        if (!(targetContainer.getClientParameter("start") instanceof CoordinateBasicShiftParamSupplier)){
             targetContainer.addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
             changed = true;
         }

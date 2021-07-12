@@ -1,14 +1,10 @@
 package de.felixp.fractalsgdx.ui.entries;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.util.InputValidator;
-import com.kotcrab.vis.ui.widget.MenuItem;
-import com.kotcrab.vis.ui.widget.PopupMenu;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSlider;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -22,16 +18,11 @@ import java.util.List;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
-import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.NumberUtil;
-
-import static de.felixp.fractalsgdx.ui.entries.AbstractDoubleTextPropertyEntry.VIEWNAME_FIELDS;
-import static de.felixp.fractalsgdx.ui.entries.AbstractDoubleTextPropertyEntry.VIEWNAME_SLIDERS;
 
 abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
@@ -57,9 +48,9 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
         List<String> hints = parameterDefinition.getHints();
         if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
-            setPrefListView(VIEWNAME_SLIDERS);
+            setCurrentControlView(VIEWNAME_SLIDERS);
         else
-            setPrefListView(VIEWNAME_FIELDS);
+            setCurrentControlView(VIEWNAME_FIELDS);
     }
 
     List<Actor> contentFields = new ArrayList<Actor>();
@@ -292,83 +283,10 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
         });
     }
 
-    protected void setOptionButtonListener(Button optionButton) {
-        optionButton.addListener(new ChangeListener(){
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-//                        if (event.getButton() == Input.Buttons.RIGHT){
-
-                PopupMenu menu = new PopupMenu();
-                MenuItem controlFieldsItem = new MenuItem("Set text controls");
-                MenuItem controlSlidersItem = new MenuItem("Set slider controls");
-                MenuItem typeStaticItem = new MenuItem("Set static value");
-                MenuItem typeViewItem = new MenuItem("Set variable value");
-
-                typeStaticItem.setDisabled(selectedSupplierClass == StaticParamSupplier.class);
-                typeViewItem.setDisabled(selectedSupplierClass == CoordinateBasicShiftParamSupplier.class);
-//                            typeScreenItem.setDisabled(true);
-
-                controlFieldsItem.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        for (EntryView view : views.values()){
-                            view.setInvalid();
-                        }
-                        setPrefListView(VIEWNAME_FIELDS);
-                        generateViews();
-//                        submit();
-                    }
-                });
-                controlSlidersItem.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        for (EntryView view : views.values()){
-                            view.setInvalid();
-                        }
-                        setPrefListView(VIEWNAME_SLIDERS);
-                        generateViews();
-//                        submit();
-                    }
-                });
-
-                typeStaticItem.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        selectedSupplierClass = StaticParamSupplier.class;
-                        submit();
-
-                        typeStaticItem.setDisabled(true);
-                        typeViewItem.setDisabled(false);
-                    }
-                });
-                typeViewItem.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ChangeEvent event, Actor actor) {
-                        selectedSupplierClass = CoordinateBasicShiftParamSupplier.class;
-                        submit();
-
-                        typeStaticItem.setDisabled(false);
-                        typeViewItem.setDisabled(true);
-                    }
-                });
-//                            typeScreenItem.setDisabled(true);
-
-                menu.addItem(controlFieldsItem);
-                menu.addItem(controlSlidersItem);
-                menu.addSeparator();
-                menu.addItem(typeStaticItem);
-                menu.addItem(typeViewItem);
-//                            menu.addItem(typeScreenItem);
-
-                menu.showMenu(optionButton.getStage(), Gdx.input.getX(), Gdx.graphics.getHeight()-Gdx.input.getY());
-            }
-//                    }
-        });
-    }
-
+    @Override
     protected void submit() {
         if (submitValue)
-            ((MainStage) FractalsGdxMain.stage).submitServer(((MainStage) FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
+            super.submit();
     }
 
     protected double getValueFromSlider(VisSlider slider, double min, double max) {

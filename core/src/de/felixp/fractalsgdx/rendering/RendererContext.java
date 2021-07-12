@@ -27,16 +27,16 @@ import de.felixperko.fractals.util.NumberUtil;
 
 /**
  * Holds the state and (planned: persistable) properties of a renderer instance.
- * Designed to be able to swap between different renderer implementations while keeping the
- * - renderer size
- * - (planned) listeners
- * - (planned) state
+ * Designed to be able to swap between different renderer instances while keeping the
+ * - state/parameters
+ * - size
+ * - animations
+ * - listeners
+ * - renderer links
  * as seamless as possible (if the renderer implements the functionality/parameters can be mapped).
  */
 public class RendererContext {
 
-//    public static final String CONTAINERKEY_CLIENT = "client";
-//    public static final String CONTAINERKEY_SERVER = "server";
     RendererProperties properties;
 
     ParamContainer paramContainer = null;
@@ -44,15 +44,13 @@ public class RendererContext {
     List<ScreenshotListener> screenshotListeners = new ArrayList<>();
     List<ScreenshotListener> singleScreenshotListeners = new ArrayList<>();
 
-    List<PanListener> panListeners = new ArrayList<>();
+    List<RendererLink> sourceLinks = new ArrayList<>();
+    List<RendererLink> targetLinks = new ArrayList<>();
 
-//    List<ParamAnimation> parameterAnimationsServer = new ArrayList<>();
-//    List<ParamAnimation> parameterAnimationsClient = new ArrayList<>();
+    List<PanListener> panListeners = new ArrayList<>();
 
     List<ParamAnimation> paramAnimations = new ArrayList<>();
 
-//    List<ComplexNumber> path = new ArrayList<>();
-//    List<ComplexNumber> normals = new ArrayList<>();
     String selectedPathAnimation = "path";
     ComplexNumber defaultNormal;
 
@@ -62,9 +60,6 @@ public class RendererContext {
     boolean disableContinuousRendering = false;
 
     int rendererId = -1;
-
-    List<RendererLink> sourceLinks = new ArrayList<>();
-    List<RendererLink> targetLinks = new ArrayList<>();
 
     public RendererContext(float x, float y, float w, float h, int orientation){
         properties = new RendererProperties(x, y, w, h, orientation);
@@ -188,14 +183,7 @@ public class RendererContext {
                     changed = true;
             }
         }
-//        if (clientParamContainer != null) {
-//            for (ParamAnimation ani : paramAnimationsClient) {
-//                ani.updateProgress();
-//                boolean applied = applyAnimation(, numberFactory, ani);
-//                if (applied)
-//                    changed = true;
-//            }
-//        }
+
         AnimationsUI.updateSliders();
         if (changed) {
             if (changedMidpoint)
@@ -204,11 +192,6 @@ public class RendererContext {
             systemContext.setParameters(serverParamContainer);
             for (RendererLink link : getSourceLinks())
                 link.syncTargetRenderer();
-
-
-//            MainStage stage = (MainStage) FractalsGdxMain.stage;
-//            if (stage.getFocusedRenderer().getId() == rendererId)
-//                stage.submitServer(stage.getFocusedRenderer(), serverParamContainer);
         }
         return new boolean[]{changed, reset};
     }
@@ -221,6 +204,9 @@ public class RendererContext {
             String paramName = interpolation.getParamName();
             if (paramName != null) {
                 Object interpolatedValue = interpolation.getInterpolatedValue(animation.getLoopProgress(), numberFactory);
+
+                if (interpolatedValue == null) //interpolated parameter/attribute probably deleted, ignore
+                    continue;
 
                 ParamContainer paramContainer = null;
                 ParamConfiguration paramConfiguration = null;
@@ -236,7 +222,7 @@ public class RendererContext {
                     throw new IllegalStateException("Unknown param container key: "+interpolation.getParamContainerKey());
 
                 ParamSupplier currentSupplier = paramContainer.getClientParameter(paramName);
-                Object currentValue = currentSupplier.getGeneral();
+                Object currentValue = currentSupplier != null ? currentSupplier.getGeneral() : null;
 
                 if (interpolation.getAttributeName() != null){ //set attribute
                     if (!(currentValue instanceof ParamAttributeHolder))
@@ -318,18 +304,6 @@ public class RendererContext {
         return singleScreenshotListeners;
     }
 
-//    public List<PanListener> getPanListeners() {
-//        return panListeners;
-//    }
-
-//    public List<ParamAnimation> getParameterAnimationsServer() {
-//        return getParamAnimationsForContainerKey(CONTAINERKEY_SERVER);
-//    }
-//
-//    public List<ParamAnimation> getParameterAnimationsClient() {
-//        return getParamAnimationsForContainerKey(CONTAINERKEY_CLIENT);
-//    }
-
     public double getTime() {
         return time;
     }
@@ -354,50 +328,15 @@ public class RendererContext {
             pathPI.addControlPoint(point, normal, numberFactory);
     }
 
-//    public void movePathPoint(int index, ComplexNumber point){
-//        PathParamAnimation pathPI = getSelectedPathAnimation();
-//        pathPI.movePathPoint(index, point);
-//    }
-//
-//    public void setNormal(int index, ComplexNumber normal){
-//        PathParamAnimation pathPI = getSelectedPathAnimation();
-//        pathPI.setNormal(index, normal);
-//    }
-
     public void clearPath(){
         ParamInterpolation pathPI = getSelectedParamInterpolation();
         if (pathPI != null)
             pathPI.clearControlPoints();
     }
 
-//    public List<ComplexNumber> getPath() {
-//        ParamInterpolation pathPI = getSelectedParamInterpolation();
-//        if (pathPI == null)
-//            return new ArrayList<>();
-//        return pathPI.getControlPoints(false);
-//    }
-//
-//    public List<ComplexNumber> getTangents() {
-//        ParamInterpolation pathPI = getSelectedParamInterpolation();
-//        if (pathPI == null)
-//            return new ArrayList<>();
-//        return pathPI.getControlDerivatives(false);
-//    }
-
     public ParamInterpolation getSelectedParamInterpolation(){
         return AnimationsUI.getSelectedInterpolation();
-//        Collection<ParamInterpolation> interpolations = getSelectedPathAnimation().getInterpolations().values();
-//        if (interpolations.isEmpty())
-//            return null;
-//        return interpolations.iterator().next();
     }
-
-//    public PathParamAnimation getSelectedPathAnimation(){
-//        ParamAnimation animation = getParameterAnimation(CONTAINERKEY_CLIENT, selectedPathAnimation);
-//        if (animation == null)
-//            animation = getParameterAnimation(CONTAINERKEY_SERVER, selectedPathAnimation);
-//        return (PathParamAnimation) animation;
-//    }
 
     public ParamContainer getParamContainer() {
         return paramContainer;

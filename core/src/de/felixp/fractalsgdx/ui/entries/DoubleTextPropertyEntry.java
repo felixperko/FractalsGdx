@@ -37,4 +37,9 @@ public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     protected void setCheckedValue(Object newValue) {
         text = ""+newValue;
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

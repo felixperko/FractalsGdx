@@ -15,7 +15,6 @@ import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
-import de.felixp.fractalsgdx.ui.propertyattribute.BooleanPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.NumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
@@ -36,15 +35,16 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
     @Override
     public void openWindow(Stage stage) {
         VisWindow window = new VisWindow("Edit orbit traps");
+        VisTable mainTable = new VisTable(true);
 
         ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);
         OrbittrapContainer cont = contSupp.getGeneral(OrbittrapContainer.class);
         NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
 
-        VisTable contentTable = new VisTable();
+        VisTable contentTable = new VisTable(true);
 
         populateContentTable(window, cont, nf, contentTable);
-        window.add(contentTable).row();
+        mainTable.add(contentTable).row();
 
         VisTextButton addBtn = new VisTextButton("add orbit trap");
         addBtn.addListener(new ChangeListener() {
@@ -53,12 +53,14 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
                 openAddWindow(window, contentTable, cont, nf);
             }
         });
-        window.add(addBtn).row();
+        mainTable.add(addBtn).row();
 
         VisTable btnTable = new VisTable();
         VisTextButton okButton = new VisTextButton("ok");
         btnTable.add(okButton);
-        window.add(btnTable);
+        mainTable.add(btnTable);
+
+        window.add(mainTable);
 
         window.addCloseButton();
         stage.addActor(window);
@@ -132,8 +134,14 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
     public void openAddWindow(VisWindow superWindow, VisTable contentTable, OrbittrapContainer cont, NumberFactory nf){
 
         VisWindow window = new VisWindow("Add orbit trap");
+        VisTable mainTable = new VisTable(true);
 
-        VisSelectBox<Class<? extends Orbittrap>> orbittrapClassSelect = new VisSelectBox<>();
+        VisSelectBox<Class<? extends Orbittrap>> orbittrapClassSelect = new VisSelectBox<Class<? extends Orbittrap>>(){
+            @Override
+            protected String toString(Class<? extends Orbittrap> item) {
+                return ((Class<?>)item).getSimpleName();
+            }
+        };
         orbittrapClassSelect.setItems(AxisOrbittrap.class, CircleOrbittrap.class);
         Class<? extends Orbittrap> otClass = orbittrapClassSelect.getSelected();
 
@@ -147,11 +155,12 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
                 addContentTable.clear();
                 newTrap = createOrbittrap(orbittrapClassSelect.getSelected(), nf, cont);
                 addOrbittrapUI(null, addContentTable, nf, -1, newTrap, false);
+                window.pack();
             }
         });
 
-        window.add(orbittrapClassSelect).row();
-        window.add(addContentTable).expandX().fillX().left().row();
+        mainTable.add(orbittrapClassSelect).row();
+        mainTable.add(addContentTable).expandX().fillX().left().row();
 
         VisTable buttonTable = new VisTable(true);
         VisTextButton cancelButton = new VisTextButton("cancel", new ChangeListener() {
@@ -166,13 +175,16 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
                 cont.addOrbittrap(newTrap);
                 window.remove();
                 newTrap = null;
-                if (superWindow.getParent() != null)
+                if (superWindow.getParent() != null) {
                     populateContentTable(superWindow, cont, nf, contentTable);
+                }
             }
         });
         buttonTable.add(cancelButton);
         buttonTable.add(okButton);
-        window.add(buttonTable);
+        mainTable.add(buttonTable);
+
+        window.add(mainTable);
 
         window.addCloseButton();
         superWindow.getStage().addActor(window);
@@ -216,5 +228,10 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
     @Override
     public ParamSupplier getSupplier() {
         return paramContainer.getClientParameter(propertyName);
+    }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
     }
 }

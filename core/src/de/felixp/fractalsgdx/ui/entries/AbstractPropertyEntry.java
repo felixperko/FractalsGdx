@@ -1,9 +1,13 @@
 package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.widget.MenuItem;
+import com.kotcrab.vis.ui.widget.PopupMenu;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +16,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public abstract class AbstractPropertyEntry {
 
@@ -23,6 +31,9 @@ public abstract class AbstractPropertyEntry {
     public static final String VIEW_LIST = "LIST";
     public static final String VIEW_COLUMN = "COLUMN";
     public static final String VIEW_DETAILS = "DETAILS";
+
+    public static final String VIEWNAME_SLIDERS = "SLIDERS";
+    public static final String VIEWNAME_FIELDS = "FIELDS";
 
     Tree.Node node;
     ParamContainer paramContainer;
@@ -41,12 +52,22 @@ public abstract class AbstractPropertyEntry {
 
     boolean submitValue = false;
 
+    protected Class<? extends ParamSupplier> selectedSupplierClass;
+    List<Class<? extends ParamSupplier>> possibleSupplierClasses;
+
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
         this.propertyName = parameterDefinition.getName();
         this.node = node;
         this.paramContainer = paramContainer;
         this.submitValue = submitValue;
+
+        this.possibleSupplierClasses = parameterDefinition.getPossibleClasses();
+        ParamSupplier param = paramContainer.getClientParameter(parameterDefinition.getName());
+        if (param != null && possibleSupplierClasses.contains(param.getClass()))
+            this.selectedSupplierClass = param.getClass();
+        else
+            this.selectedSupplierClass = possibleSupplierClasses.get(0);
     }
 
     public void init(){
@@ -115,7 +136,7 @@ public abstract class AbstractPropertyEntry {
         return prefListView;
     }
 
-    public void setPrefListView(String prefListView) {
+    public void setCurrentControlView(String prefListView) {
         this.prefListView = prefListView;
     }
 
@@ -133,4 +154,109 @@ public abstract class AbstractPropertyEntry {
 
     protected abstract boolean checkValue(Object valueObj);
     protected abstract void setCheckedValue(Object newValue);
+
+    protected abstract Object getDefaultObject();
+
+    protected String getDefaultObjectName(){
+        return getDefaultObject() == null ? null : getDefaultObject().toString();
+    }
+
+    protected void setOptionButtonListener(Button optionButton) {
+        optionButton.addListener(new ChangeListener(){
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+//                        if (event.getButton() == Input.Buttons.RIGHT){
+
+                PopupMenu menu = new PopupMenu();
+
+                Object defaultObject = getDefaultObject();
+                boolean setDefaultValuePossible = defaultObject != null && selectedSupplierClass.equals(StaticParamSupplier.class);
+                if (setDefaultValuePossible){
+                    MenuItem setDefaultValueItem = new MenuItem("Set "+getDefaultObjectName());
+                    setDefaultValueItem.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+                            setValue(defaultObject);
+                            getParamContainer().addClientParameter(getSupplier());
+                            submit();
+                        }
+                    });
+
+                    menu.addItem(setDefaultValueItem);
+                }
+
+                if (!prefListView.equals(VIEWNAME_FIELDS)) {
+                    MenuItem controlFieldsItem = new MenuItem("Set text controls");
+                    controlFieldsItem.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+                            for (EntryView view : views.values()) {
+                                view.setInvalid();
+                            }
+                            setCurrentControlView(VIEWNAME_FIELDS);
+                            generateViews();
+                        }
+                    });
+                    menu.addItem(controlFieldsItem);
+                }
+
+                if (!prefListView.equals(VIEWNAME_SLIDERS)){
+                    MenuItem controlSlidersItem = new MenuItem("Set slider controls");
+                    controlSlidersItem.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+                            for (EntryView view : views.values()) {
+                                view.setInvalid();
+                            }
+                            setCurrentControlView(VIEWNAME_SLIDERS);
+                            generateViews();
+                        }
+                    });
+                    menu.addItem(controlSlidersItem);
+                }
+
+                boolean staticAndVariablePossible = possibleSupplierClasses.contains(StaticParamSupplier.class)
+                        && possibleSupplierClasses.contains(CoordinateBasicShiftParamSupplier.class);
+                if (staticAndVariablePossible) {
+
+                    if (!(selectedSupplierClass.equals(StaticParamSupplier.class))) {
+                        MenuItem typeStaticItem = new MenuItem("Set constant value");
+//                    typeStaticItem.setDisabled(selectedSupplierClass == StaticParamSupplier.class);
+                        typeStaticItem.addListener(new ChangeListener() {
+                            @Override
+                            public void changed(ChangeEvent event, Actor actor) {
+                                selectedSupplierClass = StaticParamSupplier.class;
+                                submit();
+//                            typeStaticItem.setDisabled(true);
+//                            typeVariableItem.setDisabled(false);
+                            }
+                        });
+//                    menu.addSeparator();
+                        menu.addItem(typeStaticItem);
+                    }
+
+                    if (!(selectedSupplierClass.equals(CoordinateBasicShiftParamSupplier.class))) {
+                        MenuItem typeVariableItem = new MenuItem("Set map value");
+//                        typeVariableItem.setDisabled(selectedSupplierClass == CoordinateBasicShiftParamSupplier.class);
+                        typeVariableItem.addListener(new ChangeListener() {
+                            @Override
+                            public void changed(ChangeEvent event, Actor actor) {
+                                selectedSupplierClass = CoordinateBasicShiftParamSupplier.class;
+                                submit();
+//                                typeStaticItem.setDisabled(false);
+//                                typeVariableItem.setDisabled(true);
+                            }
+                        });
+                        menu.addItem(typeVariableItem);
+                    }
+                }
+
+                menu.showMenu(optionButton.getStage(), Gdx.input.getX(), Gdx.graphics.getHeight()-Gdx.input.getY());
+            }
+        });
+    }
+
+    protected void submit() {
+        ((MainStage) FractalsGdxMain.stage).submitServer(((MainStage) FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
+    }
 }

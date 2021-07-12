@@ -266,4 +266,9 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
             value = val;
         }
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

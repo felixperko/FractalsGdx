@@ -48,6 +48,8 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.statistics.IStats;
@@ -206,6 +208,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             @Override
             public void touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 getStage().setKeyboardFocus(thisRenderer);
+                ((MainStage)getStage()).setFocusedRenderer(thisRenderer);
                 ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
                 if (selectedInterpolation instanceof ComplexNumberParamInterpolation){
                     List<ComplexNumber> controlPoints = selectedInterpolation.getControlPoints(true);
@@ -239,60 +242,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 return super.longPress(actor, x, y);
             }
 
-            ParamAnimation zoomAnimation = null;
-            boolean disableContinuousRendering = false;
-
-//            @Override
-//            public void touchDown(InputEvent event, float x, float y, int pointer, int button) {
-//                float currentZoom = (float)paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble();
-//                if (zoomAnimation == null) {
-//                    zoomAnimation = new LinearNumberParamAnimation("zoom", 10, currentZoom+"", currentZoom/10000000000d+""){
-////                        @Override
-////                        public Number getInterpolatedValue(double progress, NumberFactory nf) {
-//////                            Number interpolatedValue = super.getInterpolatedValue(progress, nf);
-////                            Number differenceOfScale = getEndValue(nf).copy();
-////                            differenceOfScale.div(getStartValue(nf));
-////                            double logDifferenceOfScale = Math.log10(differenceOfScale.toDouble());
-////                            double progressInCycle = scaleProgress(progress);
-////                            double valueDifferenceInScale = logDifferenceOfScale * progressInCycle;
-////                            double valueFactor = Math.pow(valueDifferenceInScale, 10);
-////                            Number result = getEndValue(nf).copy();
-////                            result.sub(getStartValue(nf)); //diff
-////                            result.mult(nf.createNumber(valueFactor)); //diff*factorAtProgression
-////                            result.add(getStartValue(nf)); //add baseline
-////                            return result;
-////                        }
-//
-//                        @Override
-//                        protected double scaleProgress(double progress) {
-//                            double linearProgress = super.scaleProgress(progress);
-//                            //(1 - e^(-x)) / (1 - e^-1)
-//                            //double logarithmicProgress = Math.exp(1 / linearProgress - 1.0);
-//                            double logarithmicProgress = (1 - Math.pow(-linearProgress, 10)) / (1-Math.pow(-1, 10));
-//                            return logarithmicProgress;
-//                        }
-//                    };
-//
-//                    addParamAnimationServer(zoomAnimation);
-//                    if (!Gdx.graphics.isContinuousRendering()) {
-//                        Gdx.graphics.setContinuousRendering(true);
-//                        disableContinuousRendering = true;
-//                    }
-//                }
-//            }
-
-
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 movingControlPoint = null;
-//                if (zoomAnimation != null){
-//                    addParamAnimationServer(zoomAnimation);
-//                    zoomAnimation = null;
-//                    if (disableContinuousRendering) {
-//                        Gdx.graphics.setContinuousRendering(false);
-//                        disableContinuousRendering = false;
-//                    }
-//                }
             }
         });
 
@@ -407,7 +359,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         deltaY += panPartOffsetY;
         float requestedDeltaX = deltaX;
         float requestedDeltaY = deltaY;
-        //fit pixel to pixel for optimizations
+        //TODO fit pixel to pixel doesn't always work correctly
         if (Math.abs(deltaX-Math.round(deltaX))*resolutionScale < roundMaxDelta)
             deltaX = (float)(Math.round(deltaX*resolutionScale)/resolutionScale);
         if (Math.abs(deltaY-Math.round(deltaY))*resolutionScale < roundMaxDelta)
@@ -524,6 +476,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     String lastCondition = "";
     OrbittrapContainer lastOrbittrapContainer = null;
+    ParamContainer lastParams = null;
 
     public void updateExpression(){
 //        String expr =
@@ -545,7 +498,16 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 trapsChanged = true;
         }
 
-        boolean update = expressionString == null || !newExpressionString.equals(expressionString) || paramsChanged || conditionChanged || trapsChanged;
+        boolean recompileShaders = conditionChanged;
+        if (lastParams != null) {
+            for (ParamSupplier supp : systemContext.getParamContainer().getParameters()) {
+                if (!lastParams.getClientParameters().containsKey(supp.getName()) || !supp.getClass().isInstance(lastParams.getClientParameter(supp.getName()))){
+                    recompileShaders = true;
+                    break;
+                }
+            }
+        }
+        boolean update = expressionString == null || !(newExpressionString.equals(expressionString)) || recompileShaders || trapsChanged || paramsChanged;
         if (!update){
             for (ParamSupplier supp : systemContext.getParamContainer().getParameters()){
                 if (supp.isChanged()){
@@ -561,7 +523,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 ComputeExpression newExpression = new ComputeExpressionBuilder(expressionString, "z", systemContext.getParameters()).getComputeExpression();
                 boolean expressionChanged = !newExpression.equals(expression);
                 expression = newExpression;
-                if (expressionChanged || conditionChanged || (trapsChanged && (cont == null || cont.needsShaderRecompilation(lastOrbittrapContainer)))) {
+                if (expressionChanged || recompileShaders || (trapsChanged && (cont == null || cont.needsShaderRecompilation(lastOrbittrapContainer)))) {
                     shaderBuilder = new ShaderBuilder(expression, systemContext);
                     compileComputeShader();
                 }
@@ -574,6 +536,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             }
         }
 
+        lastParams = new ParamContainer(systemContext.getParamContainer(), true);
         lastOrbittrapContainer = cont.copy();
         paramsChanged = false;
     }
@@ -596,7 +559,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //			iterations++;
 //		}
         computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter("iterations").getGeneral(Integer.class));
-        computeShader.setUniformf("firstIterations", (float)paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_FIRSTITERATIONS).getGeneral(Integer.class));
+        computeShader.setUniformf("firstIterations", (float)paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_FIRSTITERATIONS).getGeneral(Number.class).toDouble()/100f);
         computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
         Integer frameSamples = paramContainer.getClientParameter(GPUSystemContext.PARAMNAME_SAMPLESPERFRAME).getGeneral(Integer.class);
         if (frameSamples < 1)
@@ -610,13 +573,17 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         float[] params = new float[paramList.size()*3];
         for (int i = 0 ; i <  paramList.size() ; i++){
             ParamSupplier supp = paramList.get(i);
-            if (supp instanceof StaticParamSupplier){
-                ComplexNumber val = (ComplexNumber)((StaticParamSupplier)supp).getObj();
+            if (supp instanceof StaticParamSupplier || supp instanceof CoordinateDiscreteModuloParamSupplier){
+                ComplexNumber val;
+                if (supp instanceof  StaticParamSupplier)
+                    val = (ComplexNumber)((StaticParamSupplier)supp).getObj();
+                else
+                    val = ((CoordinateDiscreteModuloParamSupplier)supp).getOffset();
                 params[i*3] = (float) val.realDouble();
                 params[i*3+1] = (float) val.imagDouble();
                 params[i*3+2] = 0;
             }
-            else if (supp instanceof CoordinateBasicShiftParamSupplier){
+            else if (supp instanceof CoordinateBasicShiftParamSupplier || supp instanceof CoordinateModuloParamSupplier){
 //                CoordinateBasicShiftParamSupplier shiftSupp = (CoordinateBasicShiftParamSupplier) supp;
                 params[i*3] = (float)midpoint.realDouble();
                 params[i*3+1] = (float)midpoint.imagDouble();
@@ -911,7 +878,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         texReg2.flip(false, true);
         batch.draw(texReg2, getX(), getY(), getWidth(), getHeight());
 
-        debugDrawFBOs(batch);
+//        debugDrawFBOs(batch);
 
         batch.flush();
 

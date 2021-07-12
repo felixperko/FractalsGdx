@@ -89,4 +89,9 @@ public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
             }
         });
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

@@ -115,4 +115,9 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
         field_priority_multiplier.setText(""+val.getPriorityMultiplier());
     }
 
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
+
 }

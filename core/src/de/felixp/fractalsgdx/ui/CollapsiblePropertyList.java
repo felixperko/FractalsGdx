@@ -60,6 +60,12 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             propertyEntriesPerCategory.clear();
         }
 
+        //allow force reset by first setting paramContainer null and then setting a new one
+        if (paramContainer == null){
+            this.paramContainer = null;
+            return;
+        }
+
         //need to reset property table?
         //first --> reset
         boolean reset = this.paramContainer == null;

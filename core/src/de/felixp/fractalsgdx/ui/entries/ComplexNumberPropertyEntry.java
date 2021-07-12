@@ -58,4 +58,14 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
         text1 = cn.getReal().toString();
         text2 = cn.getImag().toString();
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return numberFactory.createComplexNumber("0", "0");
+    }
+
+    @Override
+    protected String getDefaultObjectName() {
+        return "("+getDefaultObject().toString()+")";
+    }
 }

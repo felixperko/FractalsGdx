@@ -147,4 +147,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
         for (Actor contentField : contentFields)
             ((VisSelectBox)contentField).setSelected(newSelectedName);
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

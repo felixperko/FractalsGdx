@@ -19,6 +19,8 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
@@ -110,13 +112,15 @@ public class ShaderBuilder {
         String cond = (String)systemContext.getParamValue("condition");
         switch (cond){
             case GPUSystemContext.TEXT_COND_ABS:
-                return "resXSq + resYSq > limitSq";
+                return "local_0*local_0 + local_1*local_1 > limitSq";
             case GPUSystemContext.TEXT_COND_ABS_R:
                 return "abs(local_0) > limit";
             case GPUSystemContext.TEXT_COND_ABS_I:
                 return "abs(local_1) > limit";
             case GPUSystemContext.TEXT_COND_ABS_MULT_RI:
                 return "abs(local_0*local_1) > limit";
+            case GPUSystemContext.TEXT_COND_MULT_RI:
+                return "local_0*local_1 > limit";
             default:
                 return "";
         }
@@ -153,22 +157,33 @@ public class ShaderBuilder {
                 writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
                         "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
                         "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
-//                writeStringBuilderLines(stringBuilder, "//init parameter " + supp.getName(),
-//                        varNameReal + " = " +val.realDouble()+";",
-//                        varNameImag + " = " +val.imagDouble()+";");
+//                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+//                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, 4.0) + 2.0;",
+//                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, 4.0) + 2.0;");
             }
             else if (supp instanceof CoordinateBasicShiftParamSupplier){
                 CoordinateBasicShiftParamSupplier shiftSupp = (CoordinateBasicShiftParamSupplier) supp;
-                ComplexNumber reference = systemContext.getNumberFactory().createComplexNumber("-3.0", "0.0");
-//                writeStringBuilderLines(stringBuilder, "//init parameter " + supp.getName(),
-//                        varNameReal + " = " +reference.realDouble()+" + x * "+zoom+" / "+height+";",
-//                        varNameImag + " = " +reference.imagDouble()+" + y * "+zoom+" / "+height+";");
+//                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+//                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, 4.0) + 2.0;",
+//                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, 4.0) + 2.0;");
                 writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
                         "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
                         "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
-//                writeStringBuilderLines(stringBuilder, "//init parameter "+supp.getName(),
-//                        "float "+varNameReal+" = (pos.x - 0.5)*ratio * scale + center.x;",
-//                        "float "+varNameImag+" = (((pos.y - 0.5) * scale) + center.y);");
+            }
+            else if (supp instanceof CoordinateModuloParamSupplier){
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                        "type "+varNameReal+" = mod(deltaX, 4.0) + 2.0;",
+                        "type "+varNameImag+" = mod(deltaY, 4.0) + 2.0;");
+            }
+            else if (supp instanceof CoordinateDiscreteModuloParamSupplier){
+                CoordinateDiscreteModuloParamSupplier dmSupp = (CoordinateDiscreteModuloParamSupplier) supp;
+                double modulo = dmSupp.getModulo().toDouble();
+                double stepSize = dmSupp.getStepSize().toDouble();
+                placeholderValues.put("modulo", modulo+"");
+                placeholderValues.put("stepSizeFactor", stepSize/modulo+"");
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, modulo)*stepSizeFactor;",
+                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, modulo)*stepSizeFactor;");
             }
             else
                 throw new IllegalArgumentException("Unsupported ParamSupplier "+supp.getName()+": "+supp.getClass().getName());
@@ -244,7 +259,7 @@ public class ShaderBuilder {
             printKernelInstruction(sb, instruction);
         }
 
-        //write orbittrap handling
+        //write orbit trap conditions
         ParamSupplier orbittrapSupp = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_ORBITTRAPS);
         if (orbittrapSupp != null && orbittrapSupp instanceof StaticParamSupplier){
             OrbittrapContainer trapContainer = orbittrapSupp.getGeneral(OrbittrapContainer.class);
@@ -258,8 +273,6 @@ public class ShaderBuilder {
                     HashMap<String, String> placeholderValues = new HashMap<>();
 
                     if (trap instanceof AxisOrbittrap) {
-                        AxisOrbittrap aot = (AxisOrbittrap) trap;
-
                         String otPrefix = getOrbittrapPrefix(trap);
                         uniforms.put(otPrefix+"width", new ParamAttributeValueReference(trap.getParamAttribute("width")));
                         uniforms.put(otPrefix+"offset", new ParamAttributeValueReference(trap.getParamAttribute("offset")));
@@ -277,31 +290,32 @@ public class ShaderBuilder {
                                 return Math.sin(Math.toRadians(angle));
                             }
                         });
-
-//                        placeholderValues.put("width", "" + (float) aot.getWidth().toDouble());
-//                        placeholderValues.put("offset", "(" + (float) aot.getOffset().toDouble()+")");
                         placeholderValues.put("width", otPrefix+"width");
                         placeholderValues.put("offset", otPrefix+"offset");
                         placeholderValues.put("factorR", otPrefix+"factorR");
                         placeholderValues.put("factorI", otPrefix+"factorI");
-//                        double angle = aot.getAngle().toDouble();
-//                        if (angle == 0.0) {
-//                            writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
-//                                    "abs(local_1 - offset) <= width");
-//                        }
-//                        else {
-//                            double radians = Math.toRadians(angle);
-//                            placeholderValues.put("factorR", "(" + (float) Math.cos(radians) + ")");
-//                            placeholderValues.put("factorI", "(" + (float) Math.sin(radians) + ")");
                             writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
                                     "abs(local_1*factorR-local_0*factorI - offset) <= (width)");
 //                        }
                     }
                     else if (trap instanceof CircleOrbittrap){
-                        CircleOrbittrap cot = (CircleOrbittrap) trap;
-                        placeholderValues.put("centerR", "(" + (float) cot.getCenter().getReal().toDouble()+")");
-                        placeholderValues.put("centerI", "(" + (float) cot.getCenter().getImag().toDouble()+")");
-                        placeholderValues.put("radius", "" + (float) cot.getRadius().toDouble());
+                        String otPrefix = getOrbittrapPrefix(trap);
+                        uniforms.put(otPrefix+"centerR", new ParamAttributeValueReference(trap.getParamAttribute("center")){
+                            @Override
+                            public Object getValue() {
+                                return ((ComplexNumber)super.getValue()).realDouble();
+                            }
+                        });
+                        uniforms.put(otPrefix+"centerI", new ParamAttributeValueReference(trap.getParamAttribute("center")){
+                            @Override
+                            public Object getValue() {
+                                return ((ComplexNumber)super.getValue()).imagDouble();
+                            }
+                        });
+                        uniforms.put(otPrefix+"radius", new ParamAttributeValueReference(trap.getParamAttribute("radius")));
+                        placeholderValues.put("centerR", otPrefix+"centerR");
+                        placeholderValues.put("centerI", otPrefix+"centerI");
+                        placeholderValues.put("radius", otPrefix+"radius");
                         writeStringBuilderLines(sb, placeholderValues, "//circle orbittrap",
                                 "sqrt((local_0-centerR)*(local_0-centerR)+(local_1-centerI)*(local_1-centerI)) <= radius");
                     }
@@ -344,14 +358,14 @@ public class ShaderBuilder {
                         "fromImag = fromImag + toImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_ADD_PART){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//add_part",
-                        "fromReal = fromReal + toReal;");
+                        "fromReal = fromReal + fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_SUB_COMPLEX){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sub_complex",
                         "fromReal = fromReal - toReal;",
                         "fromImag = fromImag - toImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_SUB_PART){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sub_part",
-                        "fromReal = fromReal - toReal;");
+                        "fromReal = fromReal - fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_MULT_COMPLEX){
                 String tempVarName = getTempVarName();
                 //real = ac-bd
@@ -367,7 +381,24 @@ public class ShaderBuilder {
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//mult_part",
                         "fromReal = fromReal*fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_DIV_COMPLEX){
-                //TODO
+                //newR = fromReal*toReal + fromImag*toImag
+                //newI = fromImag*toReal - fromReal*toImag
+                //div = toReal*toReal + toImag*toImag
+                //fromReal = newR/div
+                //fromImag = newI/div
+                String temp_div = getTempVarName();
+                String tempR = getTempVarName();
+                String tempI = getTempVarName();
+                placeholderValues.put("temp_div", getTempVarName());
+                placeholderValues.put("tempR", getTempVarName());
+                placeholderValues.put("tempI", getTempVarName());
+                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//div_complex",
+                        "float tempR = fromReal*toReal + fromImag*toImag;",
+                        "float tempI = fromImag*toReal - fromReal*toImag;",
+                        "float temp_div = toReal*toReal + toImag*toImag;",
+                        "fromReal = tempR/temp_div;",
+                        "fromImag = tempI/temp_div;"
+                        );
             } else if (instruction.type == ComputeInstruction.INSTR_DIV_PART){
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//div_part",
                         "fromReal = fromReal / toReal;");
@@ -516,7 +547,7 @@ public class ShaderBuilder {
                 );
             } else if (instruction.type == ComputeInstruction.INSTR_LOG_PART) {
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_part",
-                        "fromReal = log(fromReal)");
+                        "fromReal = log(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_LOG_COMPLEX) {
                 String tempVarName10 = getTempVarName();
                 writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_complex",

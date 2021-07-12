@@ -72,4 +72,9 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
     protected void setCheckedValue(Object newValue) {
         //doesn't care about values, just provides window button
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

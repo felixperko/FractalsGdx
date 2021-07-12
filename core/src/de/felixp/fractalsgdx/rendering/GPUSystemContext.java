@@ -28,6 +28,7 @@ import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueField;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
@@ -49,12 +50,13 @@ public class GPUSystemContext implements SystemContext {
     public static final String PARAMNAME_ORBITTRAPS = "orbit traps";
     public static final String PARAMNAME_SAMPLESPERFRAME = "frame samples";
     public static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";;
-    public static final String PARAMNAME_FIRSTITERATIONS = "first iterations";
+    public static final String PARAMNAME_FIRSTITERATIONS = "first it. %";
 
     public static final String TEXT_COND_ABS = "|z| > limit";
     public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
     public static final String TEXT_COND_ABS_I = "|im(z)| > limit";
     public static final String TEXT_COND_ABS_MULT_RI = "|re(z)*im(z)| > limit";
+    public static final String TEXT_COND_MULT_RI = "re(z)*im(z) > limit";
 
     ParamConfiguration paramConfiguration;
 
@@ -92,11 +94,12 @@ public class GPUSystemContext implements SystemContext {
         List<Class<? extends ParamSupplier>> supplierClasses = new ArrayList<>();
         supplierClasses.add(StaticParamSupplier.class);
         supplierClasses.add(CoordinateBasicShiftParamSupplier.class);
+        supplierClasses.add(CoordinateDiscreteModuloParamSupplier.class);
+
+        nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
         defs.add(new ParamDefinition("f(z)=", "Calculator", StaticParamSupplier.class, BFOrbitCommon.stringType));
         defs.add(new ParamDefinition("iterations", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10000"));
-        defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10000"));
-        defaultValues.add(new StaticParamSupplier(PARAMNAME_FIRSTITERATIONS, 200));
         defs.add(new ParamDefinition("zoom", "Position", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=0.0001 max=10"));
         ParamDefinition midpointDef = new ParamDefinition("midpoint", "Position", StaticParamSupplier.class, BFOrbitCommon.complexnumberType);
         midpointDef.setResetRendererOnChange(false);
@@ -105,14 +108,16 @@ public class GPUSystemContext implements SystemContext {
         defs.add(new ParamDefinition("start", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType));
         defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, BFOrbitCommon.selectionType));
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=256"));
+        defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Quality", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=100"));
+        defaultValues.add(new StaticParamSupplier(PARAMNAME_FIRSTITERATIONS, nf.createNumber("20.0")));
         defs.add(new ParamDefinition(PARAMNAME_SUPERSAMPLING, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 1));
-        defs.add(new ParamDefinition(PARAMNAME_RESOLUTIONSCALE, "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType).withHints("ui-element:slider min=0.0 max=2"));
-        defaultValues.add(new StaticParamSupplier("resolution scale", 1.0));
-        defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
-        defaultValues.add(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
         defs.add(new ParamDefinition(PARAMNAME_SAMPLESPERFRAME, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
+        defs.add(new ParamDefinition(PARAMNAME_RESOLUTIONSCALE, "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType).withHints("ui-element:slider min=0.0 max=2"));
+        defaultValues.add(new StaticParamSupplier(PARAMNAME_RESOLUTIONSCALE, 1.0));
+        defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defaultValues.add(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
 //        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
 //        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
         defs.add(new ParamDefinition(PARAMNAME_LAYER_CONFIG, "Calculator", StaticParamSupplier.class, layerconfigurationType));
@@ -126,12 +131,11 @@ public class GPUSystemContext implements SystemContext {
         conditionSelection.addOption(TEXT_COND_ABS_R, TEXT_COND_ABS_R, "");
         conditionSelection.addOption(TEXT_COND_ABS_I, TEXT_COND_ABS_I, "");
         conditionSelection.addOption(TEXT_COND_ABS_MULT_RI, TEXT_COND_ABS_MULT_RI, "");
+        conditionSelection.addOption(TEXT_COND_MULT_RI, TEXT_COND_MULT_RI, "");
         paramConfiguration.addSelection(conditionSelection);
 
         LinkedHashMap<String, ParamSupplier> map = new LinkedHashMap<>();
         paramContainer = new ParamContainer(map);
-
-        nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
         paramContainer.addClientParameter(new StaticParamSupplier("numberFactory", nf));
         paramContainer.addClientParameter(new StaticParamSupplier("iterations", 1000));
@@ -146,9 +150,9 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new StaticParamSupplier("condition", TEXT_COND_ABS));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_RESOLUTIONSCALE, 1.0));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 1));
-        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
         paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
         layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));

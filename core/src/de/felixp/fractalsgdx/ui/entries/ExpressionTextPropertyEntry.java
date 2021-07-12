@@ -50,5 +50,9 @@ public class ExpressionTextPropertyEntry extends AbstractSingleTextPropertyEntry
         text = (String)newValue;
     }
 
+    @Override
+    protected Object getDefaultObject() {
+        return "z^2 + c";
+    }
 }
 

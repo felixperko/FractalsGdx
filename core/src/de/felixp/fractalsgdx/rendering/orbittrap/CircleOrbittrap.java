@@ -14,7 +14,6 @@ public class CircleOrbittrap extends AbstractOrbittrap{
 
     ComplexNumber center;
     Number radius;
-    List<ParamAttribute> attrs = new ArrayList<>();
 
     public CircleOrbittrap(int id, ComplexNumber center, Number radius) {
         super(id, "Circle trap #"+id);

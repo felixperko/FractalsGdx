@@ -171,4 +171,9 @@ class ListPropertyEntry extends AbstractPropertyEntry {
     protected void setCheckedValue(Object newValue) {
         throw new NotImplementedException();
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return null;
+    }
 }

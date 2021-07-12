@@ -252,7 +252,7 @@ public class RendererUI {
         VisTable controlsTable = new VisTable(true);
         controlsTable.add(orientationSelect).left();
         if (!renderer.getRendererContext().getTargetLinks().isEmpty()) {
-            controlsTable.add("Linked to: ");
+            controlsTable.add("Linked to:");
             for (RendererLink link : renderer.getRendererContext().getTargetLinks())
                 controlsTable.add(new VisTextButton("Renderer " + link.getSourceRenderer().getId()));
         }

@@ -38,4 +38,14 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     protected void setCheckedValue(Object newValue) {
         text = ((Number)newValue).toString();
     }
+
+    @Override
+    protected Object getDefaultObject() {
+        return numberFactory.createNumber("0");
+    }
+
+    @Override
+    protected String getDefaultObjectName() {
+        return "("+getDefaultObject().toString()+")";
+    }
 }

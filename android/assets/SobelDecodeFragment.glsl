@@ -27,9 +27,9 @@ const int kernelLength = kernelDim*kernelDim;
 
 float DecodeExpV3( in vec3 pack )
 {
-    float exponent = ( pack.z * 256.0 )-129.0;
-    float value  = (pack.x + (pack.y+0.42)/256.0);
-    return value * exp2( exponent+1.0 );
+    float exponent = float(int( pack.z * 256.0-128.0 ));
+    float value  = (pack.x + (pack.y)/256.0);
+    return (value) * exp2(exponent+1.0);
 }
 
 //float DecodeExpV3( in vec3 pack )
