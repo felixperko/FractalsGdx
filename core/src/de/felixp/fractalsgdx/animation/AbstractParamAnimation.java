@@ -91,13 +91,13 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
     }
 
 //    @Override
-//    public T getInterpolatedValue(double progress, NumberFactory numberFactory) {
+//    public T getInterpolatedValue(double progress, NumberFactory nf) {
 //        double loopProgress = getLoopProgress();
 //        this.progress = loopProgress;
-//        return getInterpolatedValueInLoop(loopProgress, numberFactory);
+//        return getInterpolatedValueInLoop(loopProgress, nf);
 //    }
 
-//    public abstract T getInterpolatedValueInLoop(double progressInLoop, NumberFactory numberFactory);
+//    public abstract T getInterpolatedValueInLoop(double progressInLoop, NumberFactory nf);
 
     @Override
     public double getLoopProgress() {

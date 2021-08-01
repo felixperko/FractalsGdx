@@ -14,7 +14,7 @@ public interface FractalRenderer {
 
     RendererContext getRendererContext();
 
-    void init();
+    void initRenderer();
 
     void draw(Batch batch, float parentAlpha);
 
@@ -79,4 +79,8 @@ public interface FractalRenderer {
     void reset();
 
     void removed();
+
+    void setFocused(boolean focused);
+
+    boolean isFocused();
 }

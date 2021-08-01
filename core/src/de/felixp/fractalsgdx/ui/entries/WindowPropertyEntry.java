@@ -29,7 +29,7 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
 
             @Override
             public void addToTable(Table table) {
-                table.add(nameLbl);
+                table.add(nameLbl).left();
                 if (windowButton == null){
                     windowButton = new VisTextButton("...");
                     windowButton.addListener(new ChangeListener() {

@@ -15,7 +15,7 @@ public class LinearDoubleParameterAnimation extends AbstractSimpleParameterAnima
     }
 
 //    @Override
-//    public Object getInterpolatedValueInLoop(double progress, NumberFactory numberFactory) {
+//    public Object getInterpolatedValueInLoop(double progress, NumberFactory nf) {
 //        double prog = scaleProgress(progress);
 //        return prog*(end-start)+start;
 //    }

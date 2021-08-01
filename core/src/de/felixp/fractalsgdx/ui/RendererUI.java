@@ -131,7 +131,7 @@ public class RendererUI {
                 for (FractalRenderer renderer : renderers) {
                     if (renderer == oldRenderer) {
                         stage.addFractalRenderer(newRenderer);
-                        newRenderer.init();
+                        newRenderer.initRenderer();
                     } else
                         stage.addFractalRenderer(renderer);
                 }

@@ -57,6 +57,7 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
         ComplexNumber cn = (ComplexNumber)newValue;
         text1 = cn.getReal().toString();
         text2 = cn.getImag().toString();
+        super.setCheckedValue(newValue);
     }
 
     @Override

@@ -1,7 +1,11 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.Focusable;
@@ -13,9 +17,15 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.ui.TraversibleGroup;
+import de.felixp.fractalsgdx.ui.VisTraversibleValidateableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -78,13 +88,29 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     public abstract String getParameterValue2(StaticParamSupplier paramSupplier);
 
     @Override
+    protected void setCheckedValue(Object newValue) {
+        for (EntryView view : views.values()){
+            view.applyValue(newValue);
+        }
+    }
+
+    @Override
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisValidatableTextField field1;
-            protected VisValidatableTextField field2;
+            protected VisTraversibleValidateableTextField field1;
+            protected VisTraversibleValidateableTextField field2;
             VisLabel label;
             VisTextButton optionButton;
+
+            @Override
+            public void applyValue(Object value) {
+                ComplexNumber num = (ComplexNumber)value;
+                if (field1 != null && field2 != null) {
+                    field1.setText(num.getReal().toString());
+                    field2.setText(num.getImag().toString());
+                }
+            }
 
             @Override
             public void addToTable(Table table) {
@@ -93,10 +119,18 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 optionButton = new VisTextButton("...");
 
-                field1 = new VisValidatableTextField(validator1);
-                field2 = new VisValidatableTextField(validator2);
+                field1 = new VisTraversibleValidateableTextField(validator1);
+                addSubmitListener(field1);
+                field2 = new VisTraversibleValidateableTextField(validator2);
+                addSubmitListener(field2);
+
 
                 ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
+
+                field1.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
+                field2.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
+                traversibleGroup.addField(field1);
+                traversibleGroup.addField(field2);
 
                 inputDisabled = !(paramSupplier instanceof StaticParamSupplier);
                 if (!inputDisabled) {
@@ -144,6 +178,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
             @Override
             public void removeFromTable() {
+                traversibleGroup.removeField(field1);
+                traversibleGroup.removeField(field2);
                 contentFields.remove(field1);
                 contentFields.remove(field2);
                 field1.remove();
@@ -161,6 +197,20 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             VisTextField maxField1, maxField2;
             VisLabel label;
             VisTextButton optionButton;
+
+            @Override
+            public void applyValue(Object value) {
+                ComplexNumber num = (ComplexNumber)value;
+                if (slider1 != null && slider2 != null) {
+
+                    double min1 = Double.parseDouble(minField1.getText());
+                    double max1 = Double.parseDouble(maxField1.getText());
+                    double min2 = Double.parseDouble(minField2.getText());
+                    double max2 = Double.parseDouble(maxField2.getText());
+                    slider1.setValue(getSliderPositionFromValue(num.realDouble(), min1, max1));
+                    slider2.setValue(getSliderPositionFromValue(num.imagDouble(), min2, max2));
+                }
+            }
 
             @Override
             public void addToTable(Table table) {
@@ -212,6 +262,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         updateLabelText();
                         applyClientValue();
                         submit();
+                        ((MainStage) FractalsGdxMain.stage).resetKeyboardFocus();
                     }
 
                 });
@@ -227,6 +278,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         updateLabelText();
                         applyClientValue();
                         submit();
+                        ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
                     }
                 });
 
@@ -401,6 +453,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             public void removeFromTable() {
                 label.remove();
                 optionButton.remove();
+                contentFields.remove(slider1);
+                contentFields.remove(slider2);
                 slider1.remove();
                 slider2.remove();
                 minField1.remove();

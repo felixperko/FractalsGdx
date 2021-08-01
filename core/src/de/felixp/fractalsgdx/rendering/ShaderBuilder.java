@@ -154,24 +154,24 @@ public class ShaderBuilder {
 
             if (supp instanceof StaticParamSupplier) {
                 ComplexNumber val = (ComplexNumber)((StaticParamSupplier)supp).getObj();
-                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
                         "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
                         "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
-//                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+//                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
 //                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, 4.0) + 2.0;",
 //                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, 4.0) + 2.0;");
             }
             else if (supp instanceof CoordinateBasicShiftParamSupplier){
                 CoordinateBasicShiftParamSupplier shiftSupp = (CoordinateBasicShiftParamSupplier) supp;
-//                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+//                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
 //                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, 4.0) + 2.0;",
 //                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, 4.0) + 2.0;");
-                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
                         "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
                         "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
             }
             else if (supp instanceof CoordinateModuloParamSupplier){
-                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
                         "type "+varNameReal+" = mod(deltaX, 4.0) + 2.0;",
                         "type "+varNameImag+" = mod(deltaY, 4.0) + 2.0;");
             }
@@ -181,7 +181,7 @@ public class ShaderBuilder {
                 double stepSize = dmSupp.getStepSize().toDouble();
                 placeholderValues.put("modulo", modulo+"");
                 placeholderValues.put("stepSizeFactor", stepSize/modulo+"");
-                writeStringBuilderLines(stringBuilder, placeholderValues, "//init parameter " + supp.getName(),
+                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
                         "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, modulo)*stepSizeFactor;",
                         "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, modulo)*stepSizeFactor;");
             }
@@ -191,7 +191,7 @@ public class ShaderBuilder {
 
         for (Integer copySlot : expression.getCopySlots()){
 
-            writeStringBuilderLines(stringBuilder, placeholderValues, "//init copy slots "+copySlot+", "+(copySlot+1),
+            writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer copy slots "+copySlot+", "+(copySlot+1),
                     "type "+localVariables[copySlot]  +" = 0.0;",
                     "type "+localVariables[copySlot+1]+" = 0.0;");
         }

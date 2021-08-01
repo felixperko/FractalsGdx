@@ -1,6 +1,10 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
@@ -14,6 +18,8 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -77,6 +83,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
                         selectedValue = selection.getOption(box.getSelected().toString());
+                        ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
                     }
                 });
 //                for (String name : selection.getOptionNames()){

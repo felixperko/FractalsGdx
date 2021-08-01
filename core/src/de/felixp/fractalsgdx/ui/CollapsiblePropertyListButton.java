@@ -1,6 +1,8 @@
 package de.felixp.fractalsgdx.ui;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.FocusManager;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 
 public class CollapsiblePropertyListButton extends VisTextButton {
@@ -19,4 +21,5 @@ public class CollapsiblePropertyListButton extends VisTextButton {
     public void setCategory(String category) {
         this.category = category;
     }
+
 }

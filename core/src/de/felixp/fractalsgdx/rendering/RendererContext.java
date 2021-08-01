@@ -157,7 +157,8 @@ public class RendererContext {
     public boolean[] applyParameterAnimations(SystemContext systemContext, ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory){
         defaultNormal = systemContext.getNumberFactory().createComplexNumber(1, 0);
 
-        boolean reset = containsResetAnimations(systemContext.getParamConfiguration(), ((MainStage)FractalsGdxMain.stage).getClientParamConfiguration(), true);
+        MainStage stage = (MainStage) FractalsGdxMain.stage;
+        boolean reset = containsResetAnimations(systemContext.getParamConfiguration(), stage.getClientParamConfiguration(), true);
         if (!Gdx.graphics.isContinuousRendering()){
             if (reset) {
                 Gdx.graphics.setContinuousRendering(true);
@@ -190,6 +191,12 @@ public class RendererContext {
                 panned(serverParamContainer);
 
             systemContext.setParameters(serverParamContainer);
+
+            if (stage.getFocusedRenderer().getId() == rendererId){
+                //update displayed values
+                stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
+            }
+
             for (RendererLink link : getSourceLinks())
                 link.syncTargetRenderer();
         }
@@ -230,6 +237,7 @@ public class RendererContext {
                                 " for param "+interpolation.getParamName()+": Param not a ParamAttributeHolder");
                     ParamAttributeContainer attrCont = ((ParamAttributeHolder)currentValue).getParamAttributeContainer();
                     ParamAttribute<?> attribute = attrCont.getAttribute(interpolation.getAttributeName());
+                    //TODO NPE! removing an orbit trap a second time (?) results in attribute == null
                     attribute.applyValue(interpolatedValue);
                 } else { //set parameter
                     if (currentSupplier instanceof StaticParamSupplier && !interpolatedValue.equals(currentValue)) {

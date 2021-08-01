@@ -43,19 +43,19 @@ public class PathParamAnimation extends AbstractParamAnimation<ComplexNumber> {
     public void addControlPoint(String interpolationParamName, String attrName, ComplexNumber controlPoint, ComplexNumber tangent, NumberFactory numberFactory){
 //        controlPoints.add(controlPoint);
 //        tangents.add(tangent);
-//        setControlPoints(controlPoints, tangents, numberFactory);
+//        setControlPoints(controlPoints, tangents, nf);
         getInterpolation(interpolationParamName, attrName).addControlPoint(controlPoint, tangent, numberFactory);
     }
 
 //    @Override
-//    public ComplexNumber getInterpolatedValueInLoop(double progressInLoop, NumberFactory numberFactory) {
+//    public ComplexNumber getInterpolatedValueInLoop(double progressInLoop, NumberFactory nf) {
 //        ParamInterpolation interpolation = getInterpolation(parameterName);
-//        Object interpolatedValue = interpolation.getInterpolatedValue(progressInLoop, numberFactory);
+//        Object interpolatedValue = interpolation.getInterpolatedValue(progressInLoop, nf);
 //        return (ComplexNumber) interpolatedValue;
 ////        int index0 = getControlPointIndex(progressInLoop);
 ////        int index1 = index0+1;
 ////        if (index0 == -1)
-////            return numberFactory.createComplexNumber(0,0);
+////            return nf.createComplexNumber(0,0);
 ////        if (index0 == 0 && controlPoints.size() == 1)
 ////            return controlPoints.get(0).copy();
 ////        if (progressInLoop == 1.0)
@@ -91,7 +91,7 @@ public class PathParamAnimation extends AbstractParamAnimation<ComplexNumber> {
     }
 
 //    public void clearControlPoints(){
-//        setControlPoints(new ArrayList<>(), numberFactory);
+//        setControlPoints(new ArrayList<>(), nf);
 //    }
 //
 //    public ComplexNumber getNormal(int index){
@@ -101,7 +101,7 @@ public class PathParamAnimation extends AbstractParamAnimation<ComplexNumber> {
 //    }
 //
 //    public NumberFactory getNumberFactory(){
-//        return numberFactory;
+//        return nf;
 //    }
 //
 //    public List<ComplexNumber> getControlPoints(){

@@ -85,7 +85,7 @@ public class ClientSystem {
         ComplexNumber midpoint = numberFactory.createComplexNumber(0, 0);
         this.anchor = midpoint.copy();
         params.put("midpoint", new StaticParamSupplier("midpoint", midpoint));
-//        zoom = numberFactory.createNumber(5./200000.);
+//        zoom = nf.createNumber(5./200000.);
         Number zoom = numberFactory.createNumber(3.);
         params.put("zoom", new StaticParamSupplier("zoom", zoom));
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)1000));
@@ -122,7 +122,7 @@ public class ClientSystem {
 
         params.put("calculator", new StaticParamSupplier("calculator", "CustomCalculator"));
         params.put("systemName", new StaticParamSupplier("systemName", "BreadthFirstSystem"));
-        params.put("numberFactory", new StaticParamSupplier("numberFactory", numberFactory));
+        params.put("nf", new StaticParamSupplier("nf", numberFactory));
         params.put("chunkFactory", new StaticParamSupplier("chunkFactory", new ArrayChunkFactory(ReducedNaiveChunk.class, chunkSize)));
 
 

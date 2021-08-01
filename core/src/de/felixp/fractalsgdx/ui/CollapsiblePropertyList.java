@@ -1,13 +1,18 @@
 package de.felixp.fractalsgdx.ui;
 
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.kotcrab.vis.ui.FocusManager;
+import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.widget.VisTextField;
+import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
@@ -44,7 +50,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     Map<AbstractPropertyEntry, EntryView> propertyEntryViews = new HashMap<>();
     Map<String, List<AbstractPropertyEntry>> propertyEntriesPerCategory = new LinkedHashMap<>();
     Map<String, List<CollapsiblePropertyListButton>> buttonsPerCategory = new HashMap<>();
-    Map<String, Table> tablePerCategory = new HashMap<>();
+    Map<String, Table> tablePerCategory = new LinkedHashMap<>();
     Map<String, Tree.Node> categoryNodes = new HashMap<>();
     VisTextButton submitButton;
 
@@ -54,13 +60,9 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
 
-        if (this.paramContainer != paramContainer) {
-            closeEntryViews();
-            propertyEntryList.clear();
-            propertyEntriesPerCategory.clear();
-        }
 
         //allow force reset by first setting paramContainer null and then setting a new one
+        //TODO proper reset mechanism
         if (paramContainer == null){
             this.paramContainer = null;
             return;
@@ -69,8 +71,28 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         //need to reset property table?
         //first --> reset
         boolean reset = this.paramContainer == null;
-        //check for new params
+        if (!reset){
+            //check PropertyEntries
+            for (AbstractPropertyEntry e : propertyEntryList){
+                if (e.isForceReset(true)) { //reset all force resets
+                    reset = true;
+                }
+                if (!reset) {
+                    ParamSupplier supp = paramContainer.getClientParameter(e.getPropertyName());
+                    if (!(supp instanceof StaticParamSupplier))
+                        continue;
+                    if (!(e.getSupplier() instanceof StaticParamSupplier)) {
+                        reset = true;
+                        continue;
+                    }
+                    Object newVal = supp.getGeneral();
+                    if (newVal != null && (e.getSupplier() == null || !newVal.equals(e.getSupplier().getGeneral())))
+                        e.setValue(newVal);
+                }
+            }
+        }
         if (!reset) {
+            //check for new params
             for (ParamSupplier supp : paramContainer.getParameters()) {
                 String name = supp.getName();
                 ParamSupplier oldSupp = this.paramContainer.getClientParameter(name);
@@ -94,15 +116,23 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             }
         }
 
+        if (reset) {
+            tree.clear();
+            if (this.paramContainer != paramContainer) {
+                closeEntryViews();
+                propertyEntryList.clear();
+                propertyEntriesPerCategory.clear();
+                tablePerCategory.clear();
+            }
+            if (submitButton != null)
+                submitButton.remove();
+        }
+
         this.paramContainer = paramContainer;
 
 //        if (!reset)
 //            return;
-        if (reset)
-            tree.clear();
 
-        if (submitButton != null)
-            submitButton.remove();
 
         //add calculator specific parameter definitions
         List<ParamDefinition> paramDefs = new ArrayList<>(paramConfig.getParameters());
@@ -182,6 +212,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         //update entries
         for (ParamDefinition paramDef : paramDefs) {
+            if (!paramDef.isVisible())
+                continue;
             boolean entryExists = false;
             //does entry exist?
             for (AbstractPropertyEntry entry : propertyEntryList){
@@ -204,32 +236,32 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             }
         }
 
-        float maxWidth = 0;
-        Map<String, Table> tableMap = new HashMap<>();
-
-        for (String catName : propertyEntriesPerCategory.keySet()){
-            addNodeForCategory(catName);
-        }
-
-        for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()){
-            String category = e.getKey();
-            Table table = (Table)((Tree.Node)categoryNodes.get(category).getChildren().get(0)).getActor();
-            tableMap.put(category, table);
-            for (AbstractPropertyEntry entry : e.getValue()){
-                closeEntryView(entry);
-                openEntryView(table, entry);
+        if (reset) {
+            for (String catName : propertyEntriesPerCategory.keySet()) {
+                addNodeForCategory(catName);
             }
-        }
-        for (Map.Entry<String, List<CollapsiblePropertyListButton>> e : buttonsPerCategory.entrySet()){
-            String category = e.getKey();
-            Tree.Node catNode = categoryNodes.get(category);
-            if (catNode == null)
-                catNode = addNodeForCategory(category);
-            Table table = (Table)((Tree.Node)catNode.getChildren().get(0)).getActor();
-            for (CollapsiblePropertyListButton button : e.getValue()){
-                table.add();
-                table.add();
-                table.add(button).row();
+
+            for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()) {
+                String category = e.getKey();
+                Table table = (Table) ((Tree.Node) categoryNodes.get(category).getChildren().get(0)).getActor();
+                TraversibleGroup traversibleGroup = new TraversibleGroup();
+                for (AbstractPropertyEntry entry : e.getValue()) {
+                    entry.setTraversibleGroup(traversibleGroup);
+                    closeEntryView(entry);
+                    openEntryView(table, entry);
+                }
+            }
+            for (Map.Entry<String, List<CollapsiblePropertyListButton>> e : buttonsPerCategory.entrySet()) {
+                String category = e.getKey();
+                Tree.Node catNode = categoryNodes.get(category);
+                if (catNode == null)
+                    catNode = addNodeForCategory(category);
+                Table table = (Table) ((Tree.Node) catNode.getChildren().get(0)).getActor();
+                for (CollapsiblePropertyListButton button : e.getValue()) {
+                    table.add();
+                    table.add();
+                    table.add(button).row();
+                }
             }
         }
 
@@ -272,9 +304,11 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 //            }
 //        }
 
-        submitButton = new VisTextButton("Submit");
-        collapsibleTable.row();
-        collapsibleTable.add(submitButton).colspan(3).row();
+        if (reset) {
+            submitButton = new VisTextButton("Submit");
+            collapsibleTable.row();
+            collapsibleTable.add(submitButton).colspan(3).row();
+        }
     }
 
     protected void openEntryView(Table table, AbstractPropertyEntry entry) {
@@ -368,9 +402,25 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         tree.add(node);
 
         VisTable table = new VisTable();
+        tablePerCategory.put(category, table);
         node.add(new Tree.Node(table){});
         node.setSelectable(true);
         return node;
+    }
+
+    public boolean focusFirstFocusableControl(){
+        for (Table table : tablePerCategory.values()){
+            for (Actor actor : table.getChildren()){
+                if (actor instanceof VisTextField){
+                    ((MainStage)FractalsGdxMain.stage).getFocusedRenderer().setFocused(false);
+                    ((VisTextField)actor).focusField();
+                    FractalsGdxMain.stage.setKeyboardFocus(actor);
+                    FocusManager.switchFocus(FractalsGdxMain.stage, (Focusable)actor);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public List<AbstractPropertyEntry> getPropertyEntries() {

@@ -2,8 +2,11 @@ package de.felixp.fractalsgdx.rendering;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.ScreenUtils;
 
 import org.slf4j.Logger;
@@ -34,12 +37,14 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
         shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Number.class).toDouble());
         shader.setUniformi("extractChannel", (int)(int)stage.getClientParameter(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
-        shader.setUniformf("mappingColorR", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_R).getGeneral(Number.class).toDouble());
-        shader.setUniformf("mappingColorG", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_G).getGeneral(Number.class).toDouble());
-        shader.setUniformf("mappingColorB", (float)(double)stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR_B).getGeneral(Number.class).toDouble());
-//        shader.setUniformf("colorAdd", (float)(double)stage.colorAddSupplier.getGeneral(Double.class) + timeCounter*-0.2f);
-//        shader.setUniformf("colorMult", (float)(double)stage.colorMultSupplier.getGeneral(Double.class));
-//        shader.setUniformf("sobelLuminance", (float)(double)stage.glowFactorSupplier.getGeneral(Double.class));
+        Object color = stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR).getGeneral();
+//        float[] hsv = ((Color)color).toHsv(new float[4]);
+//        shader.setUniformf("mappingColorR", hsv[0]);
+//        shader.setUniformf("mappingColorG", hsv[1]);
+//        shader.setUniformf("mappingColorB", hsv[2]);
+        shader.setUniformf("mappingColorR", ((Color)color).r);
+        shader.setUniformf("mappingColorG", ((Color)color).g);
+        shader.setUniformf("mappingColorB", ((Color)color).b);
 
         shader.setUniformf("resolution", width, height);
     }
@@ -54,13 +59,29 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     RendererContext rendererContext;
 
+    protected boolean isFocused = false;
+
     public AbstractFractalRenderer(RendererContext rendererContext){
         this.rendererContext = rendererContext;
-//        this.relativeX = relativeX;
-//        this.relativeY = relativeY;
-//        this.relativeWidth = relativeWidth;
-//        this.relativeHeight = relativeHeight;
     }
+
+    @Override
+    public void initRenderer() {
+        AbstractFractalRenderer thisRenderer = this;
+        getStage().addListener(new ClickListener(){
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                boolean wasFocused = isFocused;
+                isFocused = event.getTarget() == thisRenderer;
+                if (isFocused != wasFocused)
+                    focusChanged(isFocused);
+                return super.touchDown(event, x, y, pointer, button);
+            }
+        });
+        init();
+    }
+
+    public abstract void init();
 
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){
 //        ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
@@ -109,7 +130,6 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     /**
      * Can be overwritten to modify the shader string before compiling.
-     * //TODO refresh functionality
      * @param templateLine the line from the shader template
      * @return the parsed line to compile
      */
@@ -125,6 +145,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     //    boolean refresh = true;
 
     public abstract void reset();
+    public abstract void focusChanged(boolean focusedNow);
 
     @Override
     public void setSingleScreenshotScheduled(boolean singleScreenshotScheduled) {
@@ -274,5 +295,15 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     public void removePanListener(PanListener panListener){
         rendererContext.removePanListener(panListener);
+    }
+
+    @Override
+    public boolean isFocused() {
+        return isFocused;
+    }
+
+    @Override
+    public void setFocused(boolean focused){
+        this.isFocused = focused;
     }
 }

@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.BufferUtils;
 import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.kotcrab.vis.ui.VisUI;
 
@@ -103,13 +104,12 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		}
 		uiPrefs.flush();
 
-		setScreenMode(FractalsGdxMain.windowed, width, height);
+//		setScreenMode(FractalsGdxMain.windowed, width, height);
 //		Gdx.graphics.setVSync(vsync);
 
 		batch = new SpriteBatch();
 
 		viewport = new ScreenViewport();
-//		((ScreenViewport)viewport).setUnitsPerPixel(0.5f);
 		stage = new MainStage(viewport, batch);
 		((MainStage) stage).create();
 

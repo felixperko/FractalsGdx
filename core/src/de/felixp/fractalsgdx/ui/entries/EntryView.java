@@ -9,6 +9,8 @@ public abstract class EntryView {
     public abstract void addToTable(Table table);
     public abstract void removeFromTable();
 
+    public void applyValue(Object value) {};
+
     public void setInvalid(){
         valid = false;
     }

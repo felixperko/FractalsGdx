@@ -17,6 +17,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.ui.VisTraversibleValidateableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -57,23 +58,41 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
     List<ChangeListener> listeners = new ArrayList<>();
 
     @Override
+    protected void setCheckedValue(Object newValue) {
+        text = newValue.toString();
+        for (EntryView view : views.values()){
+            view.applyValue(newValue);
+        }
+    }
+
+    @Override
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisValidatableTextField field;
+            protected VisTraversibleValidateableTextField field;
             VisLabel label;
             VisTextButton optionButton;
 
             @Override
+            public void applyValue(Object value) {
+                if (field != null)
+                    field.setText(value.toString());
+            }
+
+            @Override
             public void addToTable(Table table) {
                 label = new VisLabel(propertyName);
-                field = new VisValidatableTextField(validator);
+                field = new VisTraversibleValidateableTextField(validator);
                 optionButton = new VisTextButton("...");
 
                 ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
 
+                field.setTraversalPaused(!(textSupplier instanceof StaticParamSupplier));
+                traversibleGroup.addField(field);
+
                 if (textSupplier != null)
                     field.setText(text = textSupplier.getGeneral().toString());
+                addSubmitListener(field);
                 field.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
@@ -97,6 +116,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
             @Override
             public void removeFromTable() {
+                traversibleGroup.removeField(field);
                 label.remove();
                 field.remove();
                 contentFields.remove(field);
@@ -111,6 +131,12 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             VisTextField maxField1;
             VisLabel label;
             VisTextButton optionButton;
+
+            @Override
+            public void applyValue(Object value) {
+                if (slider1 != null)
+                    slider1.setValue(getSliderPositionFromValue(Float.parseFloat(value.toString()), min, max));
+            }
 
             @Override
             public void addToTable(Table table) {
@@ -164,6 +190,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         updateLabelText();
                         applyClientValue();
                         submit();
+                        ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
                     }
 
                 });

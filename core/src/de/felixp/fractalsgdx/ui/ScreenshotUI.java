@@ -54,7 +54,7 @@ public class ScreenshotUI {
     public static final String IMAGE_SELECT_OUTPUT = "Output preview";
     public static final String IMAGE_SELECT_ORIGINAL = "Original image";
 
-    static VisWindow window;
+    static RefocusVisWindow window;
 
     static VisTable folderTable;
     static VisTable previewTable;
@@ -97,7 +97,7 @@ public class ScreenshotUI {
         String screenshotFileName = getScreenshotFileName();
 
         if (window == null) {
-            window = new VisWindow("Screenshot");
+            window = new RefocusVisWindow("Screenshot");
             ((VisWindow) window).addCloseButton();
 
             folderTable = new VisTable(true);
@@ -220,6 +220,7 @@ public class ScreenshotUI {
             recordAnimationButton = new VisTextButton("Record...", new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
+                    window.setAutoRefocus(false);
                     ScreenshotRecordUI.openRecordAnimationWindow(stage);
                     window.remove();
                 }

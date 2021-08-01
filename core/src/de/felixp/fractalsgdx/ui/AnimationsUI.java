@@ -61,7 +61,7 @@ public class AnimationsUI {
         selectedRenderer = ((MainStage)FractalsGdxMain.stage).focusedRenderer;
         sliders.clear();
 
-        VisWindow window = new VisWindow("Animations");
+        VisWindow window = new RefocusVisWindow("Animations");
         animationsWindow = window;
         VisTable mainTable = new VisTable(true);
 
@@ -186,8 +186,8 @@ public class AnimationsUI {
 //        table.add(paramSelect);
         table1.add(startButton);
         table1.add(stopButton);
-        table1.add(progressSlider).fillX();
-        outerTable.add(table1).fillX().left().row();
+        table1.add(progressSlider).fillX().expandX();
+        outerTable.add(table1).fillX().expandX().left().row();
 
         VisTable table2 = new VisTable(true);
         table2.add(timeProgressButton);

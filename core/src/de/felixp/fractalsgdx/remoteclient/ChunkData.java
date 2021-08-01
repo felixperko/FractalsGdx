@@ -64,7 +64,7 @@ public class ChunkData {
         Map<String, ParamSupplier> parameters = clientData.getClientParameters();
         double height = parameters.get("height").getGeneral(Integer.class);
         Number zoom = parameters.get("zoom").getGeneral(Number.class);
-        NumberFactory nf = parameters.get("numberFactory").getGeneral(NumberFactory.class);
+        NumberFactory nf = parameters.get("nf").getGeneral(NumberFactory.class);
 
         //((x-anchorX)*height/zoom, -((y-anchorY)*height/zoom + chunkSize)
 

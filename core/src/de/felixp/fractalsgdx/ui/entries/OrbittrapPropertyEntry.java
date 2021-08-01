@@ -15,6 +15,7 @@ import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
+import de.felixp.fractalsgdx.ui.RefocusVisWindow;
 import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.NumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
@@ -34,12 +35,12 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     @Override
     public void openWindow(Stage stage) {
-        VisWindow window = new VisWindow("Edit orbit traps");
+        VisWindow window = new RefocusVisWindow("Edit orbit traps");
         VisTable mainTable = new VisTable(true);
 
         ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);
         OrbittrapContainer cont = contSupp.getGeneral(OrbittrapContainer.class);
-        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+        NumberFactory nf = paramContainer.getClientParameter("nf").getGeneral(NumberFactory.class);
 
         VisTable contentTable = new VisTable(true);
 
@@ -57,6 +58,12 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
         VisTable btnTable = new VisTable();
         VisTextButton okButton = new VisTextButton("ok");
+        okButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                window.remove();
+            }
+        });
         btnTable.add(okButton);
         mainTable.add(btnTable);
 

@@ -35,11 +35,6 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     }
 
     @Override
-    protected void setCheckedValue(Object newValue) {
-        text = ((Number)newValue).toString();
-    }
-
-    @Override
     protected Object getDefaultObject() {
         return numberFactory.createNumber("0");
     }

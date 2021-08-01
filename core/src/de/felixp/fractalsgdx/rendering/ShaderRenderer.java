@@ -18,7 +18,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
@@ -133,7 +131,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     ShaderBuilder shaderBuilder;
 
-    boolean drawTraces = true;
     float mouseX, mouseY;
 
     PanListener panListener;
@@ -150,8 +147,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         return shaderBuilder.processShadertemplateLine(templateLine, getScaledHeight());
     }
 
-    boolean isFocused = false;
-
     @Override
     public void init(){
 
@@ -161,15 +156,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         ShaderRenderer thisRenderer = this;
 
-        getStage().addListener(new ClickListener(){
-            @Override
-            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
-                isFocused = event.getTarget() == thisRenderer;
-                drawTraces = isFocused;
-                return super.touchDown(event, x, y, pointer, button);
-            }
-        });
-
         addListener(new ActorGestureListener(){
             @Override
             public void tap(InputEvent event, float x, float y, int count, int button) {
@@ -178,44 +164,26 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 if (clickedControlPoint)
                     return;
 
-//                else {
-                    boolean changed = false;
-                    ParamContainer paramContainer = systemContext.getParamContainer();
-                    NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
-                    Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
-                    Number factor = null;
-                    if (button == Input.Buttons.LEFT) {
-                        factor = nf.createNumber(0.5);
-                        changed = true;
-                    } else if (button == Input.Buttons.RIGHT) {
-                        factor = nf.createNumber(2);
-                        changed = true;
-                    }
-
-                    if (factor != null) {
-                        zoom.mult(factor);
-                        paramsChanged(paramContainer);
-                    }
-
-                    if (changed) {
-                        LOG.debug("tapped");
-                        anchor = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-                        reset();
-                    }
-//                }
+                Number factor = null;
+                NumberFactory nf = systemContext.getNumberFactory();
+                if (button == Input.Buttons.LEFT) {
+                    factor = nf.createNumber(0.5);
+                } else if (button == Input.Buttons.RIGHT) {
+                    factor = nf.createNumber(2);
+                }
+                if (factor != null)
+                    thisRenderer.zoom(factor);
             }
 
             @Override
             public void touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 getStage().setKeyboardFocus(thisRenderer);
-                ((MainStage)getStage()).setFocusedRenderer(thisRenderer);
                 ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
                 if (selectedInterpolation instanceof ComplexNumberParamInterpolation){
                     List<ComplexNumber> controlPoints = selectedInterpolation.getControlPoints(true);
                     for (ComplexNumber controlPoint : controlPoints){
                         if (controlPointCollision(x, y, controlPoint) && isControlPointSelected(controlPoint)) {
                             movingControlPoint = controlPoint;
-                            LOG.warn("movingControlPoint: "+movingControlPoint);
                             return;
                         }
                     }
@@ -267,13 +235,26 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         addPanListener(panListener);
     }
 
+    protected void zoom(Number factor) {
+        ParamContainer paramContainer = systemContext.getParamContainer();
+        Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
+
+        zoom.mult(factor);
+        paramsChanged(paramContainer);
+        anchor = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        reset();
+    }
+
     protected boolean dragMovingControlPoint(float x, float y) {
+
         ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
         if (movingControlPoint == null || selectedInterpolation == null)
             return false;
+
         float newScreenX = x;
         float newScreenY = y;
         ComplexNumber newControlPoint = getComplexMapping(newScreenX, getHeight()-newScreenY);
+
         int selectedIndex = -1;
         for (int i = 0 ; i < selectedControlPoints.size() ; i++){
             if (selectedControlPoints.get(i).equals(movingControlPoint)){
@@ -281,8 +262,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 break;
             }
         }
+
         selectedInterpolation.moveControlPoint(movingControlPoint, newControlPoint, null, true);
         movingControlPoint = newControlPoint;
+
         if (selectedIndex != -1){
             selectedControlPoints.set(selectedIndex, movingControlPoint);
         }
@@ -297,6 +280,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
         if (!(selectedInterpolation instanceof ComplexNumberParamInterpolation))
             return false;
+
         List<ComplexNumber> controlPoints = selectedInterpolation.getControlPoints(true);
         for (ComplexNumber controlPoint : controlPoints){
             boolean mouseHover = controlPointCollision(x, y, controlPoint);
@@ -368,7 +352,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         panPartOffsetY = requestedDeltaY-deltaY;
 
         ParamContainer paramContainer = systemContext.getParamContainer();
-        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+        NumberFactory nf = paramContainer.getClientParameter("nf").getGeneral(NumberFactory.class);
         Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
         ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
         ComplexNumber delta = nf.createComplexNumber(deltaX, -deltaY);
@@ -378,10 +362,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         systemContext.setMidpoint(midpoint);
         rendererContext.panned(systemContext.getParamContainer());
         resetProgressiveRendering();
-        //see panned listener added at the end of init()...
+        //see panned listener added at the end of initRenderer()...
     }
 
-    private void paramsChanged(ParamContainer paramContainer) {
+    public void paramsChanged(ParamContainer paramContainer) {
         ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(this, paramContainer, ((GPUSystemContext) systemContext).paramConfiguration);
     }
 
@@ -401,7 +385,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
-        if (fboDataFirst == null) //init() not called
+        if (fboDataFirst == null) //initRenderer() not called
             return;
 
         if (isProgressiveRenderingFinished())
@@ -419,7 +403,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     }
 
-    float panSpeed = 0.5f;
+    float panSpeed = 0.75f;
     float maxTimestep = 5.0f/Gdx.graphics.getDisplayMode().refreshRate;
 
     private void handleInput() {
@@ -431,16 +415,38 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (deltaTime > maxTimestep && !Gdx.input.isKeyPressed(Input.Keys.F))
             deltaTime = maxTimestep;
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP))
+            zoom(systemContext.getNumberFactory().createNumber("0.5"));
+        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_DOWN))
+            zoom(systemContext.getNumberFactory().createNumber("2.0"));
+
+//        boolean alt = Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
+        boolean ctrl = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
+
         int multX = 0;
         int multY = 0;
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A))
             multX++;
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
             multX--;
-        if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W))
-            multY--;
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S))
-            multY++;
+//        if (!alt) {
+            if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W))
+                multY--;
+            if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S))
+                multY++;
+//        } else {
+//            if (Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W))
+//                zoom(systemContext.getNumberFactory().createNumber("0.5"));
+//            if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) || Gdx.input.isKeyJustPressed(Input.Keys.S))
+//                zoom(systemContext.getNumberFactory().createNumber("2.0"));
+//        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            zoom(systemContext.getNumberFactory().createNumber(ctrl ? "2.0" : "0.5"));
+        }
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.ALT_RIGHT))
+//            zoom(systemContext.getNumberFactory().createNumber("2.0"));
+
 
         float currentPanSpeed = this.panSpeed;
         if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT))
@@ -471,6 +477,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 }
             }
             selectedControlPoints.clear();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.HOME)){
+            //reset params?
         }
     }
 
@@ -643,6 +653,12 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         ((GPUSystemContext)this.systemContext).updateSize(resolutionX, resolutionY);
         resetFramebuffers();
         setRefresh();
+    }
+
+    @Override
+    public void focusChanged(boolean focusedNow) {
+//        if(focusedNow)
+//            ((MainStage)getStage()).setFocusedRenderer(this);
     }
 
     private void resetFramebuffers() {
@@ -889,9 +905,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean drawAxis =      clientParams.getClientParameter(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
         boolean drawMidpoint =  clientParams.getClientParameter(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
         boolean drawOrigin =    clientParams.getClientParameter(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
-        boolean pathVisible = drawPath && rendererContext.getSelectedParamInterpolation() != null;
+        boolean tracesEnabled = clientParams.getClientParameter(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
+        boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
+        boolean pathVisible = drawPath && inFocus && rendererContext.getSelectedParamInterpolation() != null;
 
-        if (drawTraces || pathVisible || drawAxis || drawMidpoint || drawOrigin) {
+        if ((tracesEnabled && inFocus) || pathVisible || drawAxis || drawMidpoint || drawOrigin) {
             batch.end();
 
             drawShapes(batch);
@@ -1137,9 +1155,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean drawOrigin =            clientParams.getClientParameter(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
         float lineWidth = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_WIDTH).getGeneral(Double.class);
         float pointSize = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Double.class);
-        boolean tracesEnabled =         clientParams.getClientParameter(MainStage.PARAMS_TRACES_ENABLED).getGeneral(Boolean.class);
-        int traceCount =                clientParams.getClientParameter(MainStage.PARAMS_TRACES_ITERATIONS).getGeneral(Integer.class);
-        boolean disabled = !drawMidpoint && !drawPath && !drawAxis && (!tracesEnabled || traceCount < 1 || (lineWidth <= 0 && pointSize <= 0));
+        boolean tracesEnabled =         clientParams.getClientParameter(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
+        int traceCount =                clientParams.getClientParameter(MainStage.PARAMS_ORBIT_ITERATIONS).getGeneral(Integer.class);
+        boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
+        boolean tracesVisible = tracesEnabled && inFocus && traceCount > 0 && (lineWidth > 0 || pointSize > 0);
+        boolean disabled = !drawMidpoint && !drawPath && !drawAxis && !tracesVisible;
         if (disabled)
             return;
 
@@ -1207,15 +1227,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     private void updateTraceArrays() {
 
         ParamContainer clientParams = ((MainStage)getStage()).getClientParameters();
-        int traceCount = clientParams.getClientParameter(MainStage.PARAMS_TRACES_ITERATIONS).getGeneral(Integer.class);
+        int traceCount = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_ITERATIONS).getGeneral(Integer.class);
 
         //determine coordinates
         ComplexNumber coords = null;
-        String posVarName = clientParams.getClientParameter(MainStage.PARAMS_TRACES_VARIABLE).getGeneral(String.class);
+        String posVarName = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TARGET).getGeneral(String.class);
         if (posVarName.equals("path")) {
 //            ParamAnimation animation = rendererContext.getSelectedPathAnimation();
-//            NumberFactory numberFactory = systemContext.getNumberFactory();
-//            coords = (ComplexNumber) animation.getInterpolatedValue(timePassed, numberFactory);
+//            NumberFactory nf = systemContext.getNumberFactory();
+//            coords = (ComplexNumber) animation.getInterpolatedValue(timePassed, nf);
             coords = clientParams.getClientParameter(MainStage.PARAMS_TRACES_VALUE).getGeneral(ComplexNumber.class);
             timePassed += Gdx.graphics.getDeltaTime();
         }
@@ -1357,13 +1377,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             if (isComplexNumber) {
                 for (ComplexNumber controlPoint : controlPoints) {
                     path.add(controlPoint);
-                }
-            } else {
-                if (isNumber){
-                    List<Number> controlPointsNumber = interpolation.getControlPoints(true);
-                    for (Number controlPoint : controlPointsNumber) {
-                        path.add(nf.createComplexNumber(controlPoint, nf.createNumber(0.0)));
-                    }
                 }
             }
         }

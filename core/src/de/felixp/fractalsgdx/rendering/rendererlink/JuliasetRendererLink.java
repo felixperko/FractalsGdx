@@ -51,7 +51,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         getTargetParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedTargetZoom.copy()));
 
         resetRenderer(getSourceRenderer());
-        resetRenderer(getTargetRenderer());
+//        resetRenderer(getTargetRenderer());
     }
 
     @Override

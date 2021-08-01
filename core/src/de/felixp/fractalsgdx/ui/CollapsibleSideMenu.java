@@ -15,6 +15,8 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTree;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+
 public class CollapsibleSideMenu {
 
     protected VisTree tree;
@@ -65,6 +67,7 @@ public class CollapsibleSideMenu {
                 collapseButton.layout();
                 refreshButtonArrow();
                 collapseButton.focusLost();
+                ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
             }
         });
     }

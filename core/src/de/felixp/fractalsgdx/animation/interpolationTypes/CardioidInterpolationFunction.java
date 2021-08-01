@@ -27,7 +27,7 @@ public class CardioidInterpolationFunction extends AbstractInterpolationFunction
         if (isReal()){
 //            Number n1 = getNumber("1");
 //            Number n2 = getNumber("2");
-//            Number nAngle = numberFactory.createNumber(timeAngle);
+//            Number nAngle = nf.createNumber(timeAngle);
 //            Number nCardioidScale = defValues.get(0);
 //            Number nShiftReal = defValues.get(1);
 //            Number nSeparation = defValues.get(3);

@@ -105,7 +105,7 @@ public class GPUSystemContext implements SystemContext {
         midpointDef.setResetRendererOnChange(false);
         defs.add(midpointDef);
         defs.add(new ParamDefinition("c", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
-        defs.add(new ParamDefinition("start", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType));
+        defs.add(new ParamDefinition("start", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element:slider min=-1 max=1"));
         defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, BFOrbitCommon.selectionType));
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=256"));
         defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Quality", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=100"));
@@ -137,7 +137,7 @@ public class GPUSystemContext implements SystemContext {
         LinkedHashMap<String, ParamSupplier> map = new LinkedHashMap<>();
         paramContainer = new ParamContainer(map);
 
-        paramContainer.addClientParameter(new StaticParamSupplier("numberFactory", nf));
+        paramContainer.addClientParameter(new StaticParamSupplier("nf", nf));
         paramContainer.addClientParameter(new StaticParamSupplier("iterations", 1000));
         paramContainer.addClientParameter(new StaticParamSupplier("midpoint", nf.createComplexNumber(0,0)));
         paramContainer.addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
@@ -227,7 +227,7 @@ public class GPUSystemContext implements SystemContext {
 
     @Override
     public NumberFactory getNumberFactory() {
-        return paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+        return paramContainer.getClientParameter("nf").getGeneral(NumberFactory.class);
     }
 
     @Override

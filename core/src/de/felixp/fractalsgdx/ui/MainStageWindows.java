@@ -15,6 +15,7 @@ import com.kotcrab.vis.ui.widget.Separator;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisList;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
+import com.kotcrab.vis.ui.widget.VisScrollPane;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
@@ -43,6 +44,7 @@ public class MainStageWindows {
 
     public static final String CATEGORY_RENDERERS = "Renderers";
     public static final String CATEGORY_WINDOW = "Window";
+    public static final String CATEGORY_PALETTES = "Palettes";
 
     public static void openConnectWindow(MainStage stage, String text){
         VisWindow window = new VisWindow("Connect or start server");
@@ -92,48 +94,46 @@ public class MainStageWindows {
         table2.add(localButton);
         table2.add(remoteButton);
         window.add(table2).pad(5);
-
         stage.addActor(window);
         window.pack();
         window.centerWindow();
     }
 
-    static Window settingsWindow = null;
+    static VisWindow settingsWindow = null;
+
+    public static void toggleSettingsWindow(MainStage stage){
+        if (settingsWindow == null || settingsWindow.getParent() == null)
+            openSettingsMenu(stage);
+        else{
+            settingsWindow.remove();
+            stage.resetKeyboardFocus();
+        }
+    }
 
     public static void openSettingsMenu(final MainStage stage){
 
         if(settingsWindow != null && settingsWindow.getParent() != null)
             settingsWindow.remove();
 
-        settingsWindow = new VisWindow("Settings"){
-//            @Override
-//            public float getPrefWidth() {
-//                return Gdx.graphics.getWidth()*0.5f;
-//            }
-//
-//            @Override
-//            public float getPrefHeight() {
-//                return Gdx.graphics.getHeight()*0.5f;
-//            }
-        };
+        settingsWindow = new RefocusVisWindow("Settings");
         settingsWindow.setResizable(true);
         ((VisWindow) settingsWindow).addCloseButton();
-        ((VisWindow) settingsWindow).closeOnEscape();
+//        ((VisWindow) settingsWindow).closeOnEscape();
 
         Table categoryTable = new VisTable();
         Table contentTable = new VisTable();
 
 
-        VisList<String> categoryList = new VisList<String>(){
-            @Override
-            public float getPrefHeight() {
-                float width = Gdx.graphics.getHeight();
-//                if (width < 500*0.7f)
-                    return width*0.7f;
-//                return 500;
-            }
-        };
-        categoryList.setItems(CATEGORY_RENDERERS, CATEGORY_WINDOW);
+        VisList<String> categoryList = new VisList<String>()
+//        {
+//            @Override
+//            public float getPrefHeight() {
+//                float height = Gdx.graphics.getHeight();
+//                return height*0.7f;
+//            }
+//        }
+        ;
+        categoryList.setItems(CATEGORY_WINDOW, CATEGORY_RENDERERS, CATEGORY_PALETTES);
         categoryList.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) { //switch to selected tab
@@ -141,7 +141,6 @@ public class MainStageWindows {
                 switchSettingsTable(selected, contentTable, stage, settingsWindow);
             }
         });
-        switchSettingsTable(CATEGORY_WINDOW, contentTable, stage, settingsWindow);
 
         categoryTable.add(categoryList);
 
@@ -150,12 +149,13 @@ public class MainStageWindows {
         settingsWindow.add(contentTable).expandX().fillX().expandY().fillY();
 
         stage.addActor(settingsWindow);
+        switchSettingsTable(CATEGORY_RENDERERS, contentTable, stage, settingsWindow);
+        switchSettingsTable(CATEGORY_WINDOW, contentTable, stage, settingsWindow);
         settingsWindow.pack();
         ((VisWindow)settingsWindow).centerWindow();
-        switchSettingsTable(CATEGORY_RENDERERS, contentTable, stage, settingsWindow);
     }
 
-    private static void switchSettingsTable(String newSelected, Table contentTable, MainStage stage, Window window) {
+    private static void switchSettingsTable(String newSelected, Table contentTable, MainStage stage, VisWindow window) {
         if (stage.getActiveSettingsTable() != null)
             stage.getActiveSettingsTable().remove();
         switch (newSelected){
@@ -166,8 +166,12 @@ public class MainStageWindows {
                 stage.setActiveSettingsTable(getWindowOptions(settingsWindow));
                 break;
         }
-        contentTable.add(stage.getActiveSettingsTable());
+        VisScrollPane sp = new VisScrollPane(stage.getActiveSettingsTable());
+        sp.setScrollingDisabled(true, false);
+        sp.setFadeScrollBars(false);
+        contentTable.add(sp).expandX().fillX();
         window.pack();
+        window.centerWindow();
     }
 
     static VisTable renderersTable = null;
@@ -177,8 +181,9 @@ public class MainStageWindows {
 
     private static Table getRenderersTable(Window window){
 
-        if (renderersTable != null)
+        if (renderersTable != null) {
             renderersTable.remove();
+        }
 
         renderersTable = new VisTable(true);
 
@@ -206,7 +211,7 @@ public class MainStageWindows {
             public void changed(ChangeEvent event, Actor actor) {
                 FractalRenderer renderer = new ShaderRenderer(new RendererContext(0.05f, 0.05f, 0.3f, 0.3f, RendererProperties.ORIENTATION_BOTTOM_LEFT));
                 ((MainStage)stage).addFractalRenderer(renderer);
-                renderer.init();
+                renderer.initRenderer();
                 addRendererToList(window, renderer);
                 //button to the bottom
                 actor.remove();
@@ -473,4 +478,5 @@ public class MainStageWindows {
 
         return contentTable;
     }
+
 }
