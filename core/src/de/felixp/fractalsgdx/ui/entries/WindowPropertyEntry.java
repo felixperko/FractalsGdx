@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
+import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 
 import de.felixperko.fractals.data.ParamContainer;
@@ -25,6 +26,7 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
         views.put(VIEW_LIST, new EntryView() {
 
             VisLabel nameLbl = new VisLabel(propertyName);
+            VisTable controlsTable = new VisTable();
             VisTextButton windowButton = null;
 
             @Override
@@ -39,7 +41,10 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
                         }
                     });
                 }
-                table.add(windowButton).colspan(2).left().row();
+
+                fillControlsTable(controlsTable, windowButton);
+
+                table.add(controlsTable).colspan(2).left().row();
             }
 
             @Override
@@ -48,6 +53,10 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
                 windowButton.remove();
             }
         });
+    }
+
+    protected void fillControlsTable(VisTable controlsTable, VisTextButton windowButton) {
+        controlsTable.add(windowButton).left();
     }
 
     @Override

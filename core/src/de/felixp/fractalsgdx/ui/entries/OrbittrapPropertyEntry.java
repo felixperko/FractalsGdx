@@ -15,7 +15,7 @@ import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
-import de.felixp.fractalsgdx.ui.RefocusVisWindow;
+import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.NumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
@@ -35,7 +35,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     @Override
     public void openWindow(Stage stage) {
-        VisWindow window = new RefocusVisWindow("Edit orbit traps");
+        VisWindow window = new FractalsWindow("Edit orbit traps");
         VisTable mainTable = new VisTable(true);
 
         ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);

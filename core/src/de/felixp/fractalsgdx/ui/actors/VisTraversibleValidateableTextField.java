@@ -1,6 +1,5 @@
-package de.felixp.fractalsgdx.ui;
+package de.felixp.fractalsgdx.ui.actors;
 
-import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;

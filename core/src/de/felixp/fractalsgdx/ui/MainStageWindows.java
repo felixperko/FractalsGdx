@@ -35,6 +35,7 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_NAME;
 import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_SCALE;
@@ -115,7 +116,7 @@ public class MainStageWindows {
         if(settingsWindow != null && settingsWindow.getParent() != null)
             settingsWindow.remove();
 
-        settingsWindow = new RefocusVisWindow("Settings");
+        settingsWindow = new FractalsWindow("Settings");
         settingsWindow.setResizable(true);
         ((VisWindow) settingsWindow).addCloseButton();
 //        ((VisWindow) settingsWindow).closeOnEscape();

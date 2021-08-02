@@ -46,6 +46,7 @@ import de.felixp.fractalsgdx.animation.AnimationListener;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.ScreenshotListener;
+import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 
 public class ScreenshotUI {
 
@@ -54,7 +55,7 @@ public class ScreenshotUI {
     public static final String IMAGE_SELECT_OUTPUT = "Output preview";
     public static final String IMAGE_SELECT_ORIGINAL = "Original image";
 
-    static RefocusVisWindow window;
+    static FractalsWindow window;
 
     static VisTable folderTable;
     static VisTable previewTable;
@@ -97,7 +98,7 @@ public class ScreenshotUI {
         String screenshotFileName = getScreenshotFileName();
 
         if (window == null) {
-            window = new RefocusVisWindow("Screenshot");
+            window = new FractalsWindow("Screenshot");
             ((VisWindow) window).addCloseButton();
 
             folderTable = new VisTable(true);

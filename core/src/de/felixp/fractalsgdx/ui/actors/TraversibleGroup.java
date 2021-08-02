@@ -1,6 +1,4 @@
-package de.felixp.fractalsgdx.ui;
-
-import com.kotcrab.vis.ui.widget.VisTextField;
+package de.felixp.fractalsgdx.ui.actors;
 
 import java.util.ArrayList;
 import java.util.List;

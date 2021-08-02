@@ -44,6 +44,7 @@ import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
 import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
+import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
@@ -375,7 +376,7 @@ public class MainStage extends Stage {
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(1.5)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, nf.createNumber(3.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.LIGHT_GRAY));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.GOLD));
 
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
@@ -511,9 +512,9 @@ public class MainStage extends Stage {
             renderer.updateSize();
 
         for (Actor actor : getActors()){
-            if (actor instanceof RefocusVisWindow){
-                if (((RefocusVisWindow)actor).isAutoReposition())
-                    ((RefocusVisWindow)actor).reposition();
+            if (actor instanceof FractalsWindow){
+                if (((FractalsWindow)actor).isAutoReposition())
+                    ((FractalsWindow)actor).reposition();
             }
             else if (actor instanceof VisWindow){
                 ((VisWindow) actor).pack();
