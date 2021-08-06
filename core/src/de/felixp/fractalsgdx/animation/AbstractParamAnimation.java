@@ -266,7 +266,9 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
     @Override
     public void setTimeFactor(double timeFactor) {
+        double relProgress = getTimeProgress()/this.timeFactor;
         this.timeFactor = timeFactor;
+        setTimeProgress(relProgress*timeFactor);
     }
 
     public boolean isRepeating() {
