@@ -166,6 +166,9 @@ public class MainStageWindows {
             case CATEGORY_WINDOW:
                 stage.setActiveSettingsTable(getWindowOptions(settingsWindow));
                 break;
+            case CATEGORY_PALETTES:
+                stage.setActiveSettingsTable(PaletteUI.getPaletteTable(settingsWindow));
+                break;
         }
         VisScrollPane sp = new VisScrollPane(stage.getActiveSettingsTable());
         sp.setScrollingDisabled(true, false);

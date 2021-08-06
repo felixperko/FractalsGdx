@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.ui.actors.TraversibleGroup;
+import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
@@ -37,6 +37,7 @@ import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftPa
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.infra.Selection;
 
 public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
@@ -56,8 +57,16 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     ParamContainer paramContainer;
 
-    public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
+    TraversableGroup traversableGroup = new TraversableGroup();
 
+    public CollapsiblePropertyList() {
+        super();
+        traversableGroup.setTree(tree);
+    }
+
+    Map<String, Selection<?>> lastSelections = null;
+
+    public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
 
         //allow force reset by first setting paramContainer null and then setting a new one
         //TODO proper reset mechanism
@@ -69,9 +78,23 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         //need to reset property table?
         //first --> reset
         boolean reset = this.paramContainer == null;
+
+        if (lastSelections != null){
+            for (Selection<?> sel : paramConfig.getSelections().values()){
+                Selection<?> old = lastSelections.get(sel.getName());
+                if (old == null || !old.equals(sel)) {
+                    reset = true;
+                    break;
+                }
+            }
+        }
+        lastSelections = paramConfig.getSelections();
+
         if (!reset){
             //check PropertyEntries
             for (AbstractPropertyEntry e : propertyEntryList){
+                if (!e.getParameterDefinition().equals(paramConfig.getParamDefinition(e.getPropertyName())))
+                    reset = true;
                 if (e.isForceReset(true)) { //reset all force resets
                     reset = true;
                 }
@@ -116,12 +139,12 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         if (reset) {
             tree.clear();
-            if (this.paramContainer != paramContainer) {
+//            if (this.paramContainer != paramContainer) {
                 closeEntryViews();
                 propertyEntryList.clear();
                 propertyEntriesPerCategory.clear();
                 tablePerCategory.clear();
-            }
+//            }
             if (submitButton != null)
                 submitButton.remove();
         }
@@ -143,8 +166,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         //parse expression from 'f(z)=' if set
         ComputeExpression expression = null;
-        if (newParams.containsKey("f(z)=")){
-            String exprString = paramContainer.getClientParameter("f(z)=").getGeneral(String.class);
+        if (newParams.containsKey(BFOrbitCommon.PARAM_EXPRESSION)){
+            String exprString = paramContainer.getClientParameter(BFOrbitCommon.PARAM_EXPRESSION).getGeneral(String.class);
             ComputeExpressionBuilder exprBuilder = new ComputeExpressionBuilder(exprString, "z", newParams);
             try {
                 expression = exprBuilder.getComputeExpression();
@@ -242,9 +265,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()) {
                 String category = e.getKey();
                 Table table = (Table) ((Tree.Node) categoryNodes.get(category).getChildren().get(0)).getActor();
-                TraversibleGroup traversibleGroup = new TraversibleGroup();
                 for (AbstractPropertyEntry entry : e.getValue()) {
-                    entry.setTraversibleGroup(traversibleGroup);
+                    entry.setTraversableGroup(traversableGroup);
                     closeEntryView(entry);
                     openEntryView(table, entry);
                 }
@@ -401,7 +423,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         VisTable table = new VisTable();
         tablePerCategory.put(category, table);
-        node.add(new Tree.Node(table){});
+        Tree.Node catNode = new Tree.Node(table) {};
+        node.add(catNode);
         node.setSelectable(true);
         return node;
     }

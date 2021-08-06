@@ -38,6 +38,7 @@ public interface ParamInterpolation<T> {
     T getDefaultValue();
 
     void setControlPointParent(ParamInterpolation controlPointParent);
+    void setControlPointParent(ParamInterpolation controlPointParent, boolean imagPart);
     void addControlPointChild(ParamInterpolation controlPointChild);
     void removeControlPointChild(ParamInterpolation controlPointChild);
 

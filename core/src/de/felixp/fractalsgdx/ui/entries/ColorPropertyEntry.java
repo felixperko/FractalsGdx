@@ -1,11 +1,16 @@
 package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.VisImage;
 import com.kotcrab.vis.ui.widget.VisImageButton;
@@ -13,8 +18,6 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.color.ColorPicker;
 import com.kotcrab.vis.ui.widget.color.ColorPickerListener;
-import com.kotcrab.vis.ui.widget.color.internal.Palette;
-import com.kotcrab.vis.ui.widget.color.internal.PickerCommons;
 
 import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
 import de.felixperko.fractals.data.ParamContainer;
@@ -26,26 +29,39 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
 
     private static final Drawable white = VisUI.getSkin().getDrawable("white") ;
 
+    static ColorPicker picker;
+
+    Pixmap previewPixmap;
+
+    Color color;
+
+    Image previewImage;
+
+//    ImageButton windowButton;
+
     public ColorPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, submitValue);
         color = paramContainer.getClientParameter(getPropertyName()).getGeneral(Color.class);
 
 
-        image = new VisImage(white);
-        image.setColor(color);
+        previewImage = new VisImage(white);
+        previewPixmap = new Pixmap(1,1, Pixmap.Format.RGBA8888);
+//        windowButton = new ImageButton(previewImage.getDrawable());
+//        previewImage.setColor(color);
 
 //        palette = new Palette()
     }
 
-    Color color;
-
-//    Palette palette;
-
-    Image image;
+    @Override
+    public Button getWindowButton() {
+        return new VisTextButton("change color");
+    }
 
     @Override
     public void openWindow(Stage stage) {
-        ColorPicker picker = new WindowAgnosticColorPicker("");
+        if (picker == null)
+            picker = new WindowAgnosticColorPicker("");
+        picker.getPicker().setShowColorPreviews(false);
         stage.addActor(picker.fadeIn());
         picker.setColor(color);
         picker.setListener(new ColorPickerListener() {
@@ -58,8 +74,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
             public void changed(Color newColor) {
                 color = newColor;
                 applyClientValue();
-                image.setColor(color);
-//                ((MainStage) FractalsGdxMain.stage).
+                updatePreviewImage();
             }
 
             @Override
@@ -70,15 +85,22 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
             @Override
             public void finished(Color newColor) {
                 color = newColor;
-                image.setColor(color);
+                updatePreviewImage();
             }
         });
+        updatePreviewImage();
+    }
+
+    private void updatePreviewImage() {
+        previewPixmap.setColor(color);
+        previewPixmap.drawPixel(0,0);
+        previewImage.setDrawable(new TextureRegionDrawable(new TextureRegion(new Texture(previewPixmap))));
     }
 
     @Override
-    protected void fillControlsTable(VisTable controlsTable, VisTextButton windowButton) {
+    protected void fillControlsTable(VisTable controlsTable, Button windowButton) {
         super.fillControlsTable(controlsTable, windowButton);
-        controlsTable.add(image).size(32).pad(3);
+        controlsTable.add(previewImage).size(16).pad(3);
     }
 
     @Override

@@ -18,11 +18,12 @@ import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamS
 import de.felixperko.fractals.system.parameters.suppliers.MappedParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
 
 public class JuliasetRendererLink extends DefaultRendererLink{
 
     public JuliasetRendererLink(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
-        super(sourceRenderer, targetRenderer, Arrays.asList("limit", "iterations", "f(z)=", "condition", GPUSystemContext.PARAMNAME_ORBITTRAPS));
+        super(sourceRenderer, targetRenderer, Arrays.asList("limit", "iterations", BFOrbitCommon.PARAM_EXPRESSION, "condition", GPUSystemContext.PARAMNAME_ORBITTRAPS));
     }
 
     @Override
@@ -37,15 +38,15 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         super.switchRenderers();
 
 //        ComplexNumber newSourceStart = getSourceRenderer().getSystemContext().getNumberFactory().createComplexNumber(0, 0);
-        ParamSupplier newSourceStartSupp = getTargetParamContainer().getClientParameter("start");
+        ParamSupplier newSourceStartSupp = getTargetParamContainer().getClientParameter(BFOrbitCommon.PARAM_ZSTART);
         NumberFactory nf = getSourceRenderer().getSystemContext().getNumberFactory();
         ComplexNumber newSourceStart = newSourceStartSupp instanceof StaticParamSupplier ? newSourceStartSupp.getGeneral(ComplexNumber.class) : nf.createComplexNumber(0,0);
-        getSourceParamContainer().addClientParameter(new StaticParamSupplier("start", newSourceStart));
+        getSourceParamContainer().addClientParameter(new StaticParamSupplier(BFOrbitCommon.PARAM_ZSTART, newSourceStart));
         getSourceParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
         getSourceParamContainer().addClientParameter(new StaticParamSupplier("midpoint", preservedSourceMidpoint.copy()));
         getSourceParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedSourceZoom.copy()));
 
-        getTargetParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
+        getTargetParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier(BFOrbitCommon.PARAM_ZSTART));
         getTargetParamContainer().addClientParameter(new StaticParamSupplier("c", preservedSourceMidpoint.copy()));
         getTargetParamContainer().addClientParameter(new StaticParamSupplier("midpoint", preservedTargetMidpoint.copy()));
         getTargetParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedTargetZoom.copy()));
@@ -59,7 +60,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
 
         boolean changed = super.syncParams();
 
-        String formula = getSourceParamContainer().getClientParameter("f(z)=").getGeneral(String.class);
+        String formula = getSourceParamContainer().getClientParameter(BFOrbitCommon.PARAM_EXPRESSION).getGeneral(String.class);
         ComputeExpression computeExpression = new ComputeExpressionBuilder(formula, "z", new HashMap<>()).getComputeExpression();
         if (computeExpression != null){
             for (String name : computeExpression.getConstantNames()){
@@ -72,7 +73,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
             }
         }
 
-        boolean setTargetJuliaset = getSourceParamContainer().getClientParameter("start") instanceof StaticParamSupplier;
+        boolean setTargetJuliaset = getSourceParamContainer().getClientParameter(BFOrbitCommon.PARAM_ZSTART) instanceof StaticParamSupplier;
         if (!setTargetJuliaset) {
             switchRenderers();
             return false; //updated renderers already after switching
@@ -87,8 +88,8 @@ public class JuliasetRendererLink extends DefaultRendererLink{
             targetContainer.addClientParameter(new StaticParamSupplier("c", sourceMidpoint.copy()));
             changed = true;
         }
-        if (!(targetContainer.getClientParameter("start") instanceof CoordinateBasicShiftParamSupplier)){
-            targetContainer.addClientParameter(new CoordinateBasicShiftParamSupplier("start"));
+        if (!(targetContainer.getClientParameter(BFOrbitCommon.PARAM_ZSTART) instanceof CoordinateBasicShiftParamSupplier)){
+            targetContainer.addClientParameter(new CoordinateBasicShiftParamSupplier(BFOrbitCommon.PARAM_ZSTART));
             changed = true;
         }
 

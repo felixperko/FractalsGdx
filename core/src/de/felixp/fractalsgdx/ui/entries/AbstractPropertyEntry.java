@@ -22,7 +22,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.TraversibleGroup;
+import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
@@ -63,7 +63,7 @@ public abstract class AbstractPropertyEntry {
     protected Class<? extends ParamSupplier> selectedSupplierClass;
     List<Class<? extends ParamSupplier>> possibleSupplierClasses;
 
-    TraversibleGroup traversibleGroup;
+    TraversableGroup traversableGroup;
 
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
@@ -282,7 +282,8 @@ public abstract class AbstractPropertyEntry {
     }
 
     protected void submit() {
-        ((MainStage) FractalsGdxMain.stage).submitServer(((MainStage) FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
+        if (submitValue)
+            ((MainStage) FractalsGdxMain.stage).submitServer(((MainStage) FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
     }
 
     public void addSubmitListener(Actor actor) {
@@ -309,11 +310,11 @@ public abstract class AbstractPropertyEntry {
         });
     }
 
-    public void setTraversibleGroup(TraversibleGroup traversibleGroup) {
-        this.traversibleGroup = traversibleGroup;
+    public void setTraversableGroup(TraversableGroup traversableGroup) {
+        this.traversableGroup = traversableGroup;
     }
 
-    public TraversibleGroup getTraversibleGroup(){
-        return traversibleGroup;
+    public TraversableGroup getTraversableGroup(){
+        return traversableGroup;
     }
 }

@@ -61,9 +61,17 @@ public class RendererContext {
 
     int rendererId = -1;
 
+    /**
+     * Create a renderer context with the given start properties.
+     * @param x
+     * @param y
+     * @param w
+     * @param h
+     * @param orientation
+     */
     public RendererContext(float x, float y, float w, float h, int orientation){
         properties = new RendererProperties(x, y, w, h, orientation);
-//        String param = "start";
+//        String param = BFOrbitCommon.PARAM_ZSTART;
         String param = null;
         String containerKey = "server";
         PathParamAnimation pathAnimation = new PathParamAnimation(selectedPathAnimation);

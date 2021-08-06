@@ -477,7 +477,7 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 //            ParamContainer systemClientData = systemInterface.getParamContainer();
 //            int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
 //            int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
-//            NumberFactory nf = systemClientData.getClientParameter("nf").getGeneral(NumberFactory.class);
+//            NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
 //
 //            ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
 //            ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);

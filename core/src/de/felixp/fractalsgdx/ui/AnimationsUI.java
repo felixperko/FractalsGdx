@@ -299,6 +299,8 @@ public class AnimationsUI {
     static List<VisTextField> defValueFields = new ArrayList<>();
     static ParamInterpolation currentInterpolation = null;
 
+    static VisSelectBox<Map.Entry<String, ParamInterpolation>> inheritControlPointSelect;
+
     static Map<String, String> paramOptions = null;
 
     private static void openInterpolationAddWindow(MainStage stage, ParamAnimation animation, VisWindow animationsWindow, FractalRenderer selectedRenderer){
@@ -343,6 +345,7 @@ public class AnimationsUI {
                 paramOptions = updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
                 currentInterpolation = createParamInterpolationAsSelected(paramSelect.getSelected());
                 currentInterpolation.setNumberFactory(numberFactory);
+                updateInheritSelectOptions(animation, inheritControlPointSelect);
                 updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
                 window.pack();
             }
@@ -379,22 +382,14 @@ public class AnimationsUI {
         }
         currentInterpolation = interpolation;
 
-        VisSelectBox<Map.Entry<String, ParamInterpolation>> inheritControlPointSelect = new VisSelectBox(){
+        inheritControlPointSelect = new VisSelectBox(){
             @Override
             protected String toString(Object item) {
                 return ((Map.Entry<String, ParamInterpolation>)item).getKey();
             }
         };
 
-        Map<String, ParamInterpolation> inheritControlPointOptions = new LinkedHashMap<>();
-        inheritControlPointOptions.put("no inheritance", null);
-        for (ParamInterpolation interpolation2 : animation.getInterpolations().values()){
-            if (interpolation2.getParamType().equals(selectedParamType))
-                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+"."+interpolation2.getParamName(), interpolation2);
-        }
-        inheritControlPointSelect.setItems(new Array<Map.Entry<String, ParamInterpolation>>(
-                inheritControlPointOptions.entrySet().toArray(new Map.Entry[inheritControlPointOptions.size()]))
-        );
+        Map<String, ParamInterpolation> inheritControlPointOptions = updateInheritSelectOptions(animation, inheritControlPointSelect);
 
         Map<String, Class<? extends InterpolationFunction>> interpolationFunctionOptions = new HashMap<>();
         interpolationFunctionOptions.put("linear", LinearInterpolationFunction.class);
@@ -446,8 +441,14 @@ public class AnimationsUI {
                     currentInterpolation.setParam(names[0], selectedParamType, selectedContainer, names[1]);
                     ParamInterpolation interpolation = currentInterpolation;
                     ParamInterpolation inheritValueInterpolation = inheritControlPointSelect.getSelected().getValue();
-                    if (inheritValueInterpolation != null)
-                        interpolation.setControlPointParent(inheritValueInterpolation);
+                    if (inheritValueInterpolation != null) {
+                        if (interpolation.getParamType().equals(inheritValueInterpolation.getParamType()))
+                            interpolation.setControlPointParent(inheritValueInterpolation);
+                        if (interpolation.getParamType().equals(PARAM_TYPE_NUMBER) && inheritValueInterpolation.getParamType().equals(PARAM_TYPE_COMPLEXNUMBER)) {
+                            boolean imagPart = inheritControlPointSelect.getSelected().getKey().contains("im(");
+                            interpolation.setControlPointParent(inheritValueInterpolation, imagPart);
+                        }
+                    }
                     animation.setInterpolation(interpolation);
                     if (inheritValueInterpolation == null)
                         selectedInterpolation = interpolation;
@@ -530,6 +531,24 @@ public class AnimationsUI {
         window.pack();
         window.centerWindow();
         stage.addActor(window);
+    }
+
+    private static Map<String, ParamInterpolation> updateInheritSelectOptions(ParamAnimation animation, VisSelectBox<Map.Entry<String, ParamInterpolation>> inheritControlPointSelect) {
+        Map<String, ParamInterpolation> inheritControlPointOptions = new LinkedHashMap<>();
+        inheritControlPointOptions.put("no inheritance", null);
+        for (ParamInterpolation interpolation2 : animation.getInterpolations().values()){
+            if (interpolation2.getParamType().equals(selectedParamType))
+                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+"."+interpolation2.getParamName(), interpolation2);
+            if (selectedParamType.equals(PARAM_TYPE_NUMBER) && interpolation2.getParamType().equals(PARAM_TYPE_COMPLEXNUMBER)){
+                //TODO implement inherit part of complex number
+                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+".re("+interpolation2.getParamName()+")", interpolation2);
+                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+".im("+interpolation2.getParamName()+")", interpolation2);
+            }
+        }
+        inheritControlPointSelect.setItems(new Array<Map.Entry<String, ParamInterpolation>>(
+                inheritControlPointOptions.entrySet().toArray(new Map.Entry[inheritControlPointOptions.size()]))
+        );
+        return inheritControlPointOptions;
     }
 
     private static boolean applyInterpolationFields(ParamInterpolation interpolation, List<VisTextField> defValueFields, NumberFactory numberFactory) {

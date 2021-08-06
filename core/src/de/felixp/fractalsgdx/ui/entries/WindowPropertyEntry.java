@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -27,13 +28,13 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
 
             VisLabel nameLbl = new VisLabel(propertyName);
             VisTable controlsTable = new VisTable();
-            VisTextButton windowButton = null;
+            Button windowButton = null;
 
             @Override
             public void addToTable(Table table) {
                 table.add(nameLbl).left();
                 if (windowButton == null){
-                    windowButton = new VisTextButton("...");
+                    windowButton = getWindowButton();
                     windowButton.addListener(new ChangeListener() {
                         @Override
                         public void changed(ChangeEvent event, Actor actor) {
@@ -55,7 +56,11 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
         });
     }
 
-    protected void fillControlsTable(VisTable controlsTable, VisTextButton windowButton) {
+    public Button getWindowButton() {
+        return new VisTextButton("...");
+    }
+
+    protected void fillControlsTable(VisTable controlsTable, Button windowButton) {
         controlsTable.add(windowButton).left();
     }
 

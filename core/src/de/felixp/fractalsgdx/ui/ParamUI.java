@@ -90,6 +90,7 @@ public class ParamUI {
     }
 
     public void updateClientParamConfiguration(ParamConfiguration configuration){
+        clientParamsSideMenu.getParamContainer().setParamConfiguration(configuration);
         clientParamsSideMenu.setParameterConfiguration(clientParamsSideMenu.getParamContainer(), configuration, clientPropertyEntryFactory);
     }
 
@@ -134,7 +135,7 @@ public class ParamUI {
 
     public void refreshClientParameterUI(FractalRenderer renderer){
         setParameterConfiguration(renderer, clientParamsSideMenu, stage.clientParams,
-                stage.clientParamConfiguration, serverPropertyEntryFactory);
+                stage.clientParamConfiguration, clientPropertyEntryFactory);
     }
 
     public void setServerParameterConfiguration(FractalRenderer renderer, ParamContainer paramContainer, ParamConfiguration parameterConfiguration){
@@ -142,7 +143,7 @@ public class ParamUI {
     }
 
     public void setClientParameterConfiguration(FractalRenderer renderer, ParamContainer paramContainer, ParamConfiguration parameterConfiguration){
-        setParameterConfiguration(renderer, clientParamsSideMenu, paramContainer, parameterConfiguration, serverPropertyEntryFactory);
+        setParameterConfiguration(renderer, clientParamsSideMenu, paramContainer, parameterConfiguration, clientPropertyEntryFactory);
     }
 
     ChangeListener oldSubmitListener = null;
@@ -164,6 +165,9 @@ public class ParamUI {
             list.removeSubmitListener(oldSubmitListener);
         oldSubmitListener = submitListener;
         list.addSubmitListener(submitListener);
+
+        if (paramContainer == null)
+            return;
 
         boolean reset = false;
         for (ParamSupplier supp : paramContainer.getParameters()){

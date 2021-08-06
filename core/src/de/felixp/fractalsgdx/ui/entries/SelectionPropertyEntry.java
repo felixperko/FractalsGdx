@@ -84,6 +84,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                     public void changed(ChangeEvent event, Actor actor) {
                         selectedValue = selection.getOption(box.getSelected().toString());
                         ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
+                        applyClientValue();
                     }
                 });
 //                for (String name : selection.getOptionNames()){

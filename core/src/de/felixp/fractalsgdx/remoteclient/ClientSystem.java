@@ -34,6 +34,7 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.task.Layer;
 
@@ -91,9 +92,9 @@ public class ClientSystem {
         params.put("iterations", new StaticParamSupplier("iterations", (Integer)1000));
         params.put("samples", new StaticParamSupplier("samples", (Integer)(samplesDim*samplesDim)));
 
-//        params.put("f(z)=", new StaticParamSupplier("f(z)=", "(re(z)+abs(im(z))*i)^pow+c"));
-//        params.put("f(z)=", new StaticParamSupplier("f(z)=", "(re(z)+tanh(im(z))*i)^pow+c"));
-        params.put("f(z)=", new StaticParamSupplier("f(z)=", "z^pow+c"));
+//        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "(re(z)+abs(im(z))*i)^pow+c"));
+//        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "(re(z)+tanh(im(z))*i)^pow+c"));
+        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "z^pow+c"));
 
         List<Layer> layers = new ArrayList<>();
 //        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
@@ -122,14 +123,15 @@ public class ClientSystem {
 
         params.put("calculator", new StaticParamSupplier("calculator", "CustomCalculator"));
         params.put("systemName", new StaticParamSupplier("systemName", "BreadthFirstSystem"));
-        params.put("nf", new StaticParamSupplier("nf", numberFactory));
+        params.put("numberFactory", new StaticParamSupplier("numberFactory", numberFactory));
         params.put("chunkFactory", new StaticParamSupplier("chunkFactory", new ArrayChunkFactory(ReducedNaiveChunk.class, chunkSize)));
 
 
-        params.put("start", new StaticParamSupplier("start", new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
+        params.put(BFOrbitCommon.PARAM_ZSTART, new StaticParamSupplier(BFOrbitCommon.PARAM_ZSTART,
+                new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
         params.put("c", new CoordinateBasicShiftParamSupplier("c"));
 //
-//        params.put("start", new CoordinateBasicShiftParamSupplier("start"));
+//        params.put(BFOrbitCommon.PARAM_ZSTART, new CoordinateBasicShiftParamSupplier(BFOrbitCommon.PARAM_ZSTART));
 //        params.put("c", new StaticParamSupplier("c", new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
 
 

@@ -182,7 +182,7 @@ z^2-abs(z_(n-1))^2+c
     }
   }, {
     "type" : "staticSupplier",
-    "name" : "start",
+    "name" : "z_0",
     "attr" : 8,
     "obj" : {
       "type" : "wrappedvalue",
@@ -262,7 +262,7 @@ z^2-abs(z_(n-1))^2+c
     }
   }, {
     "type" : "staticSupplier",
-    "name" : "f(z)=",
+    "name" : "z_(n+1)=",
     "attr" : 8,
     "obj" : "sin(z)^pow+sin(c)"
   }, {

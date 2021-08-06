@@ -16,7 +16,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.VisTraversibleValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -68,7 +68,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisTraversibleValidateableTextField field;
+            protected VisTraversableValidateableTextField field;
             VisLabel label;
             VisTextButton optionButton;
 
@@ -81,13 +81,13 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             @Override
             public void addToTable(Table table) {
                 label = new VisLabel(propertyName);
-                field = new VisTraversibleValidateableTextField(validator);
+                field = new VisTraversableValidateableTextField(validator);
                 optionButton = new VisTextButton("...");
 
                 ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
 
                 field.setTraversalPaused(!(textSupplier instanceof StaticParamSupplier));
-                traversibleGroup.addField(field);
+                traversableGroup.addField(field);
 
                 if (textSupplier != null)
                     field.setText(text = textSupplier.getGeneral().toString());
@@ -115,7 +115,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
             @Override
             public void removeFromTable() {
-                traversibleGroup.removeField(field);
+                traversableGroup.removeField(field);
                 label.remove();
                 field.remove();
                 contentFields.remove(field);

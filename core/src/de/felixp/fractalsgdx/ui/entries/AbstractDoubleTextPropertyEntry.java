@@ -17,7 +17,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.VisTraversibleValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -90,8 +90,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisTraversibleValidateableTextField field1;
-            protected VisTraversibleValidateableTextField field2;
+            protected VisTraversableValidateableTextField field1;
+            protected VisTraversableValidateableTextField field2;
             VisLabel label;
             VisTextButton optionButton;
 
@@ -111,9 +111,9 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 optionButton = new VisTextButton("...");
 
-                field1 = new VisTraversibleValidateableTextField(validator1);
+                field1 = new VisTraversableValidateableTextField(validator1);
                 addSubmitListener(field1);
-                field2 = new VisTraversibleValidateableTextField(validator2);
+                field2 = new VisTraversableValidateableTextField(validator2);
                 addSubmitListener(field2);
 
 
@@ -121,8 +121,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 field1.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
                 field2.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
-                traversibleGroup.addField(field1);
-                traversibleGroup.addField(field2);
+                traversableGroup.addField(field1);
+                traversableGroup.addField(field2);
 
                 inputDisabled = !(paramSupplier instanceof StaticParamSupplier);
                 if (!inputDisabled) {
@@ -170,8 +170,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
             @Override
             public void removeFromTable() {
-                traversibleGroup.removeField(field1);
-                traversibleGroup.removeField(field2);
+                traversableGroup.removeField(field1);
+                traversableGroup.removeField(field2);
                 contentFields.remove(field1);
                 contentFields.remove(field2);
                 field1.remove();

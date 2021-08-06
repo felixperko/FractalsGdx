@@ -7,6 +7,7 @@ import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextField;
 
+import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
@@ -26,7 +27,8 @@ public class NumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeA
     public Actor addToTable(Table table) {
         VisTable innerTable = new VisTable(true);
         VisLabel nameLbl = new VisLabel(name);
-        VisTextField valueField = new VisTextField(startVal.toString());
+        VisTraversableValidateableTextField valueField = new VisTraversableValidateableTextField(startVal.toString());
+        registerField(valueField);
         valueField.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {

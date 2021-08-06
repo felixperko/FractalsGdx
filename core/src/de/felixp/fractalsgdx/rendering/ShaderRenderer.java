@@ -53,6 +53,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.statistics.IStats;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
+import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
@@ -352,7 +353,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         panPartOffsetY = requestedDeltaY-deltaY;
 
         ParamContainer paramContainer = systemContext.getParamContainer();
-        NumberFactory nf = paramContainer.getClientParameter("nf").getGeneral(NumberFactory.class);
+        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
         Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
         ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
         ComplexNumber delta = nf.createComplexNumber(deltaX, -deltaY);
@@ -366,7 +367,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     public void paramsChanged(ParamContainer paramContainer) {
-        ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(this, paramContainer, ((GPUSystemContext) systemContext).paramConfiguration);
+        ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(this, paramContainer, ((GPUSystemContext) systemContext).paramConfig);
     }
 
     public void compileShaders() {
@@ -493,7 +494,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                "cos(z)^2+c"
 //                "absr(negatei(z))^2+c"
 //                ;
-        String newExpressionString = (String) systemContext.getParamValue("f(z)=", String.class);
+        String newExpressionString = (String) systemContext.getParamValue(BFOrbitCommon.PARAM_EXPRESSION, String.class);
 
         String currentCondition = (String) systemContext.getParamValue("condition");
         boolean conditionChanged = !currentCondition.equals(lastCondition);
@@ -857,7 +858,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         Texture dataTexture = getFboDataPrevious().getColorBufferTexture();
         Texture palette = ((MainStage)getStage()).getPaletteTexture();
         if (palette != null) {
-            palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.MipMapLinearLinear);
             palette.bind(1);
         }
         dataTexture.bind(0);
@@ -1594,11 +1595,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     public void paramsChanged() {
-        for (RendererLink link : rendererContext.getSourceLinks())
-            link.syncTargetRenderer();
         paramsChanged = true;
         systemContext.setParameters(systemContext.getParamContainer());
         rendererContext.setParamContainer(systemContext.getParamContainer());
+        for (RendererLink link : rendererContext.getSourceLinks())
+            link.syncTargetRenderer();
     }
 
     private static class TraceChunk extends AbstractArrayChunk {

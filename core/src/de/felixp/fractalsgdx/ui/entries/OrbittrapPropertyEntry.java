@@ -11,11 +11,15 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
+import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.NumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
@@ -38,20 +42,22 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         VisWindow window = new FractalsWindow("Edit orbit traps");
         VisTable mainTable = new VisTable(true);
 
+        TraversableGroup traversableGroup = new TraversableGroup();
+
         ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);
         OrbittrapContainer cont = contSupp.getGeneral(OrbittrapContainer.class);
-        NumberFactory nf = paramContainer.getClientParameter("nf").getGeneral(NumberFactory.class);
+        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
 
         VisTable contentTable = new VisTable(true);
 
-        populateContentTable(window, cont, nf, contentTable);
+        populateContentTable(window, cont, nf, contentTable, traversableGroup);
         mainTable.add(contentTable).row();
 
         VisTextButton addBtn = new VisTextButton("add orbit trap");
         addBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                openAddWindow(window, contentTable, cont, nf);
+                openAddWindow(window, traversableGroup, contentTable, cont, nf);
             }
         });
         mainTable.add(addBtn).row();
@@ -75,24 +81,32 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         window.centerWindow();
     }
 
-    public void populateContentTable(VisWindow window, OrbittrapContainer cont, NumberFactory nf, VisTable contentTable) {
+    List<PropertyAttributeAdapterUI> contentTableAttributeAdapters = new ArrayList<>();
+
+    public void populateContentTable(VisWindow window, OrbittrapContainer cont, NumberFactory nf, VisTable contentTable, TraversableGroup traversableGroup) {
+        for (PropertyAttributeAdapterUI adapter : contentTableAttributeAdapters){
+            adapter.unregisterFields();
+        }
+        contentTableAttributeAdapters.clear();
         contentTable.clear();
         int counter = 1;
         for (Orbittrap trap : cont.getOrbittraps()){
-            addOrbittrapUI(window, contentTable, nf, counter, trap, true);
+            addOrbittrapUI(window, contentTable, nf, counter, trap, true, traversableGroup);
             counter++;
         }
         window.pack();
         window.centerWindow();
     }
 
-    public void addOrbittrapUI(VisWindow window, Table contentTable, NumberFactory nf, int counter, Orbittrap trap, boolean addControls){
+    public void addOrbittrapUI(VisWindow window, Table contentTable, NumberFactory nf, int counter, Orbittrap trap, boolean addControls, TraversableGroup traversableGroup){
 
         VisTable valueTable = prepareOrbittrapTables(window, contentTable, counter, trap, addControls);
 
         for(ParamAttribute attr : trap.getParamAttributes()){
             PropertyAttributeAdapterUI adapter = getAdapterUI(attr, nf);
+            adapter.setTraversableGroup(traversableGroup);
             adapter.addToTable(valueTable);
+            contentTableAttributeAdapters.add(adapter);
         }
 
         if (addControls)
@@ -138,10 +152,12 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     Orbittrap newTrap = null;
 
-    public void openAddWindow(VisWindow superWindow, VisTable contentTable, OrbittrapContainer cont, NumberFactory nf){
+    public void openAddWindow(VisWindow superWindow, TraversableGroup superTraversableGroup, VisTable contentTable, OrbittrapContainer cont, NumberFactory nf){
 
         VisWindow window = new VisWindow("Add orbit trap");
         VisTable mainTable = new VisTable(true);
+
+        TraversableGroup traversableGroup = new TraversableGroup();
 
         VisSelectBox<Class<? extends Orbittrap>> orbittrapClassSelect = new VisSelectBox<Class<? extends Orbittrap>>(){
             @Override
@@ -154,14 +170,14 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
         VisTable addContentTable = new VisTable(true);
         newTrap = createOrbittrap(otClass, nf, cont);
-        addOrbittrapUI(null, addContentTable, nf, -1, newTrap, false);
+        addOrbittrapUI(null, addContentTable, nf, -1, newTrap, false, traversableGroup);
 
         orbittrapClassSelect.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 addContentTable.clear();
                 newTrap = createOrbittrap(orbittrapClassSelect.getSelected(), nf, cont);
-                addOrbittrapUI(null, addContentTable, nf, -1, newTrap, false);
+                addOrbittrapUI(null, addContentTable, nf, -1, newTrap, false, traversableGroup);
                 window.pack();
             }
         });
@@ -183,7 +199,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
                 window.remove();
                 newTrap = null;
                 if (superWindow.getParent() != null) {
-                    populateContentTable(superWindow, cont, nf, contentTable);
+                    populateContentTable(superWindow, cont, nf, contentTable, superTraversableGroup);
                 }
             }
         });
@@ -199,7 +215,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         window.centerWindow();
 
         contentTable.clear();
-        populateContentTable(superWindow, cont, nf, contentTable);
+        populateContentTable(superWindow, cont, nf, contentTable, superTraversableGroup);
     }
 
 

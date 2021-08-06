@@ -42,6 +42,8 @@ import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.palette.IPalette;
+import de.felixp.fractalsgdx.rendering.palette.ImagePalette;
 import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
 import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
@@ -80,7 +82,7 @@ public class MainStage extends Stage {
     Preferences positions_prefs;
     Map<String, ParamContainer> locations = new HashMap<>();
 
-    Map<String, Texture> palettes = new LinkedHashMap<>();
+    Map<String, IPalette> palettes = new LinkedHashMap<>();
 
     Table activeSettingsTable = null;
 
@@ -99,13 +101,10 @@ public class MainStage extends Stage {
             String name = fileHandle.nameWithoutExtension();
             if (name.startsWith("palette-"))
                 name = name.substring(8);
-            palettes.put(name, new Texture(fileHandle));
+            palettes.put(name, new ImagePalette(fileHandle));
         }
 
-        FractalRenderer renderer;
-
-        renderer = new ShaderRenderer(new RendererContext(0, 0, 1f, 1, RendererProperties.ORIENTATION_FULLSCREEN));
-
+        FractalRenderer renderer = new ShaderRenderer(new RendererContext(0, 0, 1f, 1, RendererProperties.ORIENTATION_FULLSCREEN));
         setFocusedRenderer(renderer);
 
         positions_prefs = Gdx.app.getPreferences(POSITIONS_PREFS_NAME);
@@ -217,11 +216,33 @@ public class MainStage extends Stage {
         paramUI.setServerParameterConfiguration(renderer, systemContext.getParamContainer(), systemContext.getParamConfiguration());
     }
 
+    public void setPaletteTexture(String paletteName, Texture texture, boolean createIfNull){
+        IPalette palette = palettes.get(paletteName);
+        if (palette == null) {
+            if (!createIfNull)
+                return;
+            palettes.put(paletteName, new ImagePalette(paletteName, texture));
+            refreshClientSideMenu();
+        }
+        if (paletteName.equals(getClientParameter(PARAMS_COLOR_USE_PALETTE).getGeneral(String.class))){
+            for (FractalRenderer renderer : renderers){
+                renderer.setRefresh();
+            }
+        }
+    }
+
+    public void refreshClientSideMenu() {
+        clientParamConfiguration = initRightParamConfiguration();
+        clientParams.setParamConfiguration(clientParamConfiguration);
+        paramUI.updateClientParamConfiguration(clientParamConfiguration);
+//        paramUI.refreshClientParameterUI(focusedRenderer);
+    }
+
     public Texture getPaletteTexture() {
         String paletteName = clientParams.getClientParameter("palette").getGeneral(String.class);
         if (paletteName.equalsIgnoreCase("none"))
             return null;
-        return palettes.get(paletteName);
+        return palettes.get(paletteName).getTexture();
     }
 
     public void updateClientParamConfiguration(){
@@ -332,7 +353,7 @@ public class MainStage extends Stage {
         return false;
     }
 
-    public final static String PARAMS_NUMBERFACTORY = "nf";
+    public final static String PARAMS_NUMBERFACTORY = "numberFactory";
 
     public final static String PARAMS_COLOR_ADD = "color offset";
     public final static String PARAMS_COLOR_MULT = "color period";
@@ -376,7 +397,7 @@ public class MainStage extends Stage {
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(1.5)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, nf.createNumber(3.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.GOLD));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.WHITE));
 
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
@@ -832,6 +853,18 @@ public class MainStage extends Stage {
         if (focusedRenderer != null && focusedRenderer instanceof Actor){
             setKeyboardFocus((Actor)focusedRenderer);
             focusedRenderer.setFocused(true);
+        }
+    }
+
+    public Map<String, IPalette> getPalettes() {
+        return palettes;
+    }
+
+    public void addPalette(IPalette palette) {
+        boolean isNew = this.palettes.containsKey(palette.getName());
+        this.palettes.put(palette.getName(), palette);
+        if (isNew){
+            refreshClientSideMenu();
         }
     }
 }

@@ -38,6 +38,9 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
     Number totalLength = null;
 
+    boolean inheritRealPart = false;
+    boolean inheritImagPart = false;
+
     public AbstractParamInterpolation(String paramName, String paramType, String paramContainerKey, String attributeName, Class<? extends InterpolationFunction> interpolationFunctionClass){
         this.paramName = paramName;
         this.paramType = paramType;
@@ -366,6 +369,8 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     public void setControlPointParent(ParamInterpolation controlPointParent) {
         if (this.controlPointParent != null)
             this.controlPointParent.removeControlPointChild(this);
+        inheritRealPart = false;
+        inheritImagPart = false;
         this.controlPointParent = controlPointParent;
         controlPointParent.addControlPointChild(this);
         setControlPoints(
@@ -373,6 +378,13 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
                 controlPointParent.getControlPoints(true),
                 controlPointParent.getControlDerivatives(true),
                 controlPointParent.getNumberFactory());
+    }
+
+    @Override
+    public void setControlPointParent(ParamInterpolation controlPointParent, boolean imagPart) {
+        setControlPointParent(controlPointParent);
+        inheritRealPart = !imagPart;
+        inheritImagPart = imagPart;
     }
 
     @Override

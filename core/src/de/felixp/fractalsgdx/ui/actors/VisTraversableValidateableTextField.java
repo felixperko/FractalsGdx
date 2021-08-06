@@ -4,21 +4,22 @@ import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
-public class VisTraversibleValidateableTextField extends VisValidatableTextField {
+public class VisTraversableValidateableTextField extends VisValidatableTextField {
 
-    public VisTraversibleValidateableTextField() {
+    public VisTraversableValidateableTextField(String text) {
+        super(text);
     }
 
-    public VisTraversibleValidateableTextField(InputValidator validator) {
+    public VisTraversableValidateableTextField(InputValidator validator) {
         super(validator);
     }
 
     boolean traversalPaused = false;
 
-    TraversibleGroup traversibleGroup;
+    TraversableGroup traversableGroup;
 
-    public void setTraversibleGroup(TraversibleGroup traversibleGroup){
-        this.traversibleGroup = traversibleGroup;
+    public void setTraversableGroup(TraversableGroup traversableGroup){
+        this.traversableGroup = traversableGroup;
     }
 
     public void setTraversalPaused(boolean traversalPaused) {
@@ -32,11 +33,12 @@ public class VisTraversibleValidateableTextField extends VisValidatableTextField
     @Override
     public void next(boolean up) {
 
-        if (traversibleGroup == null)
+        if (traversableGroup == null)
             return;
-        VisTextField field = traversibleGroup.getNextField(this, up);
+        VisTextField field = traversableGroup.getNextField(this, up);
         if (field == null)
             return;
+
         field.focusField();
         field.setCursorPosition(field.getText().length());
 
