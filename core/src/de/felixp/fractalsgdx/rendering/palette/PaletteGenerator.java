@@ -36,13 +36,25 @@ public class PaletteGenerator {
             pointPositions.add(new Pair<PalettePoint, Float>(point, (float) (point.getRelativePos()*paletteSize)));
         }
 
-        int lastIndex = pointPositions.size()-1;
+        //correct for wrapping
+        int firstIndex = 0;
+        if (sorted.get(0).getRelativePos() != 0f){
+            //add last as first
+            firstIndex = 1;
+            Pair<PalettePoint, Float> last = pointPositions.get(pointPositions.size()-1);
+            float wrappedValue = last.getValue() - paletteSize;
+            pointPositions.add(0, new Pair<PalettePoint, Float>(last.getKey(), wrappedValue));
+        }
+        if (sorted.get(sorted.size()-1).getRelativePos() != 1f){
+            //add first as last
+            Pair<PalettePoint, Float> first = pointPositions.get(firstIndex);
+            float wrappedValue = first.getValue() + paletteSize;
+            pointPositions.add( new Pair<PalettePoint, Float>(first.getKey(), wrappedValue));
+        }
+
         int currentLeftIndex = 0;
         int currentRightIndex = 1;
-        if (pointPositions.get(0).getValue() != 0f){
-            currentLeftIndex = lastIndex;
-            currentRightIndex = 0;
-        }
+
         for (int x = 0 ; x < paletteSize ; x++){
             Pair<PalettePoint, Float> leftPair = pointPositions.get(currentLeftIndex);
             Pair<PalettePoint, Float> rightPair = pointPositions.get(currentRightIndex);
@@ -52,26 +64,15 @@ public class PaletteGenerator {
             while ((x > rightPos && currentRightIndex != 0)){
                 currentLeftIndex++;
                 currentRightIndex++;
-                if (currentLeftIndex > palettePoints.size()-1)
+                if (currentLeftIndex > pointPositions.size()-1)
                     currentLeftIndex = 0;
-                else if (currentRightIndex > palettePoints.size()-1)
+                else if (currentRightIndex > pointPositions.size()-1)
                     currentRightIndex = 0;
                 leftPair = pointPositions.get(currentLeftIndex);
                 rightPair = pointPositions.get(currentRightIndex);
                 leftPos = leftPair.getValue();
                 rightPos = rightPair.getValue();
             }
-
-            if (leftPos > rightPos){
-                rightPos += paletteSize;
-            }
-            else if (rightPos-leftPos > paletteSize/2)
-                rightPos -= paletteSize;
-
-
-//            if (currentLeftIndex == lastIndex && currentRightIndex == 0){
-//                rightPos -= paletteSize;
-//            }
 
             float prog = Math.abs((x - leftPos) / (rightPos-leftPos));
             Color color = leftPair.getKey().getColor().cpy().lerp(rightPair.getKey().getColor(), prog);
@@ -83,9 +84,5 @@ public class PaletteGenerator {
 
     public void setPaletteSize(int paletteSize){
         this.paletteSize = paletteSize;
-    }
-
-    public List<PalettePoint> getPalettePoints() {
-        return palettePoints;
     }
 }

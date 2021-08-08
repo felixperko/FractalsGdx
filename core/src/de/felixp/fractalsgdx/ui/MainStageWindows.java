@@ -157,6 +157,7 @@ public class MainStageWindows {
     }
 
     private static void switchSettingsTable(String newSelected, Table contentTable, MainStage stage, VisWindow window) {
+        contentTable.clear();
         if (stage.getActiveSettingsTable() != null)
             stage.getActiveSettingsTable().remove();
         switch (newSelected){

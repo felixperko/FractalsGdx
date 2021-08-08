@@ -1,6 +1,5 @@
 package de.felixp.fractalsgdx.ui;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -14,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.util.Validators;
+import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisImage;
 import com.kotcrab.vis.ui.widget.VisSelectBox;
 import com.kotcrab.vis.ui.widget.VisSlider;
@@ -38,19 +38,38 @@ import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
 import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
-public class PaletteUI {
+import static de.felixp.fractalsgdx.rendering.palette.GradientPalette.*;
 
+public class PaletteUI {
     static Image image;
     static Texture texture;
 //    static Pixmap colorPreviewPixmap = new Pixmap(1,1, Pixmap.Format.RGBA8888);
     static String name;
     static IPalette palette;
+    static Table borderTable;
+    static boolean populating = false;
 
     public static Table getPaletteTable(VisWindow settingsWindow) {
-        Table borderTable = new VisTable(true);
+        borderTable = new VisTable(true){
+            @Override
+            protected void sizeChanged() {
+                super.sizeChanged();
+                if (!populating)
+                    repopulatePaletteTable(settingsWindow);
+            }
+        };
+
+        repopulatePaletteTable(settingsWindow);
+
+        return borderTable;
+    }
+
+    protected static void repopulatePaletteTable(VisWindow settingsWindow) {
+        populating = true;
+        borderTable.clear();
         Table table = new VisTable(true);
 
-        MainStage stage = ((MainStage)FractalsGdxMain.stage);
+        MainStage stage = ((MainStage) FractalsGdxMain.stage);
         Map<String, IPalette> palettes = stage.getPalettes();
 
         Table selectTable = new VisTable(true);
@@ -104,24 +123,139 @@ public class PaletteUI {
 
         table.add(buttonTable).left().row();
         table.add(selectTable).row();
-        table.add(image).height(50).width(Gdx.graphics.getWidth()*0.6f).pad(3).row();
+
+        borderTable.add(table).expandX().fillX().pad(10);
+        table.add(image).width(table.getWidth()).height(50).expandX().fillX().pad(3).row();
         table.add(controlTable).row();
 
-        borderTable.add(table).pad(10);
-        return borderTable;
+        populating = false;
+    }
+
+    private static void openPaletteSettingsWindow(VisWindow settingsWindow, Table controlTable, GradientPalette palette) {
+
+        MainStage stage = (MainStage) FractalsGdxMain.stage;
+
+        VisWindow paletteSettingsWindow = new FractalsWindow(palette.getName()+" settings");
+        ((FractalsWindow) paletteSettingsWindow).setAutoRefocus(false);
+        VisTable contentTable = new VisTable(true);
+
+        VisSelectBox<String> interpolationTypeSelect = new VisSelectBox<>();
+        interpolationTypeSelect.setItems(INTERPOLATIONTYPE_LINEAR);
+        interpolationTypeSelect.setSelected(palette.getSettingInterpolationType());
+        interpolationTypeSelect.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                palette.setSettingInterpolationType(interpolationTypeSelect.getSelected());
+                fillControlTable(settingsWindow, controlTable);
+            }
+        });
+        VisSelectBox<String> colorSpaceSelect = new VisSelectBox();
+        colorSpaceSelect.setItems(COLORSPACE_RGB);
+        colorSpaceSelect.setSelected(palette.getSettingColorSpace());
+        colorSpaceSelect.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                palette.setSettingColorSpace(colorSpaceSelect.getSelected());
+                fillControlTable(settingsWindow, controlTable);
+            }
+        });
+        VisCheckBox autoOffsetsCheckbox = new VisCheckBox(null);
+        autoOffsetsCheckbox.setChecked(palette.getSettingAutoOffsets());
+        autoOffsetsCheckbox.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                palette.setSettingAutoOffsets(autoOffsetsCheckbox.isChecked());
+                fillControlTable(settingsWindow, controlTable);
+            }
+        });
+
+        contentTable.add("Interpolation:").left();
+        contentTable.add(interpolationTypeSelect).row();
+        contentTable.add("Color space:").left();
+        contentTable.add(colorSpaceSelect).row();
+        contentTable.add("Auto offsets:").left();
+        contentTable.add(autoOffsetsCheckbox).row();
+
+        VisTable randomSettingsTable = new VisTable(true);
+
+        VisTraversableValidateableTextField randomColorSatMin = new VisTraversableValidateableTextField(Validators.FLOATS);
+        randomColorSatMin.setText(palette.getSettingRandomColorSatMin()+"");
+        VisTraversableValidateableTextField randomColorSatMax = new VisTraversableValidateableTextField(Validators.FLOATS);
+        randomColorSatMax.setText(palette.getSettingRandomColorSatMax()+"");
+        VisTraversableValidateableTextField randomColorValMin = new VisTraversableValidateableTextField(Validators.FLOATS);
+        randomColorValMin.setText(palette.getSettingRandomColorValMin()+"");
+        VisTraversableValidateableTextField randomColorValMax = new VisTraversableValidateableTextField(Validators.FLOATS);
+        randomColorValMax.setText(palette.getSettingRandomColorValMax()+"");
+
+        randomColorSatMin.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (randomColorSatMin.isInputValid()){
+                    palette.setSettingRandomColorSatMin(Double.parseDouble(randomColorSatMin.getText()));
+                }
+            }
+        });
+        randomColorSatMax.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (randomColorSatMax.isInputValid()){
+                    palette.setSettingRandomColorSatMax(Double.parseDouble(randomColorSatMax.getText()));
+                }
+            }
+        });
+        randomColorValMin.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (randomColorValMin.isInputValid()){
+                    palette.setSettingRandomColorValMin(Double.parseDouble(randomColorValMin.getText()));
+                }
+            }
+        });
+        randomColorValMax.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (randomColorValMax.isInputValid()){
+                    palette.setSettingRandomColorValMax(Double.parseDouble(randomColorValMax.getText()));
+                }
+            }
+        });
+
+        randomSettingsTable.add("Random color saturation range:").left();
+        randomSettingsTable.add(randomColorSatMin);
+        randomSettingsTable.add(randomColorSatMax).row();
+        randomSettingsTable.add("Random color value range:").left();
+        randomSettingsTable.add(randomColorValMin);
+        randomSettingsTable.add(randomColorValMax);
+
+        contentTable.add(randomSettingsTable).colspan(2);
+
+        paletteSettingsWindow.add(contentTable).row();
+
+        paletteSettingsWindow.addCloseButton();
+        paletteSettingsWindow.pack();
+        paletteSettingsWindow.centerWindow();
+        stage.addActor(paletteSettingsWindow);
     }
 
     private static void openCreateNewPaletteWindow(VisWindow settingsWindow, SelectBox<String> paletteSelect, Table controlTable) {
 
         MainStage stage = (MainStage) FractalsGdxMain.stage;
-
         VisWindow createWindow = new FractalsWindow("Create gradient palette");
         ((FractalsWindow) createWindow).setAutoRefocus(false);
+
+        VisTable contentTable = new VisTable(true);
 
         VisTable nameTable = new VisTable(true);
         VisTable buttonTable = new VisTable(true);
 
         VisTextField paletteNameField = new VisTextField();
+        int number = stage.getPalettes().size()+1;
+        String paletteName;
+        do {
+            paletteName = "Palette "+number;
+            number++;
+        } while (stage.getPalettes().containsKey(paletteName));
+        paletteNameField.setText(paletteName);
 
         VisTextButton cancelButton = new VisTextButton("cancel");
         cancelButton.addListener(new ChangeListener() {
@@ -138,7 +272,7 @@ public class PaletteUI {
                 GradientPalette palette = new GradientPalette(paletteName);
                 stage.addPalette(palette);
                 List<PalettePoint> palettePoints = new ArrayList<>();
-                int randomPointCount = MathUtils.random(2, 7);
+                int randomPointCount = MathUtils.random(2, 6);
                 float step = 100f/randomPointCount;
                 float startLower = 0;
                 float startUpper = step;
@@ -158,9 +292,10 @@ public class PaletteUI {
                 paletteSelect.setItems(paletteNames.toArray(new String[paletteNames.size()]));
                 paletteSelect.setSelected(paletteName);
                 PaletteUI.palette = stage.getPalettes().get(paletteName);
-                fillControlTable(settingsWindow, controlTable);
+//                fillControlTable(settingsWindow, controlTable);
+                repopulatePaletteTable(settingsWindow);
                 settingsWindow.pack();
-//                settingsWindow.centerWindow();
+                settingsWindow.centerWindow();
                 createWindow.remove();
             }
         });
@@ -171,8 +306,9 @@ public class PaletteUI {
         buttonTable.add(cancelButton);
         buttonTable.add(createButton);
 
-        createWindow.add(nameTable).row();
-        createWindow.add(buttonTable);
+        contentTable.add(nameTable).row();
+        contentTable.add(buttonTable);
+        createWindow.add(contentTable);
 
         createWindow.addCloseButton();
         createWindow.pack();
@@ -194,37 +330,58 @@ public class PaletteUI {
             return;
         Collections.sort(palettePoints);
 
-        controlTable.add("Offset:").colspan(2);
+        VisTextButton settingsButton = new VisTextButton("Gradient palette settings");
+        settingsButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                openPaletteSettingsWindow(settingsWindow, controlTable, (GradientPalette) palette);
+            }
+        });
+
+        boolean autoOffsets = ((GradientPalette) palette).getSettingAutoOffsets();
+        int cols = autoOffsets ? 5 : 6;
+        controlTable.add(settingsButton).left().colspan(cols).row();
+
+        controlTable.add("Offset:").colspan(autoOffsets ? 1 : 2);
         controlTable.add("Color:").colspan(3).row();
 
         List<Image> images = new ArrayList<>();
 
+
         for (PalettePoint point : palettePoints){
-            VisSlider offsetSlider = new VisSlider(0, 1, 0.005f, false);
             double offset = point.getRelativePos();
-            offsetSlider.setValue((float)offset);
-            VisTraversableValidateableTextField offsetField = new VisTraversableValidateableTextField(offset*100d+"");
+            VisTraversableValidateableTextField offsetField = new VisTraversableValidateableTextField((float)(offset*100d)+"");
             final PalettePoint finalPoint = point;
 
-            offsetSlider.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, Actor actor) {
-                    float value = offsetSlider.getValue();
-                    offsetField.setText(value*100d+"");
-                    finalPoint.setRelativePos(value);
-                    updatePalette();
-                    displayPalette(palette);
-                }
-            });
+            VisSlider offsetSlider = null;
+            if (!autoOffsets) {
+                offsetSlider = new VisSlider(0, 1, 0.005f, false);
+                offsetSlider.setValue((float) offset);
+                offsetSlider.setDisabled(autoOffsets);
+                final VisSlider finalOffsetSlider = offsetSlider;
+                offsetSlider.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ChangeEvent event, Actor actor) {
+                        float value = finalOffsetSlider.getValue();
+                        offsetField.setText(value * 100d + "");
+                        finalPoint.setRelativePos(value);
+                        updatePalette();
+                        displayPalette(palette);
+                    }
+                });
+            }
 
             offsetField.addValidator(Validators.FLOATS);
+            offsetField.setDisabled(autoOffsets);
+            final VisSlider finalOffsetSlider = offsetSlider;
             offsetField.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     if (!offsetField.isInputValid())
                         return;
                     double actualVal = Double.parseDouble(offsetField.getText()) / 100d;
-                    offsetSlider.setValue((float)actualVal);
+                    if (finalOffsetSlider != null)
+                        finalOffsetSlider.setValue((float)actualVal);
                     finalPoint.setRelativePos(actualVal);
                     updatePalette();
                     displayPalette(palette);
@@ -258,7 +415,11 @@ public class PaletteUI {
             setRandomColorButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    finalPoint.setColor(getRandomHsvColor(0.5, 1, 0.5, 1));
+                    double lowerS = ((GradientPalette) palette).getSettingRandomColorSatMin();
+                    double higherS = ((GradientPalette) palette).getSettingRandomColorSatMax();
+                    double lowerV = ((GradientPalette) palette).getSettingRandomColorValMin();
+                    double higherV = ((GradientPalette) palette).getSettingRandomColorValMax();
+                    finalPoint.setColor(getRandomHsvColor(lowerS, higherS, lowerV, higherV));
                     ((GradientPalette) palette).paletteGeneratorUpdate();
                     displayPalette(palette);
                     updateColorImage(colorImage, finalPoint.getColor());
@@ -276,7 +437,8 @@ public class PaletteUI {
 
             updateColorImage(colorImage, point.getColor());
 
-            controlTable.add(offsetSlider);
+            if (offsetSlider != null)
+                controlTable.add(offsetSlider);
             controlTable.add(offsetField).width(75);
             controlTable.add(colorImage).size(16);
             controlTable.add(setColorButton);
@@ -289,32 +451,40 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 if (palette instanceof GradientPalette) {
-                    Color randColor = getRandomHsvColor(0.5, 1, 0.5, 1);
+                    double lowerS = ((GradientPalette) palette).getSettingRandomColorSatMin();
+                    double higherS = ((GradientPalette) palette).getSettingRandomColorSatMax();
+                    double lowerV = ((GradientPalette) palette).getSettingRandomColorValMin();
+                    double higherV = ((GradientPalette) palette).getSettingRandomColorValMax();
+                    Color randColor = getRandomHsvColor(lowerS, higherS, lowerV, higherV);
                     double pos = (getRandomIntPercentage())/100.0;
                     ((GradientPalette) palette).addPalettePoint(new PalettePoint(randColor, pos));
-                    fillControlTable(settingsWindow, controlTable);
+                    repopulatePaletteTable(settingsWindow);
                     settingsWindow.pack();
+                    settingsWindow.centerWindow();
                     displayPalette(palette);
                 }
             }
         });
 
-        VisTextButton randomizeAllOffsetsButton = new VisTextButton("random offsets");
-        randomizeAllOffsetsButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                List<PalettePoint> palettePoints = ((GradientPalette) palette).getPalettePoints();
-                int set0Index = MathUtils.random(0, palettePoints.size()-1);
-                int index = 0;
-                for (PalettePoint point : palettePoints){
-                    point.setRelativePos(index == set0Index ? 0.0 : Math.random());
-                    index++;
+        VisTextButton randomizeAllOffsetsButton = null;
+        if (!autoOffsets) {
+            randomizeAllOffsetsButton = new VisTextButton("random offsets");
+            randomizeAllOffsetsButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, Actor actor) {
+                    List<PalettePoint> palettePoints = ((GradientPalette) palette).getPalettePoints();
+                    int set0Index = MathUtils.random(0, palettePoints.size() - 1);
+                    int index = 0;
+                    for (PalettePoint point : palettePoints) {
+                        point.setRelativePos(index == set0Index ? 0.0 : Math.random());
+                        index++;
+                    }
+                    ((GradientPalette) palette).paletteGeneratorUpdate();
+                    displayPalette(palette);
+                    fillControlTable(settingsWindow, controlTable);
                 }
-                ((GradientPalette) palette).paletteGeneratorUpdate();
-                displayPalette(palette);
-                fillControlTable(settingsWindow, controlTable);
-            }
-        });
+            });
+        }
 
         VisTextButton randomizeAllColorsButton = new VisTextButton("random colors");
         randomizeAllColorsButton.addListener(new ChangeListener() {
@@ -322,7 +492,11 @@ public class PaletteUI {
             public void changed(ChangeEvent event, Actor actor) {
                 List<PalettePoint> points = ((GradientPalette) palette).getPalettePoints();
                 for (int i = 0; i < points.size() ; i++) {
-                    Color randColor = getRandomHsvColor(0.7, 1, 0.5, 1);
+                    double lowerS = ((GradientPalette) palette).getSettingRandomColorSatMin();
+                    double higherS = ((GradientPalette) palette).getSettingRandomColorSatMax();
+                    double lowerV = ((GradientPalette) palette).getSettingRandomColorValMin();
+                    double higherV = ((GradientPalette) palette).getSettingRandomColorValMax();
+                    Color randColor = getRandomHsvColor(lowerS, higherS, lowerV, higherV);
                     points.get(i).setColor(randColor);
                     updateColorImage(images.get(i), randColor);
                 }
@@ -332,10 +506,12 @@ public class PaletteUI {
         });
 
         Table buttonTable = new VisTable(true);
-        buttonTable.add(randomizeAllOffsetsButton);
+        if (!autoOffsets)
+            buttonTable.add(randomizeAllOffsetsButton);
         buttonTable.add(addPalettePointButton);
         buttonTable.add(randomizeAllColorsButton);
-        controlTable.add(buttonTable).colspan(6);
+
+        controlTable.add(buttonTable).colspan(cols);
     }
 
     public static int getRandomIntPercentage() {
