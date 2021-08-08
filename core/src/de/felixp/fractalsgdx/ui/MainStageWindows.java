@@ -6,6 +6,7 @@ import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -46,6 +47,8 @@ public class MainStageWindows {
     public static final String CATEGORY_RENDERERS = "Renderers";
     public static final String CATEGORY_WINDOW = "Window";
     public static final String CATEGORY_PALETTES = "Palettes";
+
+    public static ScrollPane scrollPane;
 
     public static void openConnectWindow(MainStage stage, String text){
         VisWindow window = new VisWindow("Connect or start server");
@@ -116,7 +119,14 @@ public class MainStageWindows {
         if(settingsWindow != null && settingsWindow.getParent() != null)
             settingsWindow.remove();
 
-        settingsWindow = new FractalsWindow("Settings");
+        settingsWindow = new FractalsWindow("Settings"){
+            @Override
+            public void setSize(float width, float height) {
+                if (height > Gdx.graphics.getHeight())
+                    height = Gdx.graphics.getHeight();
+                super.setSize(width, height);
+            }
+        };
         settingsWindow.setResizable(true);
         ((VisWindow) settingsWindow).addCloseButton();
 //        ((VisWindow) settingsWindow).closeOnEscape();
@@ -175,6 +185,7 @@ public class MainStageWindows {
         sp.setScrollingDisabled(true, false);
         sp.setFadeScrollBars(false);
         contentTable.add(sp).expandX().fillX();
+        scrollPane = sp;
         window.pack();
         window.centerWindow();
     }

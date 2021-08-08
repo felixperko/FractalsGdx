@@ -64,6 +64,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         traversableGroup.setTree(tree);
     }
 
+    Map<String, String> paramControlView = new HashMap<>();
+
     Map<String, Selection<?>> lastSelections = null;
 
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
@@ -95,6 +97,9 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             for (AbstractPropertyEntry e : propertyEntryList){
                 if (!e.getParameterDefinition().equals(paramConfig.getParamDefinition(e.getPropertyName())))
                     reset = true;
+                String controlView = getParamControlViewName(e.getPropertyName());
+                if (controlView != null)
+                    e.setCurrentControlView(controlView, true);
                 if (e.isForceReset(true)) { //reset all force resets
                     reset = true;
                 }
@@ -380,6 +385,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public void addEntry(AbstractPropertyEntry entry){
         propertyEntryList.add(entry);
+        String storedControlViewName = getParamControlViewName(entry.getPropertyName());
+        if (storedControlViewName != null)
+            entry.setCurrentControlView(storedControlViewName, false);
+        entry.setParentPropertyList(this);
         getPropertyCategoryList(entry).add(entry);
     }
 
@@ -461,5 +470,13 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public ParamContainer getParamContainer() {
         return paramContainer;
+    }
+
+    public String getParamControlViewName(String paramName){
+        return paramControlView.get(paramName);
+    }
+
+    public void setParamControlViewName(String paramName, String controlViewName){
+        this.paramControlView.put(paramName, controlViewName);
     }
 }

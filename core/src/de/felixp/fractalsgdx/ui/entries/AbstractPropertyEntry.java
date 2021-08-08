@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixperko.fractals.data.ParamContainer;
@@ -64,6 +65,8 @@ public abstract class AbstractPropertyEntry {
     List<Class<? extends ParamSupplier>> possibleSupplierClasses;
 
     TraversableGroup traversableGroup;
+
+    CollapsiblePropertyList parentPropertyList;
 
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
@@ -146,10 +149,12 @@ public abstract class AbstractPropertyEntry {
         return prefListView;
     }
 
-    public void setCurrentControlView(String prefListView) {
-        if (prefListView != this.prefListView)
+    public void setCurrentControlView(String prefListView, boolean forceResetIfChanged) {
+        if (forceResetIfChanged && !prefListView.equals(this.prefListView))
             forceReset = true;
         this.prefListView = prefListView;
+        if (getParentPropertyList() != null)
+            getParentPropertyList().setParamControlViewName(propertyName, prefListView);
     }
 
     public boolean isForceReset(boolean resetForceReset){
@@ -248,7 +253,7 @@ public abstract class AbstractPropertyEntry {
                             for (EntryView view : views.values()) {
                                 view.setInvalid();
                             }
-                            setCurrentControlView(VIEWNAME_FIELDS);
+                            setCurrentControlView(VIEWNAME_FIELDS, true);
                             generateViews();
                             MainStage stage = (MainStage) FractalsGdxMain.stage;
                             stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
@@ -266,7 +271,7 @@ public abstract class AbstractPropertyEntry {
                             for (EntryView view : views.values()) {
                                 view.setInvalid();
                             }
-                            setCurrentControlView(VIEWNAME_SLIDERS);
+                            setCurrentControlView(VIEWNAME_SLIDERS, true);
                             generateViews();
                             MainStage stage = (MainStage) FractalsGdxMain.stage;
                             stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
@@ -316,5 +321,13 @@ public abstract class AbstractPropertyEntry {
 
     public TraversableGroup getTraversableGroup(){
         return traversableGroup;
+    }
+
+    public CollapsiblePropertyList getParentPropertyList() {
+        return parentPropertyList;
+    }
+
+    public void setParentPropertyList(CollapsiblePropertyList parentPropertyList) {
+        this.parentPropertyList = parentPropertyList;
     }
 }

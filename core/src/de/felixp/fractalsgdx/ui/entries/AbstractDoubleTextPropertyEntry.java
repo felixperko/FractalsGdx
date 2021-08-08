@@ -69,7 +69,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     public AbstractDoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, InputValidator validator1, InputValidator validator2, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, submitValue);
 
-        setCurrentControlView(VIEWNAME_FIELDS);
+        setCurrentControlView(VIEWNAME_FIELDS, false);
 
         this.validator1 = validator1;
         this.validator2 = validator2;

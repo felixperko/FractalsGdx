@@ -48,9 +48,9 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
         List<String> hints = parameterDefinition.getHints();
         if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
-            setCurrentControlView(VIEWNAME_SLIDERS);
+            setCurrentControlView(VIEWNAME_SLIDERS, false);
         else
-            setCurrentControlView(VIEWNAME_FIELDS);
+            setCurrentControlView(VIEWNAME_FIELDS, false);
     }
 
     List<Actor> contentFields = new ArrayList<Actor>();

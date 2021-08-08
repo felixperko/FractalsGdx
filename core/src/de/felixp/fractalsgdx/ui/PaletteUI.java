@@ -124,7 +124,7 @@ public class PaletteUI {
         table.add(buttonTable).left().row();
         table.add(selectTable).row();
 
-        borderTable.add(table).expandX().fillX().pad(10);
+        borderTable.add(table).expandX().fillX().pad(20);
         table.add(image).width(table.getWidth()).height(50).expandX().fillX().pad(3).row();
         table.add(controlTable).row();
 
@@ -146,7 +146,7 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 palette.setSettingInterpolationType(interpolationTypeSelect.getSelected());
-                fillControlTable(settingsWindow, controlTable);
+                displayPalette(palette);
             }
         });
         VisSelectBox<String> colorSpaceSelect = new VisSelectBox();
@@ -156,7 +156,7 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 palette.setSettingColorSpace(colorSpaceSelect.getSelected());
-                fillControlTable(settingsWindow, controlTable);
+                displayPalette(palette);
             }
         });
         VisCheckBox autoOffsetsCheckbox = new VisCheckBox(null);
@@ -165,7 +165,9 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 palette.setSettingAutoOffsets(autoOffsetsCheckbox.isChecked());
-                fillControlTable(settingsWindow, controlTable);
+                repopulatePaletteTable(settingsWindow);
+                settingsWindow.pack();
+                displayPalette(palette);
             }
         });
 
@@ -462,6 +464,8 @@ public class PaletteUI {
                     settingsWindow.pack();
                     settingsWindow.centerWindow();
                     displayPalette(palette);
+                    if (MainStageWindows.scrollPane != null)
+                        MainStageWindows.scrollPane.setScrollPercentY(100);
                 }
             }
         });
