@@ -5,9 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisTextField;
 
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
@@ -27,7 +26,7 @@ public class NumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeA
     public Actor addToTable(Table table) {
         VisTable innerTable = new VisTable(true);
         VisLabel nameLbl = new VisLabel(name);
-        VisTraversableValidateableTextField valueField = new VisTraversableValidateableTextField(startVal.toString());
+        TabTraversableTextField valueField = new TabTraversableTextField(startVal.toString());
         registerField(valueField);
         valueField.addListener(new ChangeListener() {
             @Override

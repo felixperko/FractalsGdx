@@ -28,7 +28,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
 //        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
-        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_COLOR_USE_PALETTE).getGeneral(String.class).equalsIgnoreCase("none") ? 0 : 1);
+        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMS_PALETTE_VALUE_DISABLED) ? 0 : 1);
         shader.setUniformf("colorAdd", (float)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
         shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
         shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());

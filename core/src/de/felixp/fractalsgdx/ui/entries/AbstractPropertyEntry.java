@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
+import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import java.util.Map;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.ui.ParamControlState;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -54,7 +56,10 @@ public abstract class AbstractPropertyEntry {
 
     List<AbstractPropertyEntry> subEntries = null;
 
-    String prefListView = VIEW_LIST;
+//    @Deprecated
+//    String prefListView = VIEW_LIST;
+
+    ParamControlState paramControlState;
 
     boolean submitValue = false;
 
@@ -63,10 +68,12 @@ public abstract class AbstractPropertyEntry {
 
     protected Class<? extends ParamSupplier> selectedSupplierClass;
     List<Class<? extends ParamSupplier>> possibleSupplierClasses;
+    boolean sliderControlsEnabled = false;
 
     TraversableGroup traversableGroup;
 
     CollapsiblePropertyList parentPropertyList;
+
 
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
@@ -74,6 +81,7 @@ public abstract class AbstractPropertyEntry {
         this.node = node;
         this.paramContainer = paramContainer;
         this.submitValue = submitValue;
+        this.getState().setControlView(VIEW_LIST);
 
         this.possibleSupplierClasses = parameterDefinition.getPossibleClasses();
         ParamSupplier param = paramContainer.getClientParameter(parameterDefinition.getName());
@@ -97,9 +105,15 @@ public abstract class AbstractPropertyEntry {
     public EntryView openView(String viewName, Table table) {
         EntryView view = views.get(viewName);
         if (view != null) {
-
             Gdx.app.postRunnable(() ->
-                    view.addToTable(table)
+                    {
+                        view.addToTable(table);
+                        if (paramContainer != null) {
+                            ParamSupplier supp = paramContainer.getClientParameter(getPropertyName());
+                            if (supp instanceof StaticParamSupplier)
+                                setValue(supp.getGeneral());
+                        }
+                    }
             );
         }
         return view;
@@ -116,8 +130,20 @@ public abstract class AbstractPropertyEntry {
         }
     }
 
+    public ParamControlState getState(){
+        if (parentPropertyList != null)
+            return parentPropertyList.getParamControlState(getPropertyName());
+        if (paramControlState == null)
+            paramControlState = new ParamControlState();
+        return paramControlState;
+    }
+
     public ParamContainer getParamContainer(){
         return paramContainer;
+    }
+
+    public void setParamContainer(ParamContainer paramContainer) {
+        this.paramContainer = paramContainer;
     }
 
     public String getPropertyName() {
@@ -146,15 +172,13 @@ public abstract class AbstractPropertyEntry {
     }
 
     public String getPrefListView() {
-        return prefListView;
+        return getState().getControlView();
     }
 
     public void setCurrentControlView(String prefListView, boolean forceResetIfChanged) {
-        if (forceResetIfChanged && !prefListView.equals(this.prefListView))
-            forceReset = true;
-        this.prefListView = prefListView;
-        if (getParentPropertyList() != null)
-            getParentPropertyList().setParamControlViewName(propertyName, prefListView);
+        if (forceResetIfChanged && !prefListView.equals(getState().getControlView()))
+            setForceReset(true);
+        this.getState().setControlView(prefListView);
     }
 
     public boolean isForceReset(boolean resetForceReset){
@@ -220,7 +244,15 @@ public abstract class AbstractPropertyEntry {
                             @Override
                             public void changed(ChangeEvent event, Actor actor) {
                                 selectedSupplierClass = StaticParamSupplier.class;
+                                for (EntryView view : views.values()) {
+                                    view.setInvalid();
+                                }
+                                generateViews();
+                                setForceReset(true);
                                 submit();
+                                MainStage stage = (MainStage) FractalsGdxMain.stage;
+                                stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
+                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
 //                            typeStaticItem.setDisabled(true);
 //                            typeVariableItem.setDisabled(false);
                             }
@@ -236,7 +268,15 @@ public abstract class AbstractPropertyEntry {
                             @Override
                             public void changed(ChangeEvent event, Actor actor) {
                                 selectedSupplierClass = CoordinateBasicShiftParamSupplier.class;
+                                for (EntryView view : views.values()) {
+                                    view.setInvalid();
+                                }
+                                generateViews();
+                                setForceReset(true);
                                 submit();
+                                MainStage stage = (MainStage) FractalsGdxMain.stage;
+                                stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
+                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
                             }
@@ -245,7 +285,8 @@ public abstract class AbstractPropertyEntry {
                     }
                 }
 
-                if (!prefListView.equals(VIEWNAME_FIELDS)) {
+                String controlView = getState().getControlView();
+                if (!controlView.equals(VIEWNAME_FIELDS)) {
                     MenuItem controlFieldsItem = new MenuItem("Use text controls");
                     controlFieldsItem.addListener(new ChangeListener() {
                         @Override
@@ -263,22 +304,24 @@ public abstract class AbstractPropertyEntry {
                     menu.addItem(controlFieldsItem);
                 }
 
-                if (!prefListView.equals(VIEWNAME_SLIDERS)){
-                    MenuItem controlSlidersItem = new MenuItem("Use slider controls");
-                    controlSlidersItem.addListener(new ChangeListener() {
-                        @Override
-                        public void changed(ChangeEvent event, Actor actor) {
-                            for (EntryView view : views.values()) {
-                                view.setInvalid();
+                if (sliderControlsEnabled) {
+                    if (!controlView.equals(VIEWNAME_SLIDERS)) {
+                        MenuItem controlSlidersItem = new MenuItem("Use slider controls");
+                        controlSlidersItem.addListener(new ChangeListener() {
+                            @Override
+                            public void changed(ChangeEvent event, Actor actor) {
+                                for (EntryView view : views.values()) {
+                                    view.setInvalid();
+                                }
+                                setCurrentControlView(VIEWNAME_SLIDERS, true);
+                                generateViews();
+                                MainStage stage = (MainStage) FractalsGdxMain.stage;
+                                stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
+                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                             }
-                            setCurrentControlView(VIEWNAME_SLIDERS, true);
-                            generateViews();
-                            MainStage stage = (MainStage) FractalsGdxMain.stage;
-                            stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                            stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
-                        }
-                    });
-                    menu.addItem(controlSlidersItem);
+                        });
+                        menu.addItem(controlSlidersItem);
+                    }
                 }
 
                 menu.showMenu(optionButton.getStage(), Gdx.input.getX(), Gdx.graphics.getHeight()-Gdx.input.getY());
@@ -286,9 +329,15 @@ public abstract class AbstractPropertyEntry {
         });
     }
 
+    public void setForceReset(boolean forceReset) {
+        this.forceReset = forceReset;
+    }
+
     protected void submit() {
-        if (submitValue)
+        if (submitValue) {
+//            applyClientValue();
             ((MainStage) FractalsGdxMain.stage).submitServer(((MainStage) FractalsGdxMain.stage).getFocusedRenderer(), paramContainer);
+        }
     }
 
     public void addSubmitListener(Actor actor) {
@@ -296,9 +345,12 @@ public abstract class AbstractPropertyEntry {
             @Override
             public boolean keyDown(InputEvent event, int keycode) {
                 if (keycode == Input.Keys.ENTER){
-                    submit();
-                    if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)){
-                        ((MainStage)FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
+                    if (actor instanceof VisValidatableTextField && ((VisValidatableTextField) actor).isInputValid()){
+                        submit();
+                        if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)) {
+                            ((MainStage) FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
+                        }
+                        return true;
                     }
                     return true;
                 }
@@ -310,9 +362,17 @@ public abstract class AbstractPropertyEntry {
                     stage.resetKeyboardFocus();
                     return true;
                 }
-                return super.keyDown(event, keycode);
+                return true;
             }
         });
+    }
+
+    public boolean isSliderControlsEnabled() {
+        return sliderControlsEnabled;
+    }
+
+    public void setSliderControlsEnabled(boolean sliderControlsEnabled) {
+        this.sliderControlsEnabled = sliderControlsEnabled;
     }
 
     public void setTraversableGroup(TraversableGroup traversableGroup) {
@@ -329,5 +389,9 @@ public abstract class AbstractPropertyEntry {
 
     public void setParentPropertyList(CollapsiblePropertyList parentPropertyList) {
         this.parentPropertyList = parentPropertyList;
+        if (this.paramControlState != null){
+            this.parentPropertyList.getParamControlState(propertyName).copyValuesIfNull(this.paramControlState);
+            this.paramControlState = null;
+        }
     }
 }

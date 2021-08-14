@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.rendering.GPUSystemContext;
-import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
@@ -88,8 +87,8 @@ public class PropertyEntryFactory {
                 return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("number"):
                 return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS, submitValue); //TODO replace validator
-            case ("string"):
-                return new ExpressionTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+            case ("expressions"):
+                return new ExpressionsPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
             case ("complexnumber"):
                 return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, submitValue);
             case ("boolean"):

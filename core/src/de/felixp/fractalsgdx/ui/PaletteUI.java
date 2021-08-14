@@ -34,7 +34,7 @@ import de.felixp.fractalsgdx.rendering.palette.GradientPalette;
 import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.PalettePoint;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
@@ -87,7 +87,7 @@ public class PaletteUI {
         });
         List<String> items = new ArrayList<>((palettes.keySet()));
         paletteSelect.setItems(items.toArray(new String[items.size()]));
-        name = stage.getClientParameter(MainStage.PARAMS_COLOR_USE_PALETTE).getGeneral(String.class);
+        name = stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class);
         paletteSelect.setSelected(name);
         palette = palettes.get(name);
 
@@ -180,13 +180,13 @@ public class PaletteUI {
 
         VisTable randomSettingsTable = new VisTable(true);
 
-        VisTraversableValidateableTextField randomColorSatMin = new VisTraversableValidateableTextField(Validators.FLOATS);
+        TabTraversableTextField randomColorSatMin = new TabTraversableTextField(Validators.FLOATS);
         randomColorSatMin.setText(palette.getSettingRandomColorSatMin()+"");
-        VisTraversableValidateableTextField randomColorSatMax = new VisTraversableValidateableTextField(Validators.FLOATS);
+        TabTraversableTextField randomColorSatMax = new TabTraversableTextField(Validators.FLOATS);
         randomColorSatMax.setText(palette.getSettingRandomColorSatMax()+"");
-        VisTraversableValidateableTextField randomColorValMin = new VisTraversableValidateableTextField(Validators.FLOATS);
+        TabTraversableTextField randomColorValMin = new TabTraversableTextField(Validators.FLOATS);
         randomColorValMin.setText(palette.getSettingRandomColorValMin()+"");
-        VisTraversableValidateableTextField randomColorValMax = new VisTraversableValidateableTextField(Validators.FLOATS);
+        TabTraversableTextField randomColorValMax = new TabTraversableTextField(Validators.FLOATS);
         randomColorValMax.setText(palette.getSettingRandomColorValMax()+"");
 
         randomColorSatMin.addListener(new ChangeListener() {
@@ -287,7 +287,7 @@ public class PaletteUI {
                 }
                 palette.setPalettePoints(palettePoints);
                 stage.getParamUI().getClientParamsSideMenu().getParamContainer().addClientParameter(
-                        new StaticParamSupplier(MainStage.PARAMS_COLOR_USE_PALETTE, paletteName)
+                        new StaticParamSupplier(MainStage.PARAMS_PALETTE, paletteName)
                 );
                 stage.refreshClientSideMenu();
                 List<String> paletteNames = new ArrayList<>(stage.getPalettes().keySet());
@@ -352,7 +352,7 @@ public class PaletteUI {
 
         for (PalettePoint point : palettePoints){
             double offset = point.getRelativePos();
-            VisTraversableValidateableTextField offsetField = new VisTraversableValidateableTextField((float)(offset*100d)+"");
+            TabTraversableTextField offsetField = new TabTraversableTextField((float)(offset*100d)+"");
             final PalettePoint finalPoint = point;
 
             VisSlider offsetSlider = null;

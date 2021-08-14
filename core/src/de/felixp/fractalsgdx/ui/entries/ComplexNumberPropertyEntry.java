@@ -19,6 +19,7 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
     public ComplexNumberPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, NumberFactory numberFactory, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, Validators.FLOATS, Validators.FLOATS, submitValue); //TODO custom Validator
         this.numberFactory = numberFactory;
+        setSliderControlsEnabled(true);
     }
 
     @Override
@@ -55,8 +56,12 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
     @Override
     protected void setCheckedValue(Object newValue) {
         ComplexNumber cn = (ComplexNumber)newValue;
-        text1 = cn.getReal().toString();
-        text2 = cn.getImag().toString();
+        String newText1 = cn.getReal().toString();
+        String newText2 = cn.getImag().toString();
+        if (newText1.equals(this.text1) && newText2.equals(this.text1))
+            return;
+        this.text1 = newText1;
+        this.text2 = newText2;
         super.setCheckedValue(newValue);
     }
 

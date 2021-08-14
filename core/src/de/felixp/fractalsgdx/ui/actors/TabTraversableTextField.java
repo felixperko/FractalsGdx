@@ -4,19 +4,25 @@ import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
-public class VisTraversableValidateableTextField extends VisValidatableTextField {
+public class TabTraversableTextField extends VisValidatableTextField {
 
-    public VisTraversableValidateableTextField(String text) {
+    public TabTraversableTextField(String text) {
         super(text);
     }
 
-    public VisTraversableValidateableTextField(InputValidator validator) {
+    public TabTraversableTextField(InputValidator validator) {
         super(validator);
     }
 
     boolean traversalPaused = false;
 
     TraversableGroup traversableGroup;
+
+//    @Override
+//    public void setText (String str) {
+//        super.setText(str);
+//        super.appendText("");
+//    }
 
     public void setTraversableGroup(TraversableGroup traversableGroup){
         this.traversableGroup = traversableGroup;

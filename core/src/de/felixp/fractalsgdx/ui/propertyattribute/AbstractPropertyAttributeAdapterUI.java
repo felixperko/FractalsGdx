@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 
 public abstract class AbstractPropertyAttributeAdapterUI<T> implements PropertyAttributeAdapterUI<T> {
 
@@ -24,15 +24,15 @@ public abstract class AbstractPropertyAttributeAdapterUI<T> implements PropertyA
 
     protected void registerField(Actor field){
         registeredFields.add(field);
-        if (traversableGroup != null && field instanceof VisTraversableValidateableTextField)
-            traversableGroup.addField((VisTraversableValidateableTextField)field);
+        if (traversableGroup != null && field instanceof TabTraversableTextField)
+            traversableGroup.addField((TabTraversableTextField)field);
     }
 
     @Override
     public void unregisterFields() {
         for (Actor actor : registeredFields){
-            if (actor instanceof VisTraversableValidateableTextField){
-                traversableGroup.removeField((VisTraversableValidateableTextField)actor);
+            if (actor instanceof TabTraversableTextField){
+                traversableGroup.removeField((TabTraversableTextField)actor);
             }
         }
         registeredFields.clear();

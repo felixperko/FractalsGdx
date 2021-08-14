@@ -28,13 +28,14 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.PadovanLayerConfiguration;
+import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
-import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.task.Layer;
 
@@ -94,7 +95,7 @@ public class ClientSystem {
 
 //        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "(re(z)+abs(im(z))*i)^pow+c"));
 //        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "(re(z)+tanh(im(z))*i)^pow+c"));
-        params.put(BFOrbitCommon.PARAM_EXPRESSION, new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "z^pow+c"));
+        params.put(CommonFractalParameters.PARAM_EXPRESSIONS, new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, new ExpressionsParam("z^pow+c", "z")));
 
         List<Layer> layers = new ArrayList<>();
 //        layers.add(new BreadthFirstUpsampleLayer(64, chunkSize).with_culling(true).with_rendering(false));
@@ -127,7 +128,7 @@ public class ClientSystem {
         params.put("chunkFactory", new StaticParamSupplier("chunkFactory", new ArrayChunkFactory(ReducedNaiveChunk.class, chunkSize)));
 
 
-        params.put(BFOrbitCommon.PARAM_ZSTART, new StaticParamSupplier(BFOrbitCommon.PARAM_ZSTART,
+        params.put(CommonFractalParameters.PARAM_ZSTART, new StaticParamSupplier(CommonFractalParameters.PARAM_ZSTART,
                 new DoubleComplexNumber(new DoubleNumber(0.0), new DoubleNumber(0.0))));
         params.put("c", new CoordinateBasicShiftParamSupplier("c"));
 //

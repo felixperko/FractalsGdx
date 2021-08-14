@@ -13,11 +13,11 @@ import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.rendering.valuereference.ParamAttributeValueReference;
 import de.felixp.fractalsgdx.rendering.valuereference.ValueReference;
+import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.calculator.ComputeInstruction;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
-import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
@@ -38,17 +38,19 @@ public class ShaderBuilder {
 
     String[] localVariables;
     SystemContext systemContext;
-    ComputeExpression expression;
+    ComputeExpression firstExpression;
+    ComputeExpressionDomain expressionDomain;
 
     Map<String, ValueReference> uniforms = new HashMap<>();
 
     String glslType = "float";
 
-    public ShaderBuilder(ComputeExpression expression, SystemContext systemContext){
-        this.expression = expression;
+    public ShaderBuilder(ComputeExpressionDomain expressionDomain, SystemContext systemContext){
+        this.expressionDomain = expressionDomain;
+        this.firstExpression = expressionDomain.getMainExpressions().get(0);
         this.systemContext = systemContext;
-        List<ParamSupplier> params = expression.getParameterList();
-        List<Integer> copySlots = expression.getCopySlots();
+        List<ParamSupplier> params = firstExpression.getParameterList();
+        List<Integer> copySlots = firstExpression.getCopySlots();
 
         localVariables = new String[(params.size()+copySlots.size()) * 2];
 
@@ -128,13 +130,13 @@ public class ShaderBuilder {
 
     private String getInitString() {
         StringBuilder stringBuilder = new StringBuilder();
-//        List<ComputeInstruction> instructions = expression.getInstructions();
-//        List<ParamSupplier> params = expression.getParameterList();
+//        List<ComputeInstruction> instructions = firstExpression.getInstructions();
+//        List<ParamSupplier> params = firstExpression.getParameterList();
 //        for (String localVar : localVariables)
 //            writeStringBuilderLine(stringBuilder, "float "+localVar+" = 0.0;");
 
-        List<ParamSupplier> paramSuppliers = expression.getParameterList();
-//        Map<String, ParamSupplier> constantSuppliers = expression.getConstants();
+        List<ParamSupplier> paramSuppliers = firstExpression.getParameterList();
+//        Map<String, ParamSupplier> constantSuppliers = firstExpression.getConstants();
 
         int varCounter = 0;
         double zoom = ((Number)systemContext.getParamValue("zoom")).toDouble();
@@ -189,7 +191,7 @@ public class ShaderBuilder {
                 throw new IllegalArgumentException("Unsupported ParamSupplier "+supp.getName()+": "+supp.getClass().getName());
         }
 
-        for (Integer copySlot : expression.getCopySlots()){
+        for (Integer copySlot : firstExpression.getCopySlots()){
 
             writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer copy slots "+copySlot+", "+(copySlot+1),
                     "type "+localVariables[copySlot]  +" = 0.0;",
@@ -254,10 +256,13 @@ public class ShaderBuilder {
         StringBuilder sb = new StringBuilder();
 
         //write iteration instructions
-        List<ComputeInstruction> instructions = expression.getInstructions();
-        for (ComputeInstruction instruction : instructions){
-            printKernelInstruction(sb, instruction);
-        }
+//        for (ComputeExpression expr : expressionDomain.getMainExpressions()) {
+        ComputeExpression expr = expressionDomain.getMainExpressions().get(0);
+            List<ComputeInstruction> instructions = expr.getInstructions();
+            for (ComputeInstruction instruction : instructions) {
+                printKernelInstruction(sb, instruction);
+            }
+//        }
 
         //write orbit trap conditions
         ParamSupplier orbittrapSupp = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_ORBITTRAPS);

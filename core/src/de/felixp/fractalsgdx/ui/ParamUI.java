@@ -33,10 +33,10 @@ public class ParamUI {
     CollapsiblePropertyList clientParamsSideMenu;
     PropertyEntryFactory clientPropertyEntryFactory;
 
-    boolean switchIsJulia = false;
-    Number switchMandelbrotZoom = null;
-    ComplexNumber switchMandelbrotMidpoint = null;
-    ComplexNumber switchJuliasetC = null;
+//    boolean switchIsJulia = false;
+//    Number switchMandelbrotZoom = null;
+//    ComplexNumber switchMandelbrotMidpoint = null;
+//    ComplexNumber switchJuliasetC = null;
 
     protected MainStage stage;
 
@@ -55,6 +55,7 @@ public class ParamUI {
 
         serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
         clientParamsSideMenu = new CollapsiblePropertyList();
+        clientParamsSideMenu.setSliderLimitsVisible(false);
 //                .addButton(getSliderLimitsButton());
         serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), true);//TODO dynamic number factory
         clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), false);//TODO dynamic number factory

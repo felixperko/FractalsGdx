@@ -14,7 +14,7 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     public IntTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, Validators.INTEGERS, submitValue);
         sliderValueLabelPrecision = 0;
-        showMenu = true;
+//        showMenu = true;
     }
 
     @Override

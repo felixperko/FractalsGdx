@@ -224,7 +224,7 @@ public class MainStage extends Stage {
             palettes.put(paletteName, new ImagePalette(paletteName, texture));
             refreshClientSideMenu();
         }
-        if (paletteName.equals(getClientParameter(PARAMS_COLOR_USE_PALETTE).getGeneral(String.class))){
+        if (paletteName.equals(getClientParameter(PARAMS_PALETTE).getGeneral(String.class))){
             for (FractalRenderer renderer : renderers){
                 renderer.setRefresh();
             }
@@ -240,7 +240,7 @@ public class MainStage extends Stage {
 
     public Texture getPaletteTexture() {
         String paletteName = clientParams.getClientParameter("palette").getGeneral(String.class);
-        if (paletteName.equalsIgnoreCase("none"))
+        if (paletteName.equalsIgnoreCase(PARAMS_PALETTE_VALUE_DISABLED))
             return null;
         return palettes.get(paletteName).getTexture();
     }
@@ -363,7 +363,8 @@ public class MainStage extends Stage {
     public final static String PARAMS_AMBIENT_GLOW = "ambient light";
 
     public final static String PARAMS_COLOR_SATURATION = "saturation";
-    public final static String PARAMS_COLOR_USE_PALETTE = "palette";
+    public final static String PARAMS_PALETTE = "palette";
+    public static final String PARAMS_PALETTE_VALUE_DISABLED = "disabled";
     public final static String PARAMS_EXTRACT_CHANNEL = "monochrome source";
     public final static String PARAMS_MAPPING_COLOR = "monochrome color";
 
@@ -389,7 +390,7 @@ public class MainStage extends Stage {
     protected void initRightParamContainer() {
         clientParams = new ParamContainer();
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_NUMBERFACTORY, nf));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_USE_PALETTE, "none"));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE, PARAMS_PALETTE_VALUE_DISABLED));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, nf.createNumber(2.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, nf.createNumber(0.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_SATURATION, nf.createNumber(0.5)));
@@ -450,10 +451,10 @@ public class MainStage extends Stage {
         config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, "coloring", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_USE_PALETTE, "coloring II", StaticParamSupplier.class, selectionType),
-                clientParams.getClientParameter(PARAMS_COLOR_USE_PALETTE));
-        Selection<String> paletteSelection = new Selection<>(PARAMS_COLOR_USE_PALETTE);
-        paletteSelection.addOption("none", "none", "No predefined palette");
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, "coloring II", StaticParamSupplier.class, selectionType),
+                clientParams.getClientParameter(PARAMS_PALETTE));
+        Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
+        paletteSelection.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
         for (String paletteName : palettes.keySet())
             paletteSelection.addOption(paletteName, paletteName, "Palette '"+paletteName+"'");
         config.addSelection(paletteSelection);
@@ -461,7 +462,7 @@ public class MainStage extends Stage {
         config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, "coloring II", StaticParamSupplier.class, selectionType),
                 clientParams.getClientParameter(PARAMS_EXTRACT_CHANNEL));
         Selection<Integer> extractChannelSelection = new Selection<Integer>(PARAMS_EXTRACT_CHANNEL);
-        extractChannelSelection.addOption("none", 0, "No channel remapping");
+        extractChannelSelection.addOption("disabled", 0, "No channel remapping");
         extractChannelSelection.addOption("red", 1, "Remap red channel to all (greyscale)");
         extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
         extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");

@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
@@ -10,13 +11,15 @@ import com.kotcrab.vis.ui.widget.VisSlider;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
+import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -29,9 +32,6 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
     InputValidator validator;
 
     String text;
-
-    Double min;
-    Double max;
 
     boolean inputDisabled = false;
 
@@ -58,9 +58,12 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     protected void setCheckedValue(Object newValue) {
-        text = newValue.toString();
-        for (EntryView view : views.values()){
-            view.applyValue(newValue);
+        String newText = getText(newValue);
+        if (!newText.equals(this.text)) {
+            this.text = newText;
+            for (EntryView view : views.values()) {
+                view.applyValue(newValue);
+            }
         }
     }
 
@@ -68,20 +71,20 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisTraversableValidateableTextField field;
+            protected TabTraversableTextField field;
             VisLabel label;
             VisTextButton optionButton;
 
             @Override
             public void applyValue(Object value) {
                 if (field != null)
-                    field.setText(value.toString());
+                    field.setText(getText(value));
             }
 
             @Override
             public void addToTable(Table table) {
                 label = new VisLabel(propertyName);
-                field = new VisTraversableValidateableTextField(validator);
+                field = createTextField();
                 optionButton = new VisTextButton("...");
 
                 ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
@@ -89,8 +92,9 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 field.setTraversalPaused(!(textSupplier instanceof StaticParamSupplier));
                 traversableGroup.addField(field);
 
-                if (textSupplier != null)
-                    field.setText(text = textSupplier.getGeneral().toString());
+                if (textSupplier != null) {
+                    applyValue(textSupplier.getGeneral());
+                }
                 addSubmitListener(field);
                 field.addListener(new ChangeListener() {
                     @Override
@@ -99,8 +103,10 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                             text = field.getText();
                     }
                 });
+                addTextFieldListener(field);
                 for (ChangeListener listener : listeners)
                     field.addListener(listener);
+
                 contentFields.add(field);
 
                 table.add(label).left().padRight(3);
@@ -123,6 +129,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
         });
 
 
+
         views.put(VIEWNAME_SLIDERS, new EntryView() {
             protected VisSlider slider1;
             VisLabel valueLabel1;
@@ -130,6 +137,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             VisTextField maxField1;
             VisLabel label;
             VisTextButton optionButton;
+
+            Double min, max;
 
             @Override
             public void applyValue(Object value) {
@@ -143,7 +152,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 label = new VisLabel(propertyName);
                 optionButton = new VisTextButton("...");
 
-                if (min == null || max == null) {
+
+                if (getState().getMin() == null || getState().getMax() == null) {
                     Double minD = parameterDefinition.getHintAttributeDoubleValue("ui-element[default]:slider", "min");
                     Double maxD = parameterDefinition.getHintAttributeDoubleValue("ui-element[default]:slider", "max");
                     if (minD == null)
@@ -151,9 +161,14 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                     if (maxD == null)
                         maxD = parameterDefinition.getHintAttributeDoubleValue("ui-element:slider", "max");
 
-                    min = minD != null ? (double) minD : 0;
-                    max = maxD != null ? (double) maxD : (min < 1 ? 1 : min + 1);
+                    Double min = minD != null ? (double) minD : 0;
+                    Double max = maxD != null ? (double) maxD : (min < 1 ? 1 : min + 1);
+                    getState().setMin(min);
+                    getState().setMax(max);
                 }
+
+                min = getState().getMin();
+                max = getState().getMax();
 
                 float step = 0.001f;
 
@@ -218,7 +233,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                min = Double.parseDouble(rawVal);
+                                getState().setMin(min = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e) {//NaN
                             return;
                         }
@@ -232,7 +247,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                max = Double.parseDouble(rawVal);
+                                getState().setMax(max = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e) {//NaN
                             return;
                         }
@@ -243,11 +258,16 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 //update disabled in case of invalid range
                 updateSlider(min, max);
 
+                CollapsiblePropertyList parentPropertyList = getParentPropertyList();
+                boolean limitsVisible = parentPropertyList == null ? true : parentPropertyList.isSliderLimitsVisible();
+
                 VisTable innerTable1 = new VisTable();
-                innerTable1.add(minField1);
+                if (limitsVisible)
+                    innerTable1.add(minField1);
                 innerTable1.add(slider1);
                 innerTable1.add(valueLabel1).minWidth(70).padRight(3);
-                innerTable1.add(maxField1);
+                if (limitsVisible)
+                    innerTable1.add(maxField1);
 
                 table.add(label).left().padRight(3);
                 if (showMenu)
@@ -307,6 +327,22 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 valueLabel1.remove();
             }
         });
+    }
+
+    public String getText(Object value) {
+        return value.toString();
+    }
+
+    /**
+     * Can be overwritten to enable subclass specific behaviour.
+     * @return
+     */
+    public TabTraversableTextField createTextField() {
+        return new TabTraversableTextField(validator);
+    }
+
+    public void addTextFieldListener(TabTraversableTextField textField){
+
     }
 
     @Override

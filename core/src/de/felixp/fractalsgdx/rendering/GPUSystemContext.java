@@ -21,6 +21,7 @@ import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
+import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueField;
@@ -31,7 +32,7 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
-import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewContainer;
@@ -74,17 +75,17 @@ public class GPUSystemContext implements SystemContext {
         List<ParamDefinition> defs = new ArrayList<>();
         List<ParamSupplier> defaultValues = new ArrayList<>();
 
-        paramConfig.addValueType(BFOrbitCommon.numberType);
-        paramConfig.addValueType(BFOrbitCommon.complexnumberType);
-        paramConfig.addValueType(BFOrbitCommon.stringType);
-        paramConfig.addValueType(BFOrbitCommon.doubleType);
-        paramConfig.addValueType(BFOrbitCommon.integerType);
-        paramConfig.addValueType(BFOrbitCommon.listType);
+        paramConfig.addValueType(CommonFractalParameters.numberType);
+        paramConfig.addValueType(CommonFractalParameters.complexnumberType);
+        paramConfig.addValueType(CommonFractalParameters.stringType);
+        paramConfig.addValueType(CommonFractalParameters.doubleType);
+        paramConfig.addValueType(CommonFractalParameters.integerType);
+        paramConfig.addValueType(CommonFractalParameters.listType);
         ParamValueType layerconfigurationType = new ParamValueType("LayerConfiguration",
-                new ParamValueField("layers", BFOrbitCommon.listType),
-                new ParamValueField("simStep", BFOrbitCommon.doubleType, 0.05),
-                new ParamValueField("simCount", BFOrbitCommon.integerType, 20),
-                new ParamValueField("seed", BFOrbitCommon.integerType, 42));
+                new ParamValueField("layers", CommonFractalParameters.listType),
+                new ParamValueField("simStep", CommonFractalParameters.doubleType, 0.05),
+                new ParamValueField("simCount", CommonFractalParameters.integerType, 20),
+                new ParamValueField("seed", CommonFractalParameters.integerType, 42));
         paramConfig.addValueType(layerconfigurationType);
         ParamValueType orbittrapContainerType = new ParamValueType(PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
         paramConfig.addValueType(orbittrapContainerType);
@@ -96,28 +97,28 @@ public class GPUSystemContext implements SystemContext {
 
         nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
-        defs.add(new ParamDefinition(BFOrbitCommon.PARAM_EXPRESSION, "Calculator", StaticParamSupplier.class, BFOrbitCommon.stringType));
-        defs.add(new ParamDefinition("iterations", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=10000"));
-        defs.add(new ParamDefinition("zoom", "Position", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=0.0001 max=10"));
-        ParamDefinition midpointDef = new ParamDefinition("midpoint", "Position", StaticParamSupplier.class, BFOrbitCommon.complexnumberType);
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_EXPRESSIONS, "Calculator", StaticParamSupplier.class, CommonFractalParameters.expressionsType));
+        defs.add(new ParamDefinition("iterations", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType).withHints("ui-element:slider min=1 max=10000"));
+        defs.add(new ParamDefinition("zoom", "Position", StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=0.0001 max=10"));
+        ParamDefinition midpointDef = new ParamDefinition("midpoint", "Position", StaticParamSupplier.class, CommonFractalParameters.complexnumberType);
         midpointDef.setResetRendererOnChange(false);
         defs.add(midpointDef);
-        defs.add(new ParamDefinition("c", "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
-        defs.add(new ParamDefinition(BFOrbitCommon.PARAM_ZSTART, "Calculator", supplierClasses, BFOrbitCommon.complexnumberType).withHints("ui-element:slider min=-1 max=1"));
-        defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, BFOrbitCommon.selectionType));
-        defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=256"));
-        defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Quality", StaticParamSupplier.class, BFOrbitCommon.numberType).withHints("ui-element:slider min=1 max=100"));
+        defs.add(new ParamDefinition("c", "Calculator", supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ZSTART, "Calculator", supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element:slider min=-1 max=1"));
+        defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, CommonFractalParameters.selectionType));
+        defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=256"));
+        defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Quality", StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=100"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_FIRSTITERATIONS, nf.createNumber("20.0")));
-        defs.add(new ParamDefinition(PARAMNAME_SUPERSAMPLING, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType).withHints("ui-element:slider min=1 max=200"));
+        defs.add(new ParamDefinition(PARAMNAME_SUPERSAMPLING, "Quality", StaticParamSupplier.class, CommonFractalParameters.integerType).withHints("ui-element:slider min=1 max=200"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 1));
-        defs.add(new ParamDefinition(PARAMNAME_RESOLUTIONSCALE, "Quality", StaticParamSupplier.class, BFOrbitCommon.doubleType).withHints("ui-element:slider min=0.0 max=2"));
+        defs.add(new ParamDefinition(PARAMNAME_RESOLUTIONSCALE, "Quality", StaticParamSupplier.class, CommonFractalParameters.doubleType).withHints("ui-element:slider min=0.0 max=2"));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_RESOLUTIONSCALE, 1.0));
-        defs.add(new ParamDefinition(PARAMNAME_SAMPLESPERFRAME, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defs.add(new ParamDefinition(PARAMNAME_SAMPLESPERFRAME, "Quality", StaticParamSupplier.class, CommonFractalParameters.integerType));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
-        defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, BFOrbitCommon.integerType));
+        defs.add(new ParamDefinition(PARAMNAME_MAXBORDERSAMPLES, "Quality", StaticParamSupplier.class, CommonFractalParameters.integerType));
         defaultValues.add(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 5));
-//        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
-//        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, BFOrbitCommon.integerType));
+//        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
+//        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
         defs.add(new ParamDefinition(PARAMNAME_LAYER_CONFIG, "Calculator", StaticParamSupplier.class, layerconfigurationType));
         defs.add(new ParamDefinition(PARAMNAME_ORBITTRAPS, "Calculator", StaticParamSupplier.class, orbittrapContainerType));
 
@@ -141,10 +142,12 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
         paramContainer.addClientParameter(new StaticParamSupplier("zoom", nf.createNumber(3)));
         if (renderer.juliaset)
-            paramContainer.addClientParameter(new CoordinateBasicShiftParamSupplier(BFOrbitCommon.PARAM_ZSTART));
+            paramContainer.addClientParameter(new CoordinateBasicShiftParamSupplier(CommonFractalParameters.PARAM_ZSTART));
         else
-            paramContainer.addClientParameter(new StaticParamSupplier(BFOrbitCommon.PARAM_ZSTART, nf.createComplexNumber(0,0)));
-        paramContainer.addClientParameter(new StaticParamSupplier(BFOrbitCommon.PARAM_EXPRESSION, "z^2+c"));
+            paramContainer.addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_ZSTART, nf.createComplexNumber(0,0)));
+        ExpressionsParam expressions = new ExpressionsParam("z^2+c", "z");
+        expressions.putExpression("c", "c");
+        paramContainer.addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, expressions));
         paramContainer.addClientParameter(new StaticParamSupplier("condition", TEXT_COND_ABS));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
@@ -153,16 +156,16 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_MAXBORDERSAMPLES, 1));
         paramContainer.addClientParameter(new StaticParamSupplier("calculator", "CustomCalculator")); //TODO add only when changed to RemoteRenderer
         List<Layer> layers = new ArrayList<>();
-        layers.add(new BreadthFirstUpsampleLayer(16, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));
-        layers.add(new BreadthFirstUpsampleLayer(8, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(10));
-        layers.add(new BreadthFirstUpsampleLayer(4, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(20));
-        layers.add(new BreadthFirstUpsampleLayer(2, BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(30));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(40));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(4).with_rendering(true).with_priority_shift(50));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(16).with_rendering(true).with_priority_shift(60));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(49).with_rendering(true).with_priority_shift(70));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(100).with_rendering(true).with_priority_shift(80));
-        layers.add(new BreadthFirstLayer(BFOrbitCommon.DEFAULT_CHUNK_SIZE).with_samples(400).with_rendering(true).with_priority_shift(90));
+        layers.add(new BreadthFirstUpsampleLayer(16, CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(0));
+        layers.add(new BreadthFirstUpsampleLayer(8, CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(10));
+        layers.add(new BreadthFirstUpsampleLayer(4, CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(20));
+        layers.add(new BreadthFirstUpsampleLayer(2, CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(30));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(1).with_rendering(true).with_priority_shift(40));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(4).with_rendering(true).with_priority_shift(50));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(16).with_rendering(true).with_priority_shift(60));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(49).with_rendering(true).with_priority_shift(70));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(100).with_rendering(true).with_priority_shift(80));
+        layers.add(new BreadthFirstLayer(CommonFractalParameters.DEFAULT_CHUNK_SIZE).with_samples(400).with_rendering(true).with_priority_shift(90));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_LAYER_CONFIG, new PadovanLayerConfiguration(layers)));
         List<Orbittrap> orbittraps = new ArrayList<>();
 //        orbittraps.add(new AxisOrbittrap(1, nf, nf.createNumber(0.1), nf.createNumber(0.05), nf.createNumber("0.0"), true));
@@ -193,9 +196,10 @@ public class GPUSystemContext implements SystemContext {
     public boolean setParameters(ParamContainer paramContainer) {
         if (this.paramContainer != null){
             boolean changed = paramContainer.updateChangedFlag(this.paramContainer.getClientParameters());
-            ParamSupplier midpointSupp = this.paramContainer.getClientParameter("midpoint");
+            ParamSupplier midpointSupp = paramContainer.getClientParameter("midpoint");
             updateLayerConfig(paramContainer, PARAMNAME_LAYER_CONFIG, this.paramContainer.getClientParameters(), paramContainer.getClientParameters());
             paramContainer.setParamConfiguration(paramConfig);
+            boolean sameInstance = this.paramContainer == paramContainer;
             this.paramContainer = paramContainer;
             if (changed)
                 renderer.paramsChanged();

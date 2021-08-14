@@ -17,7 +17,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -90,8 +90,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     protected void generateViews() {
         views.put(VIEWNAME_FIELDS, new EntryView() {
 
-            protected VisTraversableValidateableTextField field1;
-            protected VisTraversableValidateableTextField field2;
+            protected TabTraversableTextField field1;
+            protected TabTraversableTextField field2;
             VisLabel label;
             VisTextButton optionButton;
 
@@ -109,11 +109,12 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 label = new VisLabel(propertyName);
 
+
                 optionButton = new VisTextButton("...");
 
-                field1 = new VisTraversableValidateableTextField(validator1);
+                field1 = new TabTraversableTextField(validator1);
                 addSubmitListener(field1);
-                field2 = new VisTraversableValidateableTextField(validator2);
+                field2 = new TabTraversableTextField(validator2);
                 addSubmitListener(field2);
 
 
@@ -157,13 +158,13 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 if (!inputDisabled)
                     table.add(field1).fillX().expandX().row();
                 else
-                    table.add("x").fillX().expandX().row();
+                    table.add("map x").fillX().expandX().row();
                 table.add();
                 table.add();
                 if (!inputDisabled)
                     table.add(field2).fillX().expandX().padBottom(2).row();
                 else
-                    table.add("y * i").fillX().expandX().padBottom(2).row();
+                    table.add("map y * i").fillX().expandX().padBottom(2).row();
 
                 setOptionButtonListener(optionButton);
             }
@@ -209,6 +210,11 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 label = new VisLabel(propertyName);
                 optionButton = new VisTextButton("...");
+
+                min1 = getState().getMin();
+                min2 = getState().getMin2();
+                max1 = getState().getMax();
+                max2 = getState().getMax2();
 
                 if (min1 == null || max1 == null || min2 == null || max2 == null) {
                     Double minD = parameterDefinition.getHintAttributeDoubleValue("ui-element[default]:slider", "min");
@@ -310,7 +316,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                min1 = Double.parseDouble(rawVal);
+                                getState().setMin(min1 = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e){//NaN
                             return;
                         }
@@ -324,7 +330,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                max1 = Double.parseDouble(rawVal);
+                                getState().setMax(max1 = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e){//NaN
                             return;
                         }
@@ -338,7 +344,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                min2 = Double.parseDouble(rawVal);
+                                getState().setMin2(min2 = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e){//NaN
                             return;
                         }
@@ -352,7 +358,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                         String rawVal = textField.getText();
                         try {
                             if (rawVal != null && rawVal.length() > 0)
-                                max2 = Double.parseDouble(rawVal);
+                                getState().setMax2(max2 = Double.parseDouble(rawVal));
                         } catch (NumberFormatException e){//NaN
                             return;
                         }
@@ -363,17 +369,23 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 //update disabled in case of invalid range
                 updateSlider(min1, max1, min2, max2);
 
+                boolean limitsVisible = parentPropertyList == null ? true : parentPropertyList.isSliderLimitsVisible();
+
                 VisTable innerTable1 = new VisTable();
-                innerTable1.add(minField1);
+                if (limitsVisible)
+                    innerTable1.add(minField1);
                 innerTable1.add(slider1);
                 innerTable1.add(valueLabel1).minWidth(70).padRight(3);
-                innerTable1.add(maxField1).row();
+                if (limitsVisible)
+                    innerTable1.add(maxField1).row();
 
 //                VisTable innerTable2 = new VisTable(true);
-                innerTable1.add(minField2);
+                if (limitsVisible)
+                    innerTable1.add(minField2);
                 innerTable1.add(slider2);
                 innerTable1.add(valueLabel2).minWidth(70).padRight(3);
-                innerTable1.add(maxField2);
+                if (limitsVisible)
+                    innerTable1.add(maxField2);
 
                 table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);

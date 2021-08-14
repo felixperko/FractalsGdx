@@ -36,6 +36,7 @@ import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.LayerConfiguration;
@@ -45,6 +46,7 @@ import de.felixperko.fractals.system.calculator.infra.FractalsCalculator;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
@@ -53,7 +55,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.statistics.IStats;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
-import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
@@ -128,7 +130,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     ComplexNumber anchor = systemContext.getNumberFactory().createComplexNumber(0,0);
 
     ComputeExpression expression;
-    String expressionString;
+    ExpressionsParam expressionsParam;
 
     ShaderBuilder shaderBuilder;
 
@@ -179,6 +181,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             @Override
             public void touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 getStage().setKeyboardFocus(thisRenderer);
+                ((MainStage)getStage()).setFocusedRenderer(thisRenderer);
                 ParamInterpolation selectedInterpolation = AnimationsUI.getSelectedInterpolation();
                 if (selectedInterpolation instanceof ComplexNumberParamInterpolation){
                     List<ComplexNumber> controlPoints = selectedInterpolation.getControlPoints(true);
@@ -494,7 +497,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                "cos(z)^2+c"
 //                "absr(negatei(z))^2+c"
 //                ;
-        String newExpressionString = (String) systemContext.getParamValue(BFOrbitCommon.PARAM_EXPRESSION, String.class);
+        ExpressionsParam expressions = (ExpressionsParam) systemContext.getParamValue(CommonFractalParameters.PARAM_EXPRESSIONS, ExpressionsParam.class);
+//        expressions.putExpression("c", "c+co");
 
         String currentCondition = (String) systemContext.getParamValue("condition");
         boolean conditionChanged = !currentCondition.equals(lastCondition);
@@ -518,7 +522,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 }
             }
         }
-        boolean update = expressionString == null || !(newExpressionString.equals(expressionString)) || recompileShaders || trapsChanged || paramsChanged;
+        boolean update = expressionsParam == null || !(expressionsParam.equals(expressions)) || recompileShaders || trapsChanged || paramsChanged;
         if (!update){
             for (ParamSupplier supp : systemContext.getParamContainer().getParameters()){
                 if (supp.isChanged()){
@@ -529,13 +533,18 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
 
         if (update) {
-            expressionString = newExpressionString;
+            this.expressionsParam = expressions;
             try {
-                ComputeExpression newExpression = new ComputeExpressionBuilder(expressionString, "z", systemContext.getParameters()).getComputeExpression();
+
+                ComputeExpressionBuilder computeExpressionBuilder = new ComputeExpressionBuilder(expressions, systemContext.getParameters());
+//                computeExpressionBuilder.addMainExpression("c+co", "c");
+
+                ComputeExpressionDomain expressionDomain = computeExpressionBuilder.getComputeExpressionDomain(false);
+                ComputeExpression newExpression = expressionDomain.getMainExpressions().get(0);
                 boolean expressionChanged = !newExpression.equals(expression);
                 expression = newExpression;
                 if (expressionChanged || recompileShaders || (trapsChanged && (cont == null || cont.needsShaderRecompilation(lastOrbittrapContainer)))) {
-                    shaderBuilder = new ShaderBuilder(expression, systemContext);
+                    shaderBuilder = new ShaderBuilder(expressionDomain, systemContext);
                     compileComputeShader();
                 }
 //                if (paramsChanged || expressionChanged || conditionChanged)
@@ -543,7 +552,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 if (paramsChanged || expressionChanged || conditionChanged || trapsChanged)
                     reset();
             } catch (IllegalArgumentException e){
-                LOG.info("Couldn't parse expression: \n"+e.getMessage());
+                LOG.info("Couldn't parse firstExpression: \n"+e.getMessage());
             }
         }
 
@@ -1223,7 +1232,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         ScissorStack.popScissors();
     }
 
-    float timePassed = 0;
+//    float timePassed = 0;
 
     private void updateTraceArrays() {
 
@@ -1234,44 +1243,41 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         ComplexNumber coords = null;
         String posVarName = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TARGET).getGeneral(String.class);
         if (posVarName.equals("path")) {
-//            ParamAnimation animation = rendererContext.getSelectedPathAnimation();
-//            NumberFactory nf = systemContext.getNumberFactory();
-//            coords = (ComplexNumber) animation.getInterpolatedValue(timePassed, nf);
             coords = clientParams.getClientParameter(MainStage.PARAMS_TRACES_VALUE).getGeneral(ComplexNumber.class);
-            timePassed += Gdx.graphics.getDeltaTime();
+//            timePassed += Gdx.graphics.getDeltaTime();
         }
         else {
             ParamSupplier posVar = systemContext.getParamContainer().getClientParameter(posVarName);
             boolean useMousePos = posVarName.equals("mouse") || posVar == null || !(posVar instanceof StaticParamSupplier) || (((StaticParamSupplier) posVar).getGeneral() instanceof ComplexNumber);
             if (useMousePos)
                 coords = getComplexMapping(mouseX, mouseY);
-            else {
-                float periodInS = 30;
-                float periodInS2 = 17;
-                float time = ((timePassed / periodInS) % 1);
-                float time2 = ((timePassed / periodInS2) % 1);
-//            timePassed *= getWidth();
+//            else {
+//                float periodInS = 30;
+//                float periodInS2 = 17;
+//                float time = ((timePassed / periodInS) % 1);
+//                float time2 = ((timePassed / periodInS2) % 1);
+////            timePassed *= getWidth();
+//
+////            traceChunk.chunkPos = getComplexMapping(getWidth()-time, mouseY);
+//
+//                float a = 0.2f;
+//
+//                float timeAngle = (float) (time * Math.PI * 2);
+//
+////            traceChunk.chunkPos = getComplexMapping(getScreenX((2*a*(1-Math.cos(timeAngle))*Math.cos(timeAngle))),
+////                                             getScreenY((2*a*(1-Math.cos(timeAngle))*Math.sin(timeAngle))));
+//
+////            float cardioidScale = (float)-Math.cos(time2*Math.PI*2)*0.2f+0.9f;
+//                float cardioidScale = 0.9f;
+//
+//                coords = systemContext.getNumberFactory().createComplexNumber(
+//                        cardioidScale * ((2 * 1.25 * a * (1 - Math.cos(timeAngle)) * Math.cos(timeAngle)) + 0.25),
+//                        cardioidScale * (2 * 1.25 * a * (1 - Math.cos(timeAngle)) * Math.sin(timeAngle)));
+////            traceChunk.chunkPos = systemContext.getNumberFactory().createComplexNumber((Math.sin(timeAngle)),
+////                    (Math.cos(timeAngle)));
 
-//            traceChunk.chunkPos = getComplexMapping(getWidth()-time, mouseY);
-
-                float a = 0.2f;
-
-                float timeAngle = (float) (time * Math.PI * 2);
-
-//            traceChunk.chunkPos = getComplexMapping(getScreenX((2*a*(1-Math.cos(timeAngle))*Math.cos(timeAngle))),
-//                                             getScreenY((2*a*(1-Math.cos(timeAngle))*Math.sin(timeAngle))));
-
-//            float cardioidScale = (float)-Math.cos(time2*Math.PI*2)*0.2f+0.9f;
-                float cardioidScale = 0.9f;
-
-                coords = systemContext.getNumberFactory().createComplexNumber(
-                        cardioidScale * ((2 * 1.25 * a * (1 - Math.cos(timeAngle)) * Math.cos(timeAngle)) + 0.25),
-                        cardioidScale * (2 * 1.25 * a * (1 - Math.cos(timeAngle)) * Math.sin(timeAngle)));
-//            traceChunk.chunkPos = systemContext.getNumberFactory().createComplexNumber((Math.sin(timeAngle)),
-//                    (Math.cos(timeAngle)));
-
-                timePassed += Gdx.graphics.getDeltaTime();
-            }
+//                timePassed += Gdx.graphics.getDeltaTime();
+//            }
         }
 
 
@@ -1310,6 +1316,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
         if (!layerSet)
             throw new IllegalStateException("Couldn't find applicable layer for tracing");
+
 
         traceChunk.chunkPos = coords;
         traceCalculator.setContext(systemContext);
@@ -1596,7 +1603,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     public void paramsChanged() {
         paramsChanged = true;
-        systemContext.setParameters(systemContext.getParamContainer());
+//        systemContext.setParameters(systemContext.getParamContainer());
         rendererContext.setParamContainer(systemContext.getParamContainer());
         for (RendererLink link : rendererContext.getSourceLinks())
             link.syncTargetRenderer();

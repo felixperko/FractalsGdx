@@ -1,7 +1,9 @@
 package de.felixp.fractalsgdx.ui;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -24,19 +26,22 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.expressions.ComputeExpressionBuilder;
+import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.calculator.ComputeExpression;
+import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.common.BFOrbitCommon;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
 
 public class CollapsiblePropertyList extends CollapsibleSideMenu {
@@ -63,10 +68,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         super();
         traversableGroup.setTree(tree);
     }
-
-    Map<String, String> paramControlView = new HashMap<>();
-
     Map<String, Selection<?>> lastSelections = null;
+
+    Map<String, Map<String, ParamControlState>> paramControlStates = new HashMap<>(); //<"container-key", <"name-key", ParamControlState>
+    boolean sliderLimitsVisible = true;
 
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
 
@@ -80,6 +85,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         //need to reset property table?
         //first --> reset
         boolean reset = this.paramContainer == null;
+        String focusParamName = null;
 
         if (lastSelections != null){
             for (Selection<?> sel : paramConfig.getSelections().values()){
@@ -95,11 +101,15 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         if (!reset){
             //check PropertyEntries
             for (AbstractPropertyEntry e : propertyEntryList){
-                if (!e.getParameterDefinition().equals(paramConfig.getParamDefinition(e.getPropertyName())))
+                ParamDefinition paramDefinitionFromConfig = paramConfig.getParamDefinition(e.getPropertyName());
+                if (paramDefinitionFromConfig != null && !e.getParameterDefinition().equals(paramDefinitionFromConfig))
                     reset = true;
-                String controlView = getParamControlViewName(e.getPropertyName());
+                ParamControlState paramControlState = getParamControlState(e.getPropertyName());
+                String controlView = paramControlState.getControlView();
                 if (controlView != null)
                     e.setCurrentControlView(controlView, true);
+                else
+                    paramControlState.setControlView(e.getPrefListView());
                 if (e.isForceReset(true)) { //reset all force resets
                     reset = true;
                 }
@@ -111,9 +121,9 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                         reset = true;
                         continue;
                     }
-                    Object newVal = supp.getGeneral();
-                    if (newVal != null && (e.getSupplier() == null || !newVal.equals(e.getSupplier().getGeneral())))
-                        e.setValue(newVal);
+//                    Object newVal = supp.getGeneral();
+//                    if (newVal != null && (e.getSupplier() == null || !newVal.equals(e.getSupplier().getGeneral())))
+//                        e.setValue(newVal);
                 }
             }
         }
@@ -142,6 +152,58 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             }
         }
 
+        //add calculator specific parameter definitions
+        List<ParamDefinition> paramDefs = new ArrayList<>(paramConfig.getParameters());
+        Map<String, ParamSupplier> newParams = paramContainer.getClientParameters();
+        if (newParams.containsKey("calculator")) {
+            List<ParamDefinition> calculatorParameterDefinitions = paramConfig.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
+            if (calculatorParameterDefinitions != null)
+                paramDefs.addAll(calculatorParameterDefinitions);
+        }
+
+        //parse expression from 'f(z)=' if set
+        ComputeExpressionDomain expressionDomain = null;
+        if (newParams.containsKey(CommonFractalParameters.PARAM_EXPRESSIONS)){
+            ExpressionsParam expressionsParam = paramContainer.getClientParameter(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
+            ComputeExpressionBuilder exprBuilder = new ComputeExpressionBuilder(expressionsParam, newParams);
+            try {
+                expressionDomain = exprBuilder.getComputeExpressionDomain(false);
+            } catch (IllegalArgumentException e){
+                String displayString = "";
+                for (Map.Entry<String, String> entry : expressionsParam.getExpressions().entrySet()){
+                    displayString += entry.getKey()+"_(n+1) = ";
+                    displayString += entry.getValue();
+                    displayString +=  ";";
+                }
+                displayString = displayString.substring(0, displayString.length()-1);
+                LOG.info("couldn't parse expressions "+displayString+": "+e.getMessage());
+            }
+            if (expressionDomain != null) {
+                List<ParamSupplier> exprParams = expressionDomain.getParameterList();
+                for (ParamSupplier exprParam : exprParams) {
+                    if (expressionDomain.getExplicitValues().containsKey(exprParam.getName()))
+                        continue;
+                    boolean predefined = false;
+                    for (ParamDefinition paramDefinition : paramDefs) {
+                        if (paramDefinition.getName().equals(exprParam.getName())) {
+                            predefined = true;
+                            break;
+                        }
+                    }
+                    if (!predefined) {
+                        paramDefs.add(new ParamDefinition(exprParam.getName(), "Calculator",
+                                CommonFractalParameters.complexnumberType, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class));
+                        paramContainer.addClientParameter(exprParam);
+                        if (getPropertyEntry(exprParam.getName()) == null) {
+                            if (focusParamName == null)
+                                focusParamName = exprParam.getName();
+                            reset = true;
+                        }
+                    }
+                }
+            }
+        }
+
         if (reset) {
             tree.clear();
 //            if (this.paramContainer != paramContainer) {
@@ -160,47 +222,6 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 //            return;
 
 
-        //add calculator specific parameter definitions
-        List<ParamDefinition> paramDefs = new ArrayList<>(paramConfig.getParameters());
-        Map<String, ParamSupplier> newParams = paramContainer.getClientParameters();
-        if (newParams.containsKey("calculator")) {
-            List<ParamDefinition> calculatorParameterDefinitions = paramConfig.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
-            if (calculatorParameterDefinitions != null)
-                paramDefs.addAll(calculatorParameterDefinitions);
-        }
-
-        //parse expression from 'f(z)=' if set
-        ComputeExpression expression = null;
-        if (newParams.containsKey(BFOrbitCommon.PARAM_EXPRESSION)){
-            String exprString = paramContainer.getClientParameter(BFOrbitCommon.PARAM_EXPRESSION).getGeneral(String.class);
-            ComputeExpressionBuilder exprBuilder = new ComputeExpressionBuilder(exprString, "z", newParams);
-            try {
-                expression = exprBuilder.getComputeExpression();
-            } catch (IllegalArgumentException e){
-                LOG.info("couldn't parse expression "+exprString+": "+e.getMessage());
-            }
-            if (expression != null) {
-                List<ParamSupplier> exprParams = expression.getParameterList();
-                for (ParamSupplier exprParam : exprParams) {
-                    if (expression.getExplicitValues().containsKey(exprParam.getName()))
-                        continue;
-                    boolean exists = false;
-                    for (ParamDefinition paramDefinition : paramDefs) {
-                        if (paramDefinition.getName().equals(exprParam.getName())) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists) {
-//                if (!(paramContainer.getClientParameters().containsKey(exprParam.getName()))){
-                        paramDefs.add(new ParamDefinition(exprParam.getName(), "Calculator", BFOrbitCommon.complexnumberType, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class));
-//                    LOG.debug("add ParamDefinition for "+exprParam.getName());
-                        paramContainer.addClientParameter(exprParam);
-                    }
-                }
-            }
-        }
-
         //remove entries for old, missing parameters
         for (AbstractPropertyEntry entry : new ArrayList<>(propertyEntryList)){
             String name = entry.getPropertyName();
@@ -212,8 +233,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                     break;
                 }
             }
-            if (expression != null) {
-                for (ParamSupplier exprParam : expression.getParameterList()){
+            if (expressionDomain != null) {
+                for (ParamSupplier exprParam : expressionDomain.getParameterList()){
                     if (exprParam.getName().equals(name)){
                         isExprParam = true;
                         break;
@@ -247,6 +268,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                     //entry already exists -> update value
                     entryExists = true;
                     ParamSupplier supplier = paramContainer.getClientParameter(entry.getPropertyName());
+                    entry.setParamContainer(paramContainer);
                     if (supplier instanceof StaticParamSupplier)
                         entry.setValue(supplier.getGeneral());
                     break;
@@ -288,6 +310,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                     table.add(button).row();
                 }
             }
+
+            submitButton = new VisTextButton("Submit");
+            collapsibleTable.row();
+            collapsibleTable.add(submitButton).colspan(3).row();
         }
 
 //        final float finalMaxWidth;
@@ -329,10 +355,33 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 //            }
 //        }
 
-        if (reset) {
-            submitButton = new VisTextButton("Submit");
-            collapsibleTable.row();
-            collapsibleTable.add(submitButton).colspan(3).row();
+        if (focusParamName != null) {
+            final String finalFocus = focusParamName;
+            focusParamName = null;
+            Gdx.app.postRunnable(new Runnable() {
+                @Override
+                public void run() {
+                    for (Table table : tablePerCategory.values()){
+                        boolean next = false;
+                        for (Actor actor : table.getChildren()){
+                            if (next){
+                                if (actor instanceof VisTextButton)
+                                    continue; //skip options button
+                                if (actor instanceof Focusable) {
+                                    FocusManager.switchFocus(FractalsGdxMain.stage, (Focusable) actor);
+                                    FractalsGdxMain.stage.setKeyboardFocus(actor);
+                                }
+                                break;
+                            }
+                            if (actor instanceof Label && ((Label) actor).getText().toString().equals(finalFocus)){
+                                next = true;
+                            }
+                        }
+                        if (next)
+                            break;
+                    }
+                }
+            });
         }
     }
 
@@ -385,10 +434,11 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public void addEntry(AbstractPropertyEntry entry){
         propertyEntryList.add(entry);
-        String storedControlViewName = getParamControlViewName(entry.getPropertyName());
+        String storedControlViewName = getParamControlState(entry.getPropertyName()).getControlView();
         if (storedControlViewName != null)
             entry.setCurrentControlView(storedControlViewName, false);
         entry.setParentPropertyList(this);
+        entry.setParamContainer(paramContainer);
         getPropertyCategoryList(entry).add(entry);
     }
 
@@ -439,7 +489,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     }
 
     public boolean focusFirstFocusableControl(){
-        for (Table table : tablePerCategory.values()){
+        for (Map.Entry<String, Tree.Node> e : categoryNodes.entrySet()){
+            if (!e.getValue().isExpanded())
+                continue;
+            Table table = tablePerCategory.get(e.getKey());
             for (Actor actor : table.getChildren()){
                 if (actor instanceof VisTextField){
                     ((MainStage)FractalsGdxMain.stage).getFocusedRenderer().setFocused(false);
@@ -472,11 +525,30 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         return paramContainer;
     }
 
-    public String getParamControlViewName(String paramName){
-        return paramControlView.get(paramName);
+    public ParamControlState getParamControlState(String paramName){
+        String containerName = "Renderer"+((MainStage)FractalsGdxMain.stage).getFocusedRenderer().getId();
+        return getParamControlState(containerName, paramName);
     }
 
-    public void setParamControlViewName(String paramName, String controlViewName){
-        this.paramControlView.put(paramName, controlViewName);
+    public ParamControlState getParamControlState(String containerName, String paramName){
+        Map<String, ParamControlState> container = paramControlStates.get(containerName);
+        if (container == null) {
+            container = new HashMap<>();
+            paramControlStates.put(containerName, container);
+        }
+        ParamControlState paramControlState = container.get(paramName);
+        if (paramControlState == null) {
+            paramControlState = new ParamControlState();
+            container.put(paramName, paramControlState);
+        }
+        return paramControlState;
+    }
+
+    public boolean isSliderLimitsVisible() {
+        return sliderLimitsVisible;
+    }
+
+    public void setSliderLimitsVisible(boolean sliderLimitsVisible) {
+        this.sliderLimitsVisible = sliderLimitsVisible;
     }
 }

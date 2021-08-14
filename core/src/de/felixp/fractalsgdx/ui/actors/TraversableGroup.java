@@ -11,7 +11,7 @@ import java.util.List;
 
 public class TraversableGroup {
 
-    List<VisTraversableValidateableTextField> fields = new ArrayList<>();
+    List<TabTraversableTextField> fields = new ArrayList<>();
 
     VisTree tree;
 
@@ -19,18 +19,18 @@ public class TraversableGroup {
         this.tree = tree;
     }
 
-    public void addField(VisTraversableValidateableTextField field){
+    public void addField(TabTraversableTextField field){
         fields.add(field);
         field.setTraversableGroup(this);
     }
 
-    public void removeField(VisTraversableValidateableTextField field){
+    public void removeField(TabTraversableTextField field){
         fields.remove(field);
         field.setTraversableGroup(null);
     }
 
-    public VisTraversableValidateableTextField getNextField(VisTraversableValidateableTextField currentField, boolean up){
-        VisTraversableValidateableTextField res;
+    public TabTraversableTextField getNextField(TabTraversableTextField currentField, boolean up){
+        TabTraversableTextField res;
         //search in nodes first
         if (tree != null) {
             res = nextInNodes(currentField, up);
@@ -40,7 +40,7 @@ public class TraversableGroup {
         return nextInList(currentField, up);
     }
 
-    public VisTraversableValidateableTextField nextInNodes(VisTraversableValidateableTextField currentField, boolean up) {
+    public TabTraversableTextField nextInNodes(TabTraversableTextField currentField, boolean up) {
         resetTempNodeVars();
         int expanded = 0;
         for (Object obj : tree.getRootNodes()){
@@ -50,7 +50,7 @@ public class TraversableGroup {
         }
         boolean autoExpand = expanded < tree.getRootNodes().size;
         boolean autoCollapse = expanded == 1;
-        VisTraversableValidateableTextField res = nextInNodesRec(currentField, tree.getRootNodes(), up, autoExpand, autoCollapse);
+        TabTraversableTextField res = nextInNodesRec(currentField, tree.getRootNodes(), up, autoExpand, autoCollapse);
         //if looping from last -> first or first -> last, redo search
         if (temp_next || (up && res == null)){
             res = nextInNodesRec(currentField, tree.getRootNodes(), up, autoExpand, autoCollapse);
@@ -59,7 +59,7 @@ public class TraversableGroup {
     }
 
     boolean temp_next = false;
-    VisTraversableValidateableTextField temp_previousActor = null;
+    TabTraversableTextField temp_previousActor = null;
     Tree.Node temp_previousNode = null;
     Tree.Node temp_currentKatNode = null;
 
@@ -70,7 +70,7 @@ public class TraversableGroup {
         temp_currentKatNode = null;
     }
 
-    private VisTraversableValidateableTextField nextInNodesRec(VisTraversableValidateableTextField currentField, Array<Tree.Node> nodes, boolean up, boolean autoExpand, boolean autoCollapse) {
+    private TabTraversableTextField nextInNodesRec(TabTraversableTextField currentField, Array<Tree.Node> nodes, boolean up, boolean autoExpand, boolean autoCollapse) {
 
         for (Tree.Node node : nodes){
             Object value = node.getActor();
@@ -78,7 +78,7 @@ public class TraversableGroup {
                 if (value instanceof Group){
                     for (Actor actor : ((Group)value).getChildren()){
                         Tree.Node katNode = node.getParent();
-                        if (temp_next && actor instanceof VisTraversableValidateableTextField){
+                        if (temp_next && actor instanceof TabTraversableTextField){
                             if (autoExpand && katNode != temp_currentKatNode && !katNode.isExpanded()) {
                                 if (autoCollapse)
                                     temp_currentKatNode.setExpanded(false);
@@ -86,7 +86,7 @@ public class TraversableGroup {
                                     katNode.setExpanded(true);
                             }
                             temp_next = false;
-                            return (VisTraversableValidateableTextField) actor;
+                            return (TabTraversableTextField) actor;
                         }
                         if (actor == currentField){ //found current node
                             if (up){
@@ -102,24 +102,24 @@ public class TraversableGroup {
                                 temp_next = true;
                             }
                         }
-                        if (actor instanceof VisTraversableValidateableTextField) {
-                            temp_previousActor = (VisTraversableValidateableTextField) actor;
+                        if (actor instanceof TabTraversableTextField) {
+                            temp_previousActor = (TabTraversableTextField) actor;
                             temp_previousNode = katNode;
                         }
                     }
                 }
             }
-            VisTraversableValidateableTextField recursiveRes = nextInNodesRec(currentField, node.getChildren(), up, autoExpand, autoCollapse);
+            TabTraversableTextField recursiveRes = nextInNodesRec(currentField, node.getChildren(), up, autoExpand, autoCollapse);
             if (recursiveRes != null)
                 return recursiveRes;
         }
         return null;
     }
 
-    public VisTraversableValidateableTextField nextInList(VisTraversableValidateableTextField currentField, boolean up) {
+    public TabTraversableTextField nextInList(TabTraversableTextField currentField, boolean up) {
         boolean next = currentField == fields.get(fields.size()-1);
-        VisTraversableValidateableTextField previous = null;
-        for (VisTraversableValidateableTextField field : fields){
+        TabTraversableTextField previous = null;
+        for (TabTraversableTextField field : fields){
 
             if (field.isTraversalPaused()){
                 continue;

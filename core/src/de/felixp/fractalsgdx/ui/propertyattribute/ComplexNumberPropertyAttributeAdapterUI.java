@@ -6,9 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 
-import java.util.List;
-
-import de.felixp.fractalsgdx.ui.actors.VisTraversableValidateableTextField;
+import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
@@ -27,8 +25,8 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
     public Actor addToTable(Table table) {
         VisTable innerTable = new VisTable(true);
         VisLabel nameLbl = new VisLabel(name);
-        VisTraversableValidateableTextField valueField = new VisTraversableValidateableTextField(startVal.getReal().toString());
-        VisTraversableValidateableTextField valueField2 = new VisTraversableValidateableTextField(startVal.getImag().toString());
+        TabTraversableTextField valueField = new TabTraversableTextField(startVal.getReal().toString());
+        TabTraversableTextField valueField2 = new TabTraversableTextField(startVal.getImag().toString());
         registerField(valueField);
         registerField(valueField2);
         valueField.addListener(new ChangeListener() {

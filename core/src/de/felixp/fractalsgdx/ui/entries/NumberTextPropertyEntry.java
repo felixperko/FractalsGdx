@@ -19,6 +19,7 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         super(node, paramContainer, parameterDefinition, inputValidator, submitValue);
         this.numberFactory = numberFactory;
         showMenu = true;
+        setSliderControlsEnabled(true);
     }
 
     @Override
