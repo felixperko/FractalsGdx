@@ -54,6 +54,12 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
             private SelectBox box;
 
             @Override
+            public void readFields() {
+                selectedValue = selection.getOption(box.getSelected().toString());
+                applyClientValue();
+            }
+
+            @Override
             public void addToTable(Table table) {
 
                 label = new VisLabel(propertyName);
@@ -82,9 +88,8 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 box.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
-                        selectedValue = selection.getOption(box.getSelected().toString());
+                        readFields();
                         ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
-                        applyClientValue();
                     }
                 });
 //                for (String name : selection.getOptionNames()){

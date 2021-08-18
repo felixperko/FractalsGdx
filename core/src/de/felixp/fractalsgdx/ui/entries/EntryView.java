@@ -8,6 +8,10 @@ public abstract class EntryView {
 
     public abstract void addToTable(Table table);
     public abstract void removeFromTable();
+    /**
+     * read actual field input into internal value fields
+     */
+    public abstract void readFields();
 
     public void applyValue(Object value) {};
 
@@ -18,4 +22,5 @@ public abstract class EntryView {
     public boolean isValid(){
         return valid;
     }
+
 }

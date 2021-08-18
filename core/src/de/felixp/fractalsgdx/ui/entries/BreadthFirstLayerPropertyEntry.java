@@ -43,6 +43,10 @@ class BreadthFirstLayerPropertyEntry extends AbstractPropertyEntry {
 
         views.put(VIEW_LIST, new EntryView() {
 
+            @Override
+            public void readFields() {
+            }
+
             List<Actor> list = new ArrayList<>();
 
             VisLabel lbl_samples;

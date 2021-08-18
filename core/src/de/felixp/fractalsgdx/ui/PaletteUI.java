@@ -78,18 +78,21 @@ public class PaletteUI {
         image = new VisImage();
 
         SelectBox<String> paletteSelect = new VisSelectBox<>();
-        paletteSelect.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                displayPalette(palettes.get(paletteSelect.getSelected()));
-                fillControlTable(settingsWindow, controlTable);
-            }
-        });
         List<String> items = new ArrayList<>((palettes.keySet()));
         paletteSelect.setItems(items.toArray(new String[items.size()]));
         name = stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class);
         paletteSelect.setSelected(name);
         palette = palettes.get(name);
+        paletteSelect.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                name = paletteSelect.getSelected();
+                stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, name));
+                palette = palettes.get(name);
+                displayPalette(palette);
+                fillControlTable(settingsWindow, controlTable);
+            }
+        });
 
         IPalette palette = palettes.get(paletteSelect.getSelected());
         if (palette != null)
@@ -111,12 +114,28 @@ public class PaletteUI {
         buttonTable.add(importButton);
         buttonTable.add(exportButton);
 
-        VisTextButton duplicateButton = new VisTextButton("duplicate");
+        VisTextButton renameButton = new VisTextButton("rename");
+        renameButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+
+            }
+        });
         VisTextButton removeButton = new VisTextButton("remove");
+        removeButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                MainStage stage = (MainStage) FractalsGdxMain.stage;
+                stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, MainStage.PARAMS_PALETTE_VALUE_DISABLED));
+                stage.getPalettes().remove(name);
+                name = paletteSelect.getSelected();
+                repopulatePaletteTable(settingsWindow);
+            }
+        });
 
         selectTable.add("Palette:");
         selectTable.add(paletteSelect);
-        selectTable.add(duplicateButton);
+        selectTable.add(renameButton);
         selectTable.add(removeButton).row();
 
         fillControlTable(settingsWindow, controlTable);
@@ -339,10 +358,28 @@ public class PaletteUI {
                 openPaletteSettingsWindow(settingsWindow, controlTable, (GradientPalette) palette);
             }
         });
+        VisTextButton duplicateButton = new VisTextButton("duplicate");
+        duplicateButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                if (palette instanceof GradientPalette){
+                    MainStage stage = ((MainStage)FractalsGdxMain.stage);
+                    GradientPalette currPal = (GradientPalette)palette;
+                    GradientPalette newPal = currPal.copy();
+                    stage.addPalette(newPal);
+                    stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, newPal.getName()));
+                    repopulatePaletteTable(settingsWindow);
+                }
+            }
+        });
 
         boolean autoOffsets = ((GradientPalette) palette).getSettingAutoOffsets();
         int cols = autoOffsets ? 5 : 6;
-        controlTable.add(settingsButton).left().colspan(cols).row();
+
+        VisTable innerSettingsTable = new VisTable(true);
+        innerSettingsTable.add(settingsButton).left();
+        innerSettingsTable.add(duplicateButton);
+        controlTable.add(innerSettingsTable).colspan(cols).row();
 
         controlTable.add("Offset:").colspan(autoOffsets ? 1 : 2);
         controlTable.add("Color:").colspan(3).row();

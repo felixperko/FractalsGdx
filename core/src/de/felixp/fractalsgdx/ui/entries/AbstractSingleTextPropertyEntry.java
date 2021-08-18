@@ -1,6 +1,5 @@
 package de.felixp.fractalsgdx.ui.entries;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
@@ -11,7 +10,6 @@ import com.kotcrab.vis.ui.widget.VisSlider;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
-import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +59,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
         String newText = getText(newValue);
         if (!newText.equals(this.text)) {
             this.text = newText;
-            for (EntryView view : views.values()) {
-                view.applyValue(newValue);
-            }
+            applyValueToViews(newValue);
         }
     }
 
@@ -76,9 +72,18 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             VisTextButton optionButton;
 
             @Override
+            public void readFields() {
+                text = field.getText();
+            }
+
+            @Override
             public void applyValue(Object value) {
-                if (field != null)
-                    field.setText(getText(value));
+                if (field != null) {
+                    if (FractalsGdxMain.stage.getKeyboardFocus() != field)
+                        field.setText(getText(value));
+                    else
+                        readFields();
+                }
             }
 
             @Override
@@ -95,7 +100,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 if (textSupplier != null) {
                     applyValue(textSupplier.getGeneral());
                 }
-                addSubmitListener(field);
+                addSubmitListenerToField(field);
                 field.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
@@ -144,6 +149,17 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
             public void applyValue(Object value) {
                 if (slider1 != null)
                     slider1.setValue(getSliderPositionFromValue(Float.parseFloat(value.toString()), min, max));
+            }
+
+            @Override
+            public void readFields() {
+                if (inputDisabled)
+                    return;
+                double newVal = getValueFromSlider(slider1, min, max);
+                if (newVal < min || newVal > max)
+                    return;
+                text = "" + newVal;
+                updateLabelText();
             }
 
             @Override
@@ -199,9 +215,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                             slider1.setValue(0);
                             return;
                         }
-                        double newVal = getValueFromSlider(slider1, min, max);
-                        text = "" + newVal;
-                        updateLabelText();
+                        readFields();
                         applyClientValue();
                         submit();
                         ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
@@ -338,7 +352,9 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
      * @return
      */
     public TabTraversableTextField createTextField() {
-        return new TabTraversableTextField(validator);
+        TabTraversableTextField field = new TabTraversableTextField(validator);
+        field.setPrefWidth(prefControlWidth);
+        return field;
     }
 
     public void addTextFieldListener(TabTraversableTextField textField){

@@ -81,9 +81,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
     @Override
     protected void setCheckedValue(Object newValue) {
-        for (EntryView view : views.values()){
-            view.applyValue(newValue);
-        }
+        applyValueToViews(newValue);
     }
 
     @Override
@@ -96,11 +94,27 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             VisTextButton optionButton;
 
             @Override
+            public void readFields() {
+                text1 = field1.getText();
+                text2 = field2.getText();
+            }
+
+            @Override
             public void applyValue(Object value) {
                 ComplexNumber num = (ComplexNumber)value;
                 if (field1 != null && field2 != null) {
-                    field1.setText(num.getReal().toString());
-                    field2.setText(num.getImag().toString());
+                    Actor focusedActor = FractalsGdxMain.stage.getKeyboardFocus();
+                    boolean focused = focusedActor == field1 || focusedActor == field2;
+                    if (!focused) {
+                        String realStr = num.getReal().toString();
+                        if (!field1.getText().equals(realStr))
+                            field1.setText(realStr);
+                        String imagStr = num.getImag().toString();
+                        if (!field2.getText().equals(imagStr))
+                            field2.setText(imagStr);
+                    } else {
+                        readFields();
+                    }
                 }
             }
 
@@ -113,9 +127,11 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 optionButton = new VisTextButton("...");
 
                 field1 = new TabTraversableTextField(validator1);
-                addSubmitListener(field1);
+                addSubmitListenerToField(field1);
                 field2 = new TabTraversableTextField(validator2);
-                addSubmitListener(field2);
+                addSubmitListenerToField(field2);
+                field1.setPrefWidth(prefControlWidth);
+                field2.setPrefWidth(prefControlWidth);
 
 
                 ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
@@ -155,16 +171,26 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);
-                if (!inputDisabled)
+
+                if (inputDisabled)
+                    table.add("map x + y*i").fillX().expandX().row();
+                else {
                     table.add(field1).fillX().expandX().row();
-                else
-                    table.add("map x").fillX().expandX().row();
-                table.add();
-                table.add();
-                if (!inputDisabled)
+                    table.add();
+                    table.add();
                     table.add(field2).fillX().expandX().padBottom(2).row();
-                else
-                    table.add("map y * i").fillX().expandX().padBottom(2).row();
+                }
+
+//                if (!inputDisabled)
+//                    table.add(field1).fillX().expandX().row();
+//                else
+//                    table.add("map x").fillX().expandX().row();
+//                table.add();
+//                table.add();
+//                if (!inputDisabled)
+//                    table.add(field2).fillX().expandX().padBottom(2).row();
+//                else
+//                    table.add("map y * i").fillX().expandX().padBottom(2).row();
 
                 setOptionButtonListener(optionButton);
             }
@@ -192,16 +218,32 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             VisTextButton optionButton;
 
             @Override
+            public void readFields() {
+                if (inputDisabled)
+                    return;
+                double newVal1 = getValueFromSlider(slider1, min1, max1);
+                double newVal2 = getValueFromSlider(slider2, min2, max2);
+                if (newVal1 < min1 || newVal1 > max1 || newVal2 < min2 || newVal2 > max2)
+                    return;
+                text1 = "" + newVal1;
+                text2 = "" + newVal2;
+                updateLabelText();
+            }
+
+            @Override
             public void applyValue(Object value) {
                 ComplexNumber num = (ComplexNumber)value;
                 if (slider1 != null && slider2 != null) {
+                    try {
+                        double min1 = Double.parseDouble(minField1.getText());
+                        double max1 = Double.parseDouble(maxField1.getText());
+                        double min2 = Double.parseDouble(minField2.getText());
+                        double max2 = Double.parseDouble(maxField2.getText());
+                        slider1.setValue(getSliderPositionFromValue(num.realDouble(), min1, max1));
+                        slider2.setValue(getSliderPositionFromValue(num.imagDouble(), min2, max2));
+                    } catch (NumberFormatException e){
 
-                    double min1 = Double.parseDouble(minField1.getText());
-                    double max1 = Double.parseDouble(maxField1.getText());
-                    double min2 = Double.parseDouble(minField2.getText());
-                    double max2 = Double.parseDouble(maxField2.getText());
-                    slider1.setValue(getSliderPositionFromValue(num.realDouble(), min1, max1));
-                    slider2.setValue(getSliderPositionFromValue(num.imagDouble(), min2, max2));
+                    }
                 }
             }
 
@@ -374,7 +416,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 VisTable innerTable1 = new VisTable();
                 if (limitsVisible)
                     innerTable1.add(minField1);
-                innerTable1.add(slider1);
+                innerTable1.add(slider1).expandX().fillX();
                 innerTable1.add(valueLabel1).minWidth(70).padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField1).row();
@@ -382,14 +424,14 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 //                VisTable innerTable2 = new VisTable(true);
                 if (limitsVisible)
                     innerTable1.add(minField2);
-                innerTable1.add(slider2);
+                innerTable1.add(slider2).expandX().fillX();
                 innerTable1.add(valueLabel2).minWidth(70).padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField2);
 
                 table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);
-                table.add(innerTable1).padBottom(2).row();
+                table.add(innerTable1).expandX().fillX().padBottom(2).row();
 //                table.add();
 //                table.add();
 //                table.add(innerTable2).padBottom(2).row();

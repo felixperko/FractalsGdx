@@ -32,4 +32,8 @@ public class PalettePoint implements Comparable<PalettePoint>{
     public int compareTo(PalettePoint other) {
         return Double.compare(relativePos, other.relativePos);
     }
+
+    public PalettePoint copy() {
+        return new PalettePoint(color.cpy(), relativePos);
+    }
 }

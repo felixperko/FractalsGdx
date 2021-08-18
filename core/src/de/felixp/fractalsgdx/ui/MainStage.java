@@ -410,10 +410,10 @@ public class MainStage extends Stage {
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TARGET, "mouse"));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_VALUE, nf.createComplexNumber(0,0)));
 
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_WIDTH, 1.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_SIZE, 3.0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_TRANSPARENCY, 0.5));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_TRANSPARENCY, 0.75));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_WIDTH, nf.createNumber(1.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_SIZE, nf.createNumber(3.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_TRANSPARENCY, nf.createNumber(0.5)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_TRANSPARENCY, nf.createNumber(0.75)));
     }
 
     protected ParamConfiguration initRightParamConfiguration() {
@@ -493,13 +493,13 @@ public class MainStage extends Stage {
         config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, "shape rendering", StaticParamSupplier.class, complexNumberType)
                         .withVisible(false), clientParams.getClientParameter(PARAMS_TRACES_VALUE));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, "shape settings", StaticParamSupplier.class, doubleType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, "shape settings", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=3"), clientParams.getClientParameter(PARAMS_TRACES_LINE_WIDTH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, "shape settings", StaticParamSupplier.class, doubleType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, "shape settings", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=10"), clientParams.getClientParameter(PARAMS_TRACES_POINT_SIZE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, "shape settings", StaticParamSupplier.class, doubleType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, "shape settings", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_LINE_TRANSPARENCY));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, "shape settings", StaticParamSupplier.class, doubleType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, "shape settings", StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_POINT_TRANSPARENCY));
 
         //no client param resets the renderer
@@ -543,6 +543,8 @@ public class MainStage extends Stage {
                 ((VisWindow) actor).centerWindow();
             }
         }
+
+        paramUI.serverParamsSideMenu.resized();
     }
 
     @Override
@@ -554,8 +556,9 @@ public class MainStage extends Stage {
         return clientParams.getClientParameter(name);
     }
 
+    VisLabel samplesLeftLabel = null;
     VisLabel fpsLabel = null;
-    double updateInterval = 0.1;
+    double fpsUpdateInterval = 0.1;
     double longestFrametime = -1;
     long lastStatebarUpdate = -1;
     long lastLongestFrametime = -1;
@@ -569,44 +572,30 @@ public class MainStage extends Stage {
             longestFrametime = Gdx.graphics.getDeltaTime();
         }
 
-        if ((System.nanoTime()-lastStatebarUpdate)*NumberUtil.NS_TO_S < updateInterval)
-            return;
-
         if (fpsLabel == null){
+            samplesLeftLabel = new VisLabel("");
             fpsLabel = new VisLabel("FPS: ");
 
-            stateBar.add(fpsLabel);
+            stateBar.add(samplesLeftLabel).left().row();
+            stateBar.add(fpsLabel).left();
         }
+
+        int samplesLeft = getFocusedRenderer() instanceof ShaderRenderer ? ((ShaderRenderer)getFocusedRenderer()).getSamplesLeft() : -1;
+        if (samplesLeft > 0){
+            samplesLeftLabel.setText(""+samplesLeft);
+        } else {
+            samplesLeftLabel.setText("");
+        }
+
+        if ((System.nanoTime()-lastStatebarUpdate)*NumberUtil.NS_TO_S < fpsUpdateInterval)
+            return;
 
         lastStatebarUpdate = System.nanoTime();
 
         double frametime = Gdx.graphics.getDeltaTime();
         double fps = 1.0/frametime;
-        fpsLabel.setText("FPS: "+((int)(fps*10.0))/10.0+" ("+ formatFrametime(frametime) +" ms, max: "+formatFrametime(longestFrametime)+" ms)");
-
-
-//        int mouseX = Gdx.input.getX();
-//        int mouseY = Gdx.input.getY();
-//
-//        if (renderer instanceof RemoteRenderer) {
-//            ClientMessageInterface messageInterface = FractalsGdxMain.client.getMessageInterface();
-//            try {
-//                SystemInterfaceGdx systemInterface = (SystemInterfaceGdx) messageInterface.getSystemInterface(messageInterface.getRegisteredSystems().iterator().next());//TODO ...
-//                stateBar.clear();
-//                ComplexNumber midpoint = systemInterface.getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-//                ComplexNumber screenCoords = systemInterface.toComplex(mouseX, mouseY);
-//                ComplexNumber worldCoords = systemInterface.getWorldCoords(screenCoords);
-//                //ComplexNumber chunkCoords = systemInterface.getChunkGridCoords(worldCoords);
-//                BFSystemContext systemContext = (BFSystemContext) systemInterface.getSystemContext();
-//                ComplexNumber chunkCoords = systemContext.getNumberFactory().createComplexNumber(systemContext.getChunkX(worldCoords), systemContext.getChunkY(worldCoords));
-//                stateBar.add(new VisLabel("midpoint: " + getPrintString(midpoint, 3))).left().row();
-//                stateBar.add(new VisLabel("ScreenPos: " + mouseX + ", " + mouseY)).left().row();
-//                stateBar.add(new VisLabel("WorldPos: " + getPrintString(worldCoords, 3))).left().row();
-//                stateBar.add(new VisLabel("ChunkPos: " + getPrintString(chunkCoords, 3))).left();
-//            } catch (NoSuchElementException e) {
-//                return;
-//            }
-//        }
+        String fpsText = "FPS: " + ((int) (fps * 10.0)) / 10.0 + " (" + formatFrametime(frametime) + " ms, max: " + formatFrametime(longestFrametime) + " ms)";
+        fpsLabel.setText(fpsText);
     }
 
     public double formatFrametime(double frametime) {

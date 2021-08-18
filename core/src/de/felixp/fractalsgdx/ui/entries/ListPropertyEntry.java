@@ -48,6 +48,10 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
         views.put(VIEW_LIST, new EntryView() {
 
+            @Override
+            public void readFields() {
+            }
+
 
             @Override
             public void addToTable(Table table) {

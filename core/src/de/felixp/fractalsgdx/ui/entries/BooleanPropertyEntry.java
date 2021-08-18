@@ -31,6 +31,11 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
     @Override
     protected void generateViews() {
         views.put(VIEW_LIST, new EntryView() {
+
+            @Override
+            public void readFields() {
+            }
+
             @Override
             public void addToTable(Table table) {
                 if (label == null) {

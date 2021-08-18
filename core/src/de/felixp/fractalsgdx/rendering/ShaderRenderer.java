@@ -74,13 +74,18 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     final static String shader2 = "SobelDecodeFragment.glsl";
     final static String vertexPassthrough = "PassthroughVertex.glsl";
 
+    int progressiveRenderingOffsetIfFloodfill = 20;
+
     boolean refresh = true;
     boolean paramsChanged = false;
 
-    FrameBuffer fboImage;
+    boolean reshowLastFrameEnabled = true;
+    FrameBuffer fboImageFirst;
+    FrameBuffer fboImageSecond;
+    boolean useFirstImageFbo = true;
     FrameBuffer fboDataFirst;
     FrameBuffer fboDataSecond;
-    FrameBuffer fboSampleCount;
+//    FrameBuffer fboSampleCount;
     boolean useFirstDataFbo = true;
     boolean prevDataFboOutdated = false;
 
@@ -119,13 +124,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     int resolutionX = 0;
     int resolutionY = 0;
 
-
-//    int iterations = 1000;
-
-//    float scale = 3f;
-
-    int sampleLimit = 100;
-
     SystemContext systemContext = new GPUSystemContext(this);
     ComplexNumber anchor = systemContext.getNumberFactory().createComplexNumber(0,0);
 
@@ -139,6 +137,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     PanListener panListener;
 
     int progressiveRenderingMissingFrames;
+
+    float panSpeed = 0.6f;
+    float maxTimestep = 5.0f/Gdx.graphics.getDisplayMode().refreshRate;
 
     public ShaderRenderer(RendererContext rendererContext){
         super(rendererContext);
@@ -407,9 +408,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     }
 
-    float panSpeed = 0.75f;
-    float maxTimestep = 5.0f/Gdx.graphics.getDisplayMode().refreshRate;
-
     private void handleInput() {
 
         if (!isFocused)
@@ -493,12 +491,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     ParamContainer lastParams = null;
 
     public void updateExpression(){
-//        String expr =
-//                "cos(z)^2+c"
-//                "absr(negatei(z))^2+c"
-//                ;
+
         ExpressionsParam expressions = (ExpressionsParam) systemContext.getParamValue(CommonFractalParameters.PARAM_EXPRESSIONS, ExpressionsParam.class);
-//        expressions.putExpression("c", "c+co");
 
         String currentCondition = (String) systemContext.getParamValue("condition");
         boolean conditionChanged = !currentCondition.equals(lastCondition);
@@ -537,7 +531,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             try {
 
                 ComputeExpressionBuilder computeExpressionBuilder = new ComputeExpressionBuilder(expressions, systemContext.getParameters());
-//                computeExpressionBuilder.addMainExpression("c+co", "c");
 
                 ComputeExpressionDomain expressionDomain = computeExpressionBuilder.getComputeExpressionDomain(false);
                 ComputeExpression newExpression = expressionDomain.getMainExpressions().get(0);
@@ -547,8 +540,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                     shaderBuilder = new ShaderBuilder(expressionDomain, systemContext);
                     compileComputeShader();
                 }
-//                if (paramsChanged || expressionChanged || conditionChanged)
-//                    setRefresh();
+
                 if (paramsChanged || expressionChanged || conditionChanged || trapsChanged)
                     reset();
             } catch (IllegalArgumentException e){
@@ -662,7 +654,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         this.resolutionY = (int)Math.ceil(getScaledHeight());
         ((GPUSystemContext)this.systemContext).updateSize(resolutionX, resolutionY);
         resetFramebuffers();
-        setRefresh();
+//        setRefresh();
+        reset();
     }
 
     @Override
@@ -675,14 +668,18 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         disposeFramebuffers();
 
         GLFrameBuffer.FrameBufferBuilder fbb = new GLFrameBuffer.FrameBufferBuilder(resolutionX, resolutionY);
-        fbb.addBasicColorTextureAttachment(Pixmap.Format.RGBA8888);
-        int glFormat = Pixmap.Format.toGlFormat(Pixmap.Format.RGBA8888);
-        int glType = Pixmap.Format.toGlType(Pixmap.Format.RGBA8888);
+        fbb.addBasicColorTextureAttachment(Pixmap.Format.RGB888);
+        int glFormat = Pixmap.Format.toGlFormat(Pixmap.Format.RGB888);
+        int glType = Pixmap.Format.toGlType(Pixmap.Format.RGB888);
         fbb.addColorTextureAttachment(glFormat, glFormat, glType);
 
-        fboDataFirst = new FrameBuffer(fbb){};
+        fboDataFirst = new FractalsFrameBuffer(fbb);
         fboDataSecond = new FractalsFrameBuffer(fbb);
-        fboImage = new FrameBuffer(Pixmap.Format.RGBA8888, resolutionX, resolutionY, false);
+        fboImageFirst = new FrameBuffer(Pixmap.Format.RGB888, resolutionX, resolutionY, false);
+        if (reshowLastFrameEnabled)
+            fboImageSecond = new FrameBuffer(Pixmap.Format.RGB888, resolutionX, resolutionY, false);
+        else
+            fboImageSecond = null;
 
 //        resetDebugFramebuffers();
 
@@ -696,14 +693,17 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (fboDataFirst != null) {
             fboDataFirst.dispose();
             fboDataSecond.dispose();
-            fboImage.dispose();
+            fboImageFirst.dispose();
+            if (fboImageSecond != null)
+                fboImageSecond.dispose();
         }
     }
 
     private boolean isRenderingDone(){
 
         //TODO check if rendering done
-        return ((Integer)systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING)) == 1;
+        return isProgressiveRenderingFinished();
+//        return ((Integer)systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING)) == 1;
 
 //        Texture samplesTexture = getFboDataPrevious().getTextureAttachments().get(1);
 //        if (!samplesTexture.getTextureData().isPrepared()) {
@@ -743,10 +743,14 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         updateMousePos();
 
-        //apply current renderer resolution to batch
+        boolean reshowLastFrame = isRenderingDone() && reshowLastFrameEnabled && renderedPart && !refresh;
+
         Matrix4 matrix = new Matrix4();
-        matrix.setToOrtho2D(0, 0, (float)(getScaledWidth()), (float)(getScaledHeight()));
-        batch.setProjectionMatrix(matrix);
+        if (!reshowLastFrame) {
+            //apply current renderer resolution to batch
+            matrix.setToOrtho2D(0, 0, (float) (getScaledWidth()), (float) (getScaledHeight()));
+            batch.setProjectionMatrix(matrix);
+        }
 
         //determine if existing pixels can be reused
         boolean reusePixels = reuseEnabled && renderedPart && !prevDataFboOutdated;
@@ -759,21 +763,23 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         FrameBuffer fboDataCurr = getFboDataCurrent();
         FrameBuffer fboDataPrev = getFboDataPrevious();
 
-        batch.end();
-
 //        fboSampleCount.begin();
 //        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 //        fboSampleCount.end();
 
-        //calculate (and reuse) data and store in current data fbo
-        fboDataCurr.begin();
 
         long t2 = System.nanoTime();
 
         if (refresh) {
 
+            batch.end();
+
+            //calculate (and reuse) data and store in current data fbo
+            fboDataCurr.begin();
+
             if (reusePixels && isRenderingDone())
                 refresh = false;
+
             renderedPart = true;
 
 //            if (getId() == 1)
@@ -799,8 +805,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             computeShader.setUniformf("bufferOffset", (float)Math.round(shiftedX* resolutionScaleF), (float)Math.round(shiftedY* resolutionScaleF));
             computeShader.setUniformi("discardBuffer", !reusePixels || prevDataFboOutdated  ? 1 : 0);
 
-//            if (reusePixels)
-                prevDataFboOutdated = false;
+            prevDataFboOutdated = false;
 
             batch.begin();
             batch.setShader(computeShader);
@@ -844,69 +849,92 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
 
         long t3 = System.nanoTime();
+        long t4 = System.nanoTime();
 
 //        debugColorEncoding();
+        FrameBuffer fboImage = getFboImageCurrent();
+        if (!reshowLastFrame) {
+            fboImage.begin();
+            //Pass 2: render fboData content to fboImage using coloringShader
 
-        //Pass 2: render fboData content to fboImage using coloringShader
-        fboImage.begin();
+//        if (!isProgressiveRenderingFinished() || refresh) {
 
 //            if (refresh)
 //                Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        coloringShader.begin();
+            coloringShader.begin();
 
 //            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE1);
 //            fboImage.bind();
 //            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
 //            coloringShader.setUniformi("u_texture", 1);
 
-        setColoringParams();
+            setColoringParams();
 
-        batch.setShader(coloringShader);
+            batch.setShader(coloringShader);
 //        batch.setShader(passthroughShader);
-        Texture dataTexture = getFboDataPrevious().getColorBufferTexture();
-        Texture palette = ((MainStage)getStage()).getPaletteTexture();
-        if (palette != null) {
-            palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.MipMapLinearLinear);
-            palette.bind(1);
-        }
-        dataTexture.bind(0);
+            Texture dataTexture = getFboDataPrevious().getColorBufferTexture();
+            Texture palette = ((MainStage) getStage()).getPaletteTexture();
+            if (palette != null) {
+                palette.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.MipMapLinearLinear);
+                palette.bind(1);
+            }
+            dataTexture.bind(0);
 //            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
-        coloringShader.setUniformi("u_texture", 0);
-        coloringShader.setUniformi("palette", 1);
-        batch.begin();
+            coloringShader.setUniformi("u_texture", 0);
+            coloringShader.setUniformi("palette", 1);
+            batch.begin();
 
-        batch.draw(dataTexture, 0, 0, fboImage.getWidth(), fboImage.getHeight());
+            batch.draw(dataTexture, 0, 0, fboImage.getWidth(), fboImage.getHeight());
 
 //			batch.disableBlending();
-        batch.end();
+            batch.end();
 
-        coloringShader.end();
+            coloringShader.end();
 
-        fboImage.end();
+            fboImage.end();
 
-        long t4 = System.nanoTime();
+            t4 = System.nanoTime();
 
 
+            matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
+            batch.setProjectionMatrix(matrix);
+
+//            batch.flush();
+            if (reshowLastFrameEnabled)
+                useFirstImageFbo = !useFirstImageFbo;
+            batch.begin();
+        }
+
+        batch.setShader(passthroughShader);
+//        if (reshowLastFrame) {
+//            FrameBuffer fboImageCurr = getFboImageCurrent();
+//            FrameBuffer fboImageLast = getFboImagePrevious();
+//            fboImageCurr.begin();
+////            batch.begin();
+//            Texture tex2 = fboImageLast.getColorBufferTexture();
+////            matrix.setToOrtho2D(0, 0, tex2.getWidth(), tex2.getHeight()); // here is the actual size you want
+////            batch.setProjectionMatrix(matrix);
+////            TextureRegion texReg2 = new TextureRegion(tex2, 0, 0, (int) tex2.getWidth(), (int) tex2.getHeight());
+////            texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+////            texReg2.flip(false, true);
+//            batch.draw(tex2, getX(), getY(), getWidth(), getHeight());
+////            batch.flush();
+//            fboImageCurr.end();
+////            batch.end();
+////            matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
+////            batch.setProjectionMatrix(matrix);
 //        }
 
-//        matrix.setToOrtho2D(0, 0, getWidth(), getHeight()); // here is the actual size you want
-        matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
-        batch.setProjectionMatrix(matrix);
-
-//        drawPalette(batch);
-
-        batch.begin();
-        batch.setShader(passthroughShader);
+//        batch.begin();
+//        batch.setShader(passthroughShader);
         Texture tex2 = fboImage.getColorBufferTexture();
         TextureRegion texReg2 = new TextureRegion(tex2, 0, 0, (int) fboImage.getWidth(), (int) fboImage.getHeight());
-        texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+//        texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         texReg2.flip(false, true);
         batch.draw(texReg2, getX(), getY(), getWidth(), getHeight());
 
 //        debugDrawFBOs(batch);
-
-        batch.flush();
 
         long t5 = System.nanoTime();
 
@@ -1003,15 +1031,30 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     private void resetProgressiveRendering(){
         int samples = (Integer) systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING, Integer.class);
-        progressiveRenderingMissingFrames = samples;
+        progressiveRenderingMissingFrames = samples + getProgressiveRenderingOffset();
     }
 
-    private FrameBuffer getFboDataPrevious() {
+    protected int getProgressiveRenderingOffset() {
+        ParamSupplier suppFirstIt = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_FIRSTITERATIONS);
+        Number number = suppFirstIt == null ? null : suppFirstIt.getGeneral(Number.class);
+        ParamSupplier suppMultisample = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_SUPERSAMPLING);
+        return (number != null && number.toDouble() == 100.0) || (suppMultisample != null && suppMultisample.getGeneral(Integer.class) == 1) ? 0 : progressiveRenderingOffsetIfFloodfill;
+    }
+
+    protected FrameBuffer getFboDataPrevious() {
         return useFirstDataFbo ? fboDataSecond : fboDataFirst;
     }
 
-    private FrameBuffer getFboDataCurrent() {
+    protected FrameBuffer getFboDataCurrent() {
         return useFirstDataFbo ? fboDataFirst : fboDataSecond;
+    }
+
+    protected FrameBuffer getFboImagePrevious() {
+        return useFirstImageFbo ? fboImageSecond : fboImageFirst;
+    }
+
+    protected FrameBuffer getFboImageCurrent() {
+        return useFirstImageFbo ? fboImageFirst : fboImageSecond;
     }
 
     byte[] encodeV3(float value){
@@ -1163,8 +1206,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean drawAxis =              clientParams.getClientParameter(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
         boolean drawMidpoint =          clientParams.getClientParameter(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
         boolean drawOrigin =            clientParams.getClientParameter(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
-        float lineWidth = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_WIDTH).getGeneral(Double.class);
-        float pointSize = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Double.class);
+        float lineWidth = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_WIDTH).getGeneral(Number.class).toDouble();
+        float pointSize = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Number.class).toDouble();
         boolean tracesEnabled =         clientParams.getClientParameter(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
         int traceCount =                clientParams.getClientParameter(MainStage.PARAMS_ORBIT_ITERATIONS).getGeneral(Integer.class);
         boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
@@ -1330,8 +1373,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     private void drawTraces(Batch batch, ParamContainer clientParams, float lineWidth, float pointSize) {
 
         //draw traces
-        float lineTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_TRANSPARENCY).getGeneral(Double.class);
-        float pointTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_TRANSPARENCY).getGeneral(Double.class);
+        float lineTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_TRANSPARENCY).getGeneral(Number.class).toDouble();
+        float pointTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_TRANSPARENCY).getGeneral(Number.class).toDouble();
 
         for (int i = 0 ; i < traceArrayFilledSize ; i++){
 
@@ -1607,6 +1650,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         rendererContext.setParamContainer(systemContext.getParamContainer());
         for (RendererLink link : rendererContext.getSourceLinks())
             link.syncTargetRenderer();
+    }
+
+    public int getSamplesLeft() {
+        return progressiveRenderingMissingFrames;
     }
 
     private static class TraceChunk extends AbstractArrayChunk {

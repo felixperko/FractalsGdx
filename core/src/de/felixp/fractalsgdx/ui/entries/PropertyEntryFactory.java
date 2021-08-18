@@ -38,20 +38,19 @@ public class PropertyEntryFactory {
 
     static int ID_COUNTER_SUB_DEFINITIONS = 0;
 
-    public AbstractPropertyEntry getPropertyEntry(ParamDefinition parameterDefinition, ParamContainer paramContainer){
+    public AbstractPropertyEntry getPropertyEntry(ParamDefinition paramDef, ParamContainer paramContainer){
 
-        ParamConfiguration config = parameterDefinition.getConfiguration();
+        ParamConfiguration config = paramDef.getConfiguration();
 
         List<AbstractPropertyEntry> subEntries = new ArrayList<>();
 
         loop:
-        for (ParamValueType type : parameterDefinition.getPossibleValueTypes()) {
+        for (ParamValueType type : paramDef.getPossibleValueTypes()) {
 
             for (ParamValueField field : type.getSubTypes()){
-                ParamValueType subType =  field.getType();
-                //ParameterDefinition subDefinition = config.getParameters().stream().filter(def -> def.getName().equalsIgnoreCase(subType.getName())).findFirst().get();
+                ParamValueType subType = field.getType();
                 ParamDefinition subDefinition = new ParamDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
-                subDefinition.setConfiguration(parameterDefinition.getConfiguration());
+                subDefinition.setConfiguration(paramDef.getConfiguration());
                 AbstractPropertyEntry entry = createEntry(subType, paramContainer, subDefinition);
                 if (entry != null) {
                     entry.init();
@@ -62,7 +61,7 @@ public class PropertyEntryFactory {
                 }
             }
 
-            AbstractPropertyEntry entry = createEntry(type, paramContainer, parameterDefinition);
+            AbstractPropertyEntry entry = createEntry(type, paramContainer, paramDef);
             if (entry != null) {
                 entry.addSubEntries(subEntries);
                 return entry;
@@ -70,46 +69,47 @@ public class PropertyEntryFactory {
                 continue loop;
             }
         }
-        LOG.debug("Can't find property class for parameter definition '"+parameterDefinition.getName()+"'");
+        LOG.debug("Can't find property class for parameter definition '"+paramDef.getName()+"'");
         return null;
     }
 
-    private AbstractPropertyEntry createEntry(ParamValueType type, ParamContainer paramContainer, ParamDefinition parameterDefinition){
-        Tree.Node node = categoryNodes.get(parameterDefinition.getCategory());
+    private AbstractPropertyEntry createEntry(ParamValueType type, ParamContainer paramCont, ParamDefinition paramDef){
+        Tree.Node node = categoryNodes.get(paramDef.getCategory());
+        //TODO remove support for old types
         switch (type.getName()) {
             case ("integer"):
-                return new IntTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new IntTextPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("double"):
-                if (parameterDefinition.getHintValue("ui-element[default]:field", false) != null)
-                    return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
-                if (parameterDefinition.getHintValue("ui-element[default]:slider", false) != null)
-                    return new DoubleSliderPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
-                return new DoubleTextPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                if (paramDef.getHintValue("ui-element[default]:field", false) != null)
+                    return new DoubleTextPropertyEntry(node, paramCont, paramDef, submitValue);
+                if (paramDef.getHintValue("ui-element[default]:slider", false) != null)
+                    return new DoubleSliderPropertyEntry(node, paramCont, paramDef, submitValue);
+                return new DoubleTextPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("number"):
-                return new NumberTextPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, Validators.FLOATS, submitValue); //TODO replace validator
+                return new NumberTextPropertyEntry(node, paramCont, paramDef, numberFactory, Validators.FLOATS, submitValue); //TODO replace validator
             case ("expressions"):
-                return new ExpressionsPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new ExpressionsPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("complexnumber"):
-                return new ComplexNumberPropertyEntry(node, paramContainer, parameterDefinition, numberFactory, submitValue);
+                return new ComplexNumberPropertyEntry(node, paramCont, paramDef, numberFactory, submitValue);
             case ("boolean"):
-                return new BooleanPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new BooleanPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("selection"):
-                return new SelectionPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new SelectionPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("list"):
-                return new ListPropertyEntry(node, paramContainer, parameterDefinition, this, submitValue);
+                return new ListPropertyEntry(node, paramCont, paramDef, this, submitValue);
             case ("BreadthFirstLayer"):
-                return new BreadthFirstLayerPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new BreadthFirstLayerPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("BreadthFirstUpsampleLayer"):
-                return new BreadthFirstUpsampleLayerPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new BreadthFirstUpsampleLayerPropertyEntry(node, paramCont, paramDef, submitValue);
             case (GPUSystemContext.PARAMNAME_ORBITTRAPS):
-                return new OrbittrapPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new OrbittrapPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("color"):
-                return new ColorPropertyEntry(node, paramContainer, parameterDefinition, submitValue);
+                return new ColorPropertyEntry(node, paramCont, paramDef, submitValue);
 //            case ("LayerConfiguration"):
-//                return new CompositePropertyEntry(node, paramContainer, parameterDefinition){
+//                return new CompositePropertyEntry(node, paramCont, paramDef){
 //                    @Override
 //                    public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
-//                        LayerConfiguration current = paramContainer.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
+//                        LayerConfiguration current = paramCont.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
 //                        if (current != null) {
 //                            ((ListPropertyEntry) subEntries.get(0)).setContent(current.getLayers());
 //                        }

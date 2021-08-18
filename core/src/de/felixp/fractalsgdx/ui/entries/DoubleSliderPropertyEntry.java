@@ -20,6 +20,7 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.NumberUtil;
 
+@Deprecated
 public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
     public static final String NAME_LIST_TEXTFIELD = "LIST_TEXTFIELD";
@@ -40,6 +41,10 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
     protected void generateViews() {
 
         views.put(VIEW_LIST, new EntryView() {
+
+            @Override
+            public void readFields() {
+            }
 
             protected VisLabel label;
             protected VisTable controlTable;
@@ -194,6 +199,10 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
             protected VisValidatableTextField field;
             VisLabel label;
+
+            @Override
+            public void readFields() {
+            }
 
             @Override
             public void addToTable(Table table) {

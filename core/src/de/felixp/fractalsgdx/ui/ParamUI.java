@@ -55,7 +55,12 @@ public class ParamUI {
 
         serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
         clientParamsSideMenu = new CollapsiblePropertyList();
-        clientParamsSideMenu.setSliderLimitsVisible(false);
+
+//        clientParamsSideMenu.setSliderLimitsVisible(false);
+        clientParamsSideMenu.setControlWidthScreenScaling(0.1f);
+        clientParamsSideMenu.setMaxControlWidth(400f);
+        clientParamsSideMenu.setMinControlWidth(100f);
+
 //                .addButton(getSliderLimitsButton());
         serverPropertyEntryFactory = new PropertyEntryFactory(serverParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), true);//TODO dynamic number factory
         clientPropertyEntryFactory = new PropertyEntryFactory(clientParamsSideMenu.getCategoryNodes(), new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class), false);//TODO dynamic number factory

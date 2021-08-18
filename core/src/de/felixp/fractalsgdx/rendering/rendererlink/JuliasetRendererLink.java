@@ -27,8 +27,14 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         super(sourceRenderer, targetRenderer, Arrays.asList("limit", "iterations", CommonFractalParameters.PARAM_EXPRESSIONS, "condition", GPUSystemContext.PARAMNAME_ORBITTRAPS));
     }
 
+    boolean switching = false;
+
     @Override
     public void switchRenderers() {
+
+        if (switching)
+            return;
+        switching = true;
 
         ComplexNumber preservedSourceMidpoint = getSourceParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
         ComplexNumber preservedTargetMidpoint = getTargetParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
@@ -53,7 +59,9 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         getTargetParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedTargetZoom.copy()));
 
         resetRenderer(getSourceRenderer());
-//        resetRenderer(getTargetRenderer());
+        resetRenderer(getTargetRenderer());
+
+        switching = false;
     }
 
     @Override
@@ -62,14 +70,24 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         boolean changed = super.syncParams();
 
         ExpressionsParam expressions = getSourceParamContainer().getClientParameter(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
-        ComputeExpression computeExpression = new ComputeExpressionBuilder(expressions, new HashMap<>()).getComputeExpression();
+        ComputeExpression computeExpression;
+        try {
+            computeExpression = new ComputeExpressionBuilder(expressions, new HashMap<>()).getComputeExpression();
+        } catch (IllegalArgumentException e){
+            getSourceParamContainer().addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, new ExpressionsParam("z^2+c", "z")));
+            e.printStackTrace();
+            return false;
+        }
         if (computeExpression != null){
             for (String name : computeExpression.getConstantNames()){
                 ParamSupplier actualSupp = (ParamSupplier) getSourceParamContainer().getClientParameter(name);
                 ParamSupplier prevTargetSupp = (ParamSupplier) getTargetParamContainer().getClientParameter(name);
                 if (actualSupp != null && (prevTargetSupp == null || !actualSupp.equals(prevTargetSupp))) {
-                    getTargetParamContainer().addClientParameter(actualSupp);
-                    changed = true;
+                    String nameFromSupp = actualSupp.getName();
+                    if (!name.equals("c") && !name.equals(CommonFractalParameters.PARAM_ZSTART)) {
+                        getTargetParamContainer().addClientParameter(actualSupp);
+                        changed = true;
+                    }
                 }
             }
         }

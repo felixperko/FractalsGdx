@@ -33,6 +33,10 @@ public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
             VisTextButton button;
 
             @Override
+            public void readFields() {
+            }
+
+            @Override
             public void addToTable(Table table) {
                 label = new VisLabel(name);
                 button = new VisTextButton("...");
@@ -72,6 +76,10 @@ public abstract class CompositePropertyEntry<O> extends AbstractPropertyEntry {
         List<AbstractPropertyEntry> subEntries = this.subEntries;
 
         views.put(VIEW_DETAILS, new EntryView() {
+
+            @Override
+            public void readFields() {
+            }
 
             List<AbstractPropertyEntry> entries = subEntries;
 

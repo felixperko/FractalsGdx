@@ -30,6 +30,8 @@ public class GradientPalette extends AbstractPalette{
     double settingRandomColorValMin = 0.7;
     double settingRandomColorValMax = 1.0;
 
+    int width;
+
     public GradientPalette(String name){
         this(name, DEFAULT_PALETTE_SIZE);
     }
@@ -45,6 +47,7 @@ public class GradientPalette extends AbstractPalette{
         super(name);
         if (palettePoints != null)
             this.palettePoints = palettePoints;
+        this.width = width;
         paletteGeneratorUpdate(width);
     }
 
@@ -157,5 +160,17 @@ public class GradientPalette extends AbstractPalette{
 
     public void setSettingRandomColorValMax(double settingRandomColorValMax) {
         this.settingRandomColorValMax = settingRandomColorValMax;
+    }
+
+    int copyCounter = 1;
+
+    public GradientPalette copy() {
+        String copyName = this.name + "_copy" + (copyCounter > 1 ? copyCounter + "" : "");
+        copyCounter++;
+        List<PalettePoint> palettePointCopies = new ArrayList<>();
+        for (PalettePoint p : palettePoints){
+            palettePointCopies.add(p.copy());
+        }
+        return new GradientPalette(copyName, width, palettePointCopies);
     }
 }

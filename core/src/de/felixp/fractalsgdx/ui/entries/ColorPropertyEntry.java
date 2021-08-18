@@ -53,6 +53,10 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
     }
 
     @Override
+    public void readWindowFields() {
+    }
+
+    @Override
     public Button getWindowButton() {
         return new VisTextButton("change");
     }

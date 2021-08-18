@@ -150,6 +150,7 @@ public class GPUSystemContext implements SystemContext {
         paramContainer.addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, expressions));
         paramContainer.addClientParameter(new StaticParamSupplier("condition", TEXT_COND_ABS));
         paramContainer.addClientParameter(new StaticParamSupplier("limit", nf.createNumber(256.0)));
+        paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_FIRSTITERATIONS, nf.createNumber("20.0")));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SUPERSAMPLING, 3));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_SAMPLESPERFRAME, 1));
         paramContainer.addClientParameter(new StaticParamSupplier(PARAMNAME_RESOLUTIONSCALE, 1.0));
@@ -213,6 +214,8 @@ public class GPUSystemContext implements SystemContext {
         if (oldParams != null)
             oldLayerConfig = oldParams.get(layerConfigParamName).getGeneral(LayerConfiguration.class);
         ParamSupplier newLayerConfigSupplier = paramContainer.getClientParameter(layerConfigParamName);
+        if (newLayerConfigSupplier == null)
+            return;
         LayerConfiguration newLayerConfig = newLayerConfigSupplier.getGeneral(LayerConfiguration.class);
         if (oldLayerConfig == null || newLayerConfigSupplier.isChanged()) {
             layerConfig = newLayerConfig;

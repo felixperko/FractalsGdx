@@ -30,10 +30,10 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
         return valueObj instanceof Integer;
     }
 
-    @Override
-    protected void setCheckedValue(Object newValue) {
-        text = ""+newValue;
-    }
+//    @Override
+//    protected void setCheckedValue(Object newValue) {
+//        text = ""+newValue;
+//    }
 
     @Override
     protected Object getDefaultObject() {

@@ -18,6 +18,8 @@ public class TabTraversableTextField extends VisValidatableTextField {
 
     TraversableGroup traversableGroup;
 
+    float prefWidth = -1f;
+
 //    @Override
 //    public void setText (String str) {
 //        super.setText(str);
@@ -28,12 +30,24 @@ public class TabTraversableTextField extends VisValidatableTextField {
         this.traversableGroup = traversableGroup;
     }
 
+    public void setPrefWidth(float prefWidth){
+        this.prefWidth = prefWidth;
+        invalidateHierarchy();
+    }
+
     public void setTraversalPaused(boolean traversalPaused) {
         this.traversalPaused = traversalPaused;
     }
 
     public boolean isTraversalPaused(){
         return traversalPaused;
+    }
+
+    @Override
+    public float getPrefWidth() {
+        if (prefWidth >= 0f)
+            return prefWidth;
+        return super.getPrefWidth();
     }
 
     @Override

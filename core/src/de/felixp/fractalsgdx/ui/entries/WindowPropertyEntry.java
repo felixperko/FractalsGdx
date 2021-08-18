@@ -31,6 +31,11 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
             Button windowButton = null;
 
             @Override
+            public void readFields() {
+                readWindowFields();
+            }
+
+            @Override
             public void addToTable(Table table) {
                 table.add(nameLbl).left();
                 if (windowButton == null){
@@ -55,6 +60,8 @@ public abstract class WindowPropertyEntry extends AbstractPropertyEntry {
             }
         });
     }
+
+    public abstract void readWindowFields();
 
     public Button getWindowButton() {
         return new VisTextButton("...");

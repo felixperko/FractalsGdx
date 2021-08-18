@@ -104,6 +104,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		}
 		uiPrefs.flush();
 
+//		Gdx.graphics.setContinuousRendering(false);
+
 //		setScreenMode(FractalsGdxMain.windowed, width, height);
 //		Gdx.graphics.setVSync(vsync);
 

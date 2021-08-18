@@ -103,6 +103,9 @@ public class DesktopLauncher {
 				boolean defaultHeight = windowedHeight.equalsIgnoreCase(SETTINGVALUE_DEFAULT);
 				config.width = defaultWidth ? defaultDisplayMode.width : Integer.parseInt(windowedWidth);
 				config.height = defaultHeight ? defaultDisplayMode.height : Integer.parseInt(windowedHeight);
+			} else {
+				config.width = -1;
+				config.height = -1;
 			}
 			if (config.width <= 0 || config.height <= 0){
 				config.width = 1280;

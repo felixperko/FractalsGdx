@@ -26,7 +26,7 @@ uniform int sampleCountRoot;
 uniform float maxBorderSamples;
 uniform float maxSamplesPerFrame;
 
-<FIELDS>
+//<FIELDS>
 
 const float resultOffset = 10.0;
 const float maxSamplesNotEscaped = 1.0;
@@ -50,13 +50,13 @@ vec3 EncodeExpV3( in float value )
     float g = (normalizedValue-r)*256.0;
     //offset exponent in b
     float b = (float(exponent)+128.0) / 256.0;
-    return vec3(r + 0.5/256.0, g + 0.5/256.0, b);
+    return vec3(r + 0.5/256.0, g-0.5/256.0, b);
 }
 
 float DecodeExpV3( in vec3 pack )
 {
     float exponent = float(int(pack.z*256.0-128.0));
-    float value  = ((pack.x - 0.5/256.0)+(pack.y - 0.5/256.0)/256.0);
+    float value  = (pack.x)*256.0/257.0+(pack.y)/256.0;
     return (value) * exp2(exponent+1.0) ;
 }
 
@@ -91,15 +91,20 @@ void make_kernel(inout float n[12], sampler2D tex, vec2 coord){
 
 vec4 encodeInt(in float value){
     float valueLocal = value;
-    float r = float(int(mod(value, 128.0)))/256.0;
-    float g = float(int(mod(value/128.0, 128.0)))/256.0;
+
+    float g = floor(value/256.0)/256.0;
+    float r = mod(value, 256.0)/256.0;
+
+//    float r = float(int(mod(value, 128.0)))/256.0;
+//    float g = float(int(mod(value/128.0, 128.0)))/256.0;
+
 //    float r = mod((value-mod(value, 256.0))/256.0, 256.0)/256.0;
 //    float g = mod(value, 256.0)/256.0;
     return vec4(r, g, 0.0, 1.0);
 }
 
 float decodeInt(in vec4 pixel){
-    return (pixel.r + pixel.g*128.0)*256.0;
+    return (pixel.r + floor(pixel.g*256.0))*256.0;
 //    return pixel.r*256.0;
 //    return (pixel.r*256.0 + pixel.g)*256.0;
 }
@@ -172,10 +177,7 @@ void main()
             float deltaX = (pos.x - 0.5 + sampleDeltaX)*ratio;
             float deltaY = (pos.y - 0.5 + sampleDeltaY);
 
-            //float deltaX = (pos.x - 0.5 + mod(sampleNo, sampleCountRoot)/(resolution.x*sampleCountRoot))*ratio;
-            //float deltaY = (pos.y - 0.5 + (sampleNo / sampleCountRoot)/(resolution.y*sampleCountRoot));
-
-            <INIT>
+//<INIT>
 
  //           float resYSq = 0.0;
  //           float resXSq = 0.0;
@@ -189,17 +191,11 @@ void main()
             float trapRadius = 0.01;
 
             float requestedIterations = maxSampleCount > 1 && sampleNo == 0.0
-             //&& (!(mod(gl_FragCoord.x, firstItSkipDist) <= 1.0 && mod(gl_FragCoord.y, firstItSkipDist) <= 1.0)
-             //&& gl_FragCoord.x > 1
-             //&& !(gl_FragCoord.x == resolution.x-1 && mod(gl_FragCoord.y, firstItSkipDist) >= 1.0)
-             //&& gl_FragCoord.y > 1
-             //&& !(gl_FragCoord.y == resolution.y-1 && mod(gl_FragCoord.x, firstItSkipDist) >= 1.0)
-             //)
-             ? firstIterations*iterations : iterations;
+                                        ? firstIterations*iterations : iterations;
 
             for (float i = 0.0 ; i < requestedIterations ; i++){
 
-                <ITERATE>
+//<ITERATE>
 
  //               resXSq = float(local_0*local_0);
  //               resYSq = float(local_1*local_1);
@@ -207,7 +203,8 @@ void main()
                 //float movedNow = sqrt(resXSq+resYSq)/maxSampleCount;
                 //moved += movedNow;
 
-                if (<CONDITION>
+                if (
+                true//<CONDITION>
                 ){
                     loopIterations = float(i + 5.0 - log(log(local_0*local_0+local_1*local_1)*0.5/log2)/(logPow));
                     break;

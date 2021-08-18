@@ -81,6 +81,11 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         window.centerWindow();
     }
 
+    @Override
+    public void readWindowFields() {
+
+    }
+
     List<PropertyAttributeAdapterUI> contentTableAttributeAdapters = new ArrayList<>();
 
     public void populateContentTable(VisWindow window, OrbittrapContainer cont, NumberFactory nf, VisTable contentTable, TraversableGroup traversableGroup) {

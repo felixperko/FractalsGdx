@@ -27,10 +27,12 @@ import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ShaderBuilder {
 
-    final static String MAKRO_FIELDS = "<FIELDS>";
-    final static String MAKRO_INIT = "<INIT>";
-    final static String MAKRO_KERNEL = "<ITERATE>";
-    final static String MAKRO_CONDITION = "<CONDITION>";
+    final static String MAKRO_FIELDS = "//<FIELDS>";
+    final static String MAKRO_INIT = "//<INIT>";
+    final static String MAKRO_KERNEL = "//<ITERATE>";
+    final static String MAKRO_CONDITION = "true//<CONDITION>";
+
+    final static String ITERATIONS_VAR_NAME = "n";
 
     final static String PREFIX_BASE_ORBITTRAP = "ot";
     Map<Orbittrap, String> orbittrapPrefixes = new HashMap<>();
@@ -44,6 +46,8 @@ public class ShaderBuilder {
     Map<String, ValueReference> uniforms = new HashMap<>();
 
     String glslType = "float";
+
+    int iterationsVarIndexReal = -1;
 
     public ShaderBuilder(ComputeExpressionDomain expressionDomain, SystemContext systemContext){
         this.expressionDomain = expressionDomain;
@@ -155,10 +159,15 @@ public class ShaderBuilder {
             String varNameImag = localVariables[localVarIndexImag];
 
             if (supp instanceof StaticParamSupplier) {
-                ComplexNumber val = (ComplexNumber)((StaticParamSupplier)supp).getObj();
-                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
-                        "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
-                        "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
+                if (supp.getName().equals(ITERATIONS_VAR_NAME)) {
+                    iterationsVarIndexReal = localVarIndexReal;
+                }
+                else {
+                    ComplexNumber val = (ComplexNumber) ((StaticParamSupplier) supp).getObj();
+                    writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
+                            "type " + varNameReal + " = params[" + paramIndexReal + "] + params[" + paramIndexDelta + "] * deltaX;",
+                            "type " + varNameImag + " = params[" + paramIndexImag + "] + params[" + paramIndexDelta + "] * deltaY;");
+                }
 //                writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer parameter " + supp.getName(),
 //                        "type "+varNameReal+" = mod(params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX, 4.0) + 2.0;",
 //                        "type "+varNameImag+" = mod(params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY, 4.0) + 2.0;");
@@ -254,6 +263,15 @@ public class ShaderBuilder {
     private String getKernelString() {
 
         StringBuilder sb = new StringBuilder();
+
+        if (iterationsVarIndexReal >= 0){
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("varReal", localVariables[iterationsVarIndexReal]);
+            placeholders.put("varImag", localVariables[iterationsVarIndexReal+1]);
+            writeStringBuilderLines(sb, placeholders,"//iteration variable",
+                    "float varReal = i;",
+                    "float varImag = 0.0;");
+        }
 
         //write iteration instructions
 //        for (ComputeExpression expr : expressionDomain.getMainExpressions()) {
@@ -391,9 +409,9 @@ public class ShaderBuilder {
                 //div = toReal*toReal + toImag*toImag
                 //fromReal = newR/div
                 //fromImag = newI/div
-                String temp_div = getTempVarName();
-                String tempR = getTempVarName();
-                String tempI = getTempVarName();
+//                String temp_div = getTempVarName();
+//                String tempR = getTempVarName();
+//                String tempI = getTempVarName();
                 placeholderValues.put("temp_div", getTempVarName());
                 placeholderValues.put("tempR", getTempVarName());
                 placeholderValues.put("tempI", getTempVarName());

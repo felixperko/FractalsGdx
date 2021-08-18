@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
@@ -34,7 +33,6 @@ import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.calculator.ComputeExpression;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -73,6 +71,12 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     Map<String, Map<String, ParamControlState>> paramControlStates = new HashMap<>(); //<"container-key", <"name-key", ParamControlState>
     boolean sliderLimitsVisible = true;
 
+    float minControlWidth = 150f;
+    float maxControlWidth = 750f;
+    float controlWidthScreenScaling = 0.2f;
+
+    String focusParamName;
+
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
 
         //allow force reset by first setting paramContainer null and then setting a new one
@@ -85,7 +89,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         //need to reset property table?
         //first --> reset
         boolean reset = this.paramContainer == null;
-        String focusParamName = null;
+        focusParamName = null;
 
         if (lastSelections != null){
             for (Selection<?> sel : paramConfig.getSelections().values()){
@@ -101,6 +105,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         if (!reset){
             //check PropertyEntries
             for (AbstractPropertyEntry e : propertyEntryList){
+                e.setPrefControlWidth(getPrefControlWidth());
                 ParamDefinition paramDefinitionFromConfig = paramConfig.getParamDefinition(e.getPropertyName());
                 if (paramDefinitionFromConfig != null && !e.getParameterDefinition().equals(paramDefinitionFromConfig))
                     reset = true;
@@ -289,15 +294,6 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 addNodeForCategory(catName);
             }
 
-            for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()) {
-                String category = e.getKey();
-                Table table = (Table) ((Tree.Node) categoryNodes.get(category).getChildren().get(0)).getActor();
-                for (AbstractPropertyEntry entry : e.getValue()) {
-                    entry.setTraversableGroup(traversableGroup);
-                    closeEntryView(entry);
-                    openEntryView(table, entry);
-                }
-            }
             for (Map.Entry<String, List<CollapsiblePropertyListButton>> e : buttonsPerCategory.entrySet()) {
                 String category = e.getKey();
                 Tree.Node catNode = categoryNodes.get(category);
@@ -307,7 +303,17 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 for (CollapsiblePropertyListButton button : e.getValue()) {
                     table.add();
                     table.add();
-                    table.add(button).row();
+                    table.add(button).padBottom(2).row();
+                }
+            }
+            for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()) {
+                String category = e.getKey();
+                Table table = (Table) ((Tree.Node) categoryNodes.get(category).getChildren().get(0)).getActor();
+                for (AbstractPropertyEntry entry : e.getValue()) {
+                    entry.setTraversableGroup(traversableGroup);
+                    entry.setPrefControlWidth(getPrefControlWidth());
+                    closeEntryView(entry);
+                    openEntryView(table, entry);
                 }
             }
 
@@ -480,7 +486,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         node.setExpanded(wasExpanded);
         tree.add(node);
 
-        VisTable table = new VisTable();
+        VisTable table = new VisTable(false);
         tablePerCategory.put(category, table);
         Tree.Node catNode = new Tree.Node(table) {};
         node.add(catNode);
@@ -550,5 +556,44 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public void setSliderLimitsVisible(boolean sliderLimitsVisible) {
         this.sliderLimitsVisible = sliderLimitsVisible;
+    }
+
+    public float getPrefControlWidth() {
+        float prefControlWidth = controlWidthScreenScaling*Gdx.graphics.getWidth();
+        if (prefControlWidth < minControlWidth)
+            prefControlWidth = minControlWidth;
+        else if (prefControlWidth > maxControlWidth)
+            prefControlWidth = maxControlWidth;
+        return prefControlWidth;
+    }
+
+    public float getMinControlWidth() {
+        return minControlWidth;
+    }
+
+    public void setMinControlWidth(float minControlWidth) {
+        this.minControlWidth = minControlWidth;
+    }
+
+    public float getMaxControlWidth() {
+        return maxControlWidth;
+    }
+
+    public void setMaxControlWidth(float maxControlWidth) {
+        this.maxControlWidth = maxControlWidth;
+    }
+
+    public float getControlWidthScreenScaling() {
+        return controlWidthScreenScaling;
+    }
+
+    public void setControlWidthScreenScaling(float controlWidthScreenScaling) {
+        this.controlWidthScreenScaling = controlWidthScreenScaling;
+    }
+
+    public void resized() {
+        ParamContainer paramContainer = this.paramContainer;
+        MainStage stage = (MainStage) FractalsGdxMain.stage;
+        //TODO resize propertylists
     }
 }

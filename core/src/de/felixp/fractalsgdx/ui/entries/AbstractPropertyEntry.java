@@ -71,6 +71,7 @@ public abstract class AbstractPropertyEntry {
     boolean sliderControlsEnabled = false;
 
     TraversableGroup traversableGroup;
+    float prefControlWidth = -1;
 
     CollapsiblePropertyList parentPropertyList;
 
@@ -105,16 +106,16 @@ public abstract class AbstractPropertyEntry {
     public EntryView openView(String viewName, Table table) {
         EntryView view = views.get(viewName);
         if (view != null) {
-            Gdx.app.postRunnable(() ->
-                    {
+//            Gdx.app.postRunnable(() ->
+//                    {
                         view.addToTable(table);
                         if (paramContainer != null) {
                             ParamSupplier supp = paramContainer.getClientParameter(getPropertyName());
                             if (supp instanceof StaticParamSupplier)
                                 setValue(supp.getGeneral());
                         }
-                    }
-            );
+//                    }
+//            );
         }
         return view;
     }
@@ -198,6 +199,16 @@ public abstract class AbstractPropertyEntry {
     public void setValue(Object newValue){
         if (checkValue(newValue))
             setCheckedValue(newValue);
+    }
+
+    protected void applyValueToViews(Object newValue) {
+        for (EntryView view : views.values()) {
+            view.applyValue(newValue);
+        }
+    }
+    protected void readFields(){
+        if (activeView != null)
+            views.get(activeView).readFields();
     }
 
     protected abstract boolean checkValue(Object valueObj);
@@ -340,12 +351,13 @@ public abstract class AbstractPropertyEntry {
         }
     }
 
-    public void addSubmitListener(Actor actor) {
+    public void addSubmitListenerToField(Actor actor) {
         actor.addListener(new InputListener(){
             @Override
             public boolean keyDown(InputEvent event, int keycode) {
                 if (keycode == Input.Keys.ENTER){
                     if (actor instanceof VisValidatableTextField && ((VisValidatableTextField) actor).isInputValid()){
+                        readFields();
                         submit();
                         if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)) {
                             ((MainStage) FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
@@ -393,5 +405,13 @@ public abstract class AbstractPropertyEntry {
             this.parentPropertyList.getParamControlState(propertyName).copyValuesIfNull(this.paramControlState);
             this.paramControlState = null;
         }
+    }
+
+    public float getPrefControlWidth() {
+        return prefControlWidth;
+    }
+
+    public void setPrefControlWidth(float prefControlWidth) {
+        this.prefControlWidth = prefControlWidth;
     }
 }

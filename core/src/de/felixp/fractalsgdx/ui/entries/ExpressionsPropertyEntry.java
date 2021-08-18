@@ -2,15 +2,19 @@ package de.felixp.fractalsgdx.ui.entries;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
+import com.badlogic.gdx.scenes.scene2d.utils.ArraySelection;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
+import com.badlogic.gdx.utils.Array;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisLabel;
+import com.kotcrab.vis.ui.widget.VisList;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
@@ -27,14 +31,21 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
+import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixperko.expressions.ComputeExpressionBuilder;
+import de.felixperko.expressions.ComputeExpressionDomain;
+import de.felixperko.expressions.ExpressionSymbol;
 import de.felixperko.expressions.FractalsExpression;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.calculator.ComputeExpression;
+import de.felixperko.fractals.system.calculator.ComputeInstruction;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.expressions.FractalsExpressionParser;
+
+import static de.felixperko.fractals.system.calculator.ComputeInstruction.*;
 
 public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 
@@ -60,6 +71,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
     int autocompleteIndex = 0;
 
     ExpressionsParam expressionsParam;
+    private Map<String, TabTraversableTextField> windowExpressionFields = new HashMap<>();
 
     public ExpressionsPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, new InputValidator() {
@@ -339,47 +351,61 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     protected void openExpressionsWindow() {
 
+        windowExpressionFields.clear();
+
+        TraversableGroup traversableGroup = new TraversableGroup();
+
         MainStage stage = ((MainStage) FractalsGdxMain.stage);
         FractalsWindow exprWindow = new FractalsWindow("Expressions");
         VisTable contentTable = new VisTable(true);
 
-//        ExpressionsParam expressionsParam = getSupplier().getGeneral(ExpressionsParam.class);
-//        ComputeExpressionBuilder builder = new ComputeExpressionBuilder(expressionsParam, paramContainer.getClientParameters());
-
         Map<String, TabTraversableTextField> fieldMap = new HashMap<>();
 
-        VisTable expressionsTable = new VisTable(true);
+        VisTable exprTable = new VisTable(true);
         for (Map.Entry<String, String> e : expressionsParam.getExpressions().entrySet()){
-            VisLabel exprLabel = new VisLabel(e.getKey()+"_(n+1) = ");
+            final String inputVarName = e.getKey();
+            VisLabel exprLabel = new VisLabel(inputVarName +"_(n+1) = ");
             TabTraversableTextField exprField = new TabTraversableTextField(e.getValue());
+            traversableGroup.addField(exprField);
+            exprField.setPrefWidth(300);
             exprField.addValidator(validator);
             exprField.addListener(new InputListener(){
                 @Override
                 public boolean keyDown(InputEvent event, int keycode) {
                     if (keycode == Input.Keys.ENTER){
-                        submitIfValid(fieldMap);
+                        submitIfValidAndUpdateWindow(fieldMap, contentTable, exprTable, exprWindow);
+                        FractalsGdxMain.stage.setKeyboardFocus(exprField);
                         return true;
                     }
-                    return super.keyDown(event, keycode);
+                    if (keycode == Input.Keys.ESCAPE) {
+                        ((MainStage)FractalsGdxMain.stage).escapeHandled();
+                        exprWindow.remove();
+                    }
+                    return true;
+                }
+
+                @Override
+                public boolean keyTyped(InputEvent event, char character) {
+                    if (character == '\t')
+                        return false;
+                    //inputVarName.equals(expressionsParam.getMainInputVar()) && !exprField.getText().equals(text) &&
+                    if (exprField.isInputValid()) {
+                        readFields();
+                        expressionsParam.putExpression(inputVarName, exprField.getText());
+                        updateExpressionWindowContent(contentTable, fieldMap, exprTable, exprWindow);
+                        FractalsGdxMain.stage.setKeyboardFocus(exprField);
+                    }
+                    return super.keyTyped(event, character);
                 }
             });
+            windowExpressionFields.put(inputVarName, exprField);
 
-            expressionsTable.add(exprLabel);
-            expressionsTable.add(exprField).row();
-            fieldMap.put(e.getKey(), exprField);
+            exprTable.add(exprLabel);
+            exprTable.add(exprField).row();
+            fieldMap.put(inputVarName, exprField);
         }
 
-        VisTextButton submitButton = new VisTextButton("submit");
-        submitButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-
-                submitIfValid(fieldMap);
-            }
-        });
-
-        contentTable.add(expressionsTable).row();
-        contentTable.add(submitButton).row();
+        updateExpressionWindowContent(contentTable, fieldMap, exprTable, exprWindow);
 
         exprWindow.add(contentTable);
         exprWindow.addCloseButton();
@@ -388,10 +414,229 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         exprWindow.centerWindow();
     }
 
-    public void submitIfValid(Map<String, TabTraversableTextField> fieldMap) {
+    public boolean submitIfValidAndUpdateWindow(Map<String, TabTraversableTextField> fieldMap,
+                VisTable contentTable, VisTable expressionsTable, FractalsWindow expressionsWindow) {
+        readFields();
+        boolean submitted = submitIfValid(fieldMap);
+        if (submitted) {
+            updateExpressionWindowContent(contentTable, fieldMap, expressionsTable, expressionsWindow);
+        }
+        return submitted;
+    }
+
+    private void updateExpressionWindowContent(VisTable contentTable, Map<String, TabTraversableTextField> fieldMap,
+                VisTable expressionsTable, FractalsWindow expressionsWindow) {
+        contentTable.clear();
+
+        ExpressionsParam expressionsParam = getSupplier().getGeneral(ExpressionsParam.class);
+        ComputeExpressionBuilder builder = new ComputeExpressionBuilder(expressionsParam, paramContainer.getClientParameters());
+        ComputeExpressionDomain domain = null;
+        String parseErrorMessage;
+
+        try {
+            parseErrorMessage = null;
+            domain = builder.getComputeExpressionDomain(false);
+        } catch (IllegalArgumentException e){
+            parseErrorMessage = e.getMessage();
+            domain = new ComputeExpressionDomain(new ComputeExpression("", new ArrayList<>(), new HashMap<>(), 0, new HashMap<>(), new HashMap<>(), 0));
+        }
+
+        if (parseErrorMessage != null){
+            contentTable.add(expressionsTable).row();
+            contentTable.add("Parse error: "+parseErrorMessage).row();
+            expressionsWindow.pack();
+            return;
+        }
+
+        VisList<String> paramList = new VisList<>();
+        paramList.setSelection(new ArraySelection<>(new Array<>()));
+        List<String> params = new ArrayList<>();
+        ComputeExpression firstExpression = domain.getMainExpressions().get(0);
+
+        Map<Integer, String> copySlotVariables = new HashMap<>();
+
+        int counter = 0;
+        for (ParamSupplier supp : firstExpression.getParameterList()){
+            String varName = supp.getName();
+            if (varName.endsWith("_0"))
+                varName = varName.substring(0, varName.length()-2);
+            boolean isIt = varName.equals("n");
+            boolean isConst = varName.startsWith("CON_");
+            boolean isVar = !isIt && !isConst;
+            if (!isVar)
+                varName = varName.replaceFirst("_", " - ");
+
+            ExpressionSymbol symbol = builder.getExpressionSymbol(supp.getName());
+            if (symbol.getCopyIndices() != null) {
+                for (int index : symbol.getCopyIndices()) {
+                    copySlotVariables.put(index, varName);
+                }
+            }
+
+            params.add(counter+": "+(isVar ? "VAR - " : isIt ? "ITE - " : "")+varName);
+            counter++;
+        }
+        Map<String, Integer> copyCounterList = new HashMap<>();
+        for (Integer copySlot : copySlotVariables.keySet()){
+            String param = copySlotVariables.get(copySlot);
+            int copyCounter = copyCounterList.getOrDefault(param, 1);
+            params.add((copySlot/2)+": CPY - "+param+"_copy"+(copyCounter > 1 ? copyCounter : ""));
+            copyCounterList.put(param, ++copyCounter);
+        }
+        paramList.setColor(Color.BLUE.cpy());
+        paramList.setItems(new Array(params.toArray()));
+
+        VisTable paramTable = new VisTable(true);
+        paramTable.add("Parameters: ").row();
+        paramTable.add(paramList);
+
+        VisList<String> instructionList = new VisList<>();
+        instructionList.setSelection(new ArraySelection<>(new Array<>()));
+        List<String> instructionValues = new ArrayList<>();
+        List<String> instructionVarsValues = new ArrayList<>();
+        List<ComputeInstruction> instructions = firstExpression.getInstructions();
+        for (ComputeInstruction instruction : instructions){
+            String[] instrStrings = getInstrStrings(instruction, params, copySlotVariables);
+            instructionValues.add(instrStrings[0]);
+            instructionVarsValues.add(instrStrings[1]);
+        }
+        instructionList.setItems(new Array(instructionValues.toArray()));
+
+        VisList<String> instructionVarsList = new VisList<>();
+        instructionVarsList.setItems(new Array(instructionVarsValues.toArray()));
+
+        paramList.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                String selected = paramList.getSelected();
+                List<String> list = new ArrayList<>();
+
+                String paramName = selected;
+                for (String instruction : instructionList.getItems()){
+                    if (instruction.contains(paramName))
+                        list.add(instruction);
+                }
+
+                Array<String> array = new Array(list.toArray());
+                instructionList.setSelection(new ArraySelection<>(array));
+            }
+        });
+
+        VisTable instrTable = new VisTable();
+        instrTable.add("Instructions:").colspan(2).row();
+        instrTable.add(instructionList);
+        instrTable.add(instructionVarsList);
+
+        VisTextButton submitButton = new VisTextButton("submit");
+        submitButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                submitIfValidAndUpdateWindow(fieldMap, contentTable, expressionsTable, expressionsWindow);
+            }
+        });
+
+        contentTable.add(expressionsTable).colspan(3).row();
+        contentTable.add(paramTable).top().left().expandX().fillX();
+        contentTable.addSeparator(true);
+        contentTable.add(instrTable).top().left().expandX().fillX().row();
+        contentTable.add(submitButton).colspan(3).row();
+        expressionsWindow.pack();
+    }
+
+    static Map<Integer, String> instrNames = new HashMap<Integer, String>(){
+        {
+            put(INSTR_ADD_COMPLEX,          "add        ");
+            put(INSTR_SUB_COMPLEX,          "sub        ");
+            put(INSTR_MULT_COMPLEX,         "mult       ");
+            put(INSTR_DIV_COMPLEX,          "div        ");
+            put(INSTR_POW_COMPLEX,          "power      ");
+            put(INSTR_COPY_COMPLEX,         "copy       ");
+            put(INSTR_ABS_COMPLEX,          "abs        ");
+            put(INSTR_SIN_COMPLEX,          "sin        ");
+            put(INSTR_COS_COMPLEX,          "cos        ");
+            put(INSTR_TAN_COMPLEX,          "tan        ");
+            put(INSTR_SINH_COMPLEX,         "sinh       ");
+            put(INSTR_COSH_COMPLEX,         "cosh       ");
+            put(INSTR_TANH_COMPLEX,         "tanh       ");
+            put(INSTR_SQUARE_COMPLEX,       "square     ");
+            put(INSTR_NEGATE_COMPLEX,       "negate     ");
+            put(INSTR_RECIPROCAL_COMPLEX,   "recipr     ");
+            put(INSTR_LOG_COMPLEX,          "log        ");
+        }
+    };
+    static {
+        for (Integer key : new ArrayList<>(instrNames.keySet())){
+            instrNames.put(key+OFFSET_INSTR_PART, instrNames.get(key));
+        }
+    }
+
+    private String[] getInstrStrings(ComputeInstruction instruction, List<String> params, Map<Integer, String> copySlotVariables) {
+
+        String instrName = instrNames.getOrDefault(instruction.type, "unknown");
+        StringBuilder sb = new StringBuilder();
+        appendParamReferenceString(sb, params, copySlotVariables, instruction.fromReal, instruction.fromImag, true);
+        if (instruction.fromImag != instruction.fromReal+1)
+            appendParamReferenceString(sb, params, copySlotVariables, instruction.fromImag, -1, false);
+        appendParamReferenceString(sb, params, copySlotVariables, instruction.toReal, instruction.toImag, false);
+        if (instruction.fromImag != instruction.fromReal+1)
+            appendParamReferenceString(sb, params, copySlotVariables, instruction.toImag, -1, false);
+        return new String[]{instrName, sb.toString()};
+    }
+
+    private void appendParamReferenceString(StringBuilder sb, List<String> params, Map<Integer, String> copySlotVariables, int slot, int imagSlot, boolean first) {
+        if (slot < 0)
+            return;
+        if (!first)
+            sb.append(", ");
+        boolean imagValue = slot % 2 == 1;
+        int complexSlot = slot / 2;
+        String paramName = params.get(complexSlot);
+//        sb.append(complexSlot).append("#");
+        boolean usingBoth = imagSlot == slot + 1;
+        if (!usingBoth) {
+            if (!imagValue)
+                sb.append("re(");
+            else
+                sb.append("im(");
+        }
+
+        String[] split = paramName.split("VAR - ", 2);
+        if (split.length > 1)
+            paramName = split[1];
+        split = paramName.split("CON - ", 2);
+        if (split.length > 1)
+            paramName = split[1];
+        split = paramName.split("CPY - ", 2);
+        if (split.length > 1)
+            paramName = split[1];
+        split = paramName.split("ITE - ", 2);
+        if (split.length > 1)
+            paramName = split[1];
+
+        sb.append(paramName);
+        if (!usingBoth)
+            sb.append(")");
+    }
+
+    @Override
+    protected void readFields() {
+        super.readFields();
+        readWindowFields();
+    }
+
+    private void readWindowFields() {
+        for (Map.Entry<String, TabTraversableTextField> e : windowExpressionFields.entrySet()) {
+            if (e.getKey().equals(expressionsParam.getMainInputVar()) && e.getValue().isInputValid()) {
+                text = e.getValue().getText();
+            }
+        }
+        applyValueToViews(getSupplier().getGeneral());
+    }
+
+    public boolean submitIfValid(Map<String, TabTraversableTextField> fieldMap) {
         for (TabTraversableTextField field : fieldMap.values()){
             if (!field.isInputValid())
-                return;
+                return false;
         }
 
         for (Map.Entry<String, TabTraversableTextField> e : fieldMap.entrySet()){
@@ -401,11 +646,12 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         submitValue = true;
         submit();
         submitValue = actualSubmitValue;
+        return true;
     }
 
     @Override
     public ParamSupplier getSupplier() {
-        Map<String, String> exprs = expressionsParam.getExpressions();
+        Map<String, String> exprs = new HashMap<>(expressionsParam.getExpressions());
         expressionsParam = new ExpressionsParam(text, expressionsParam.getMainInputVar());
         expressionsParam.putExpressions(exprs);
         expressionsParam.putExpression(expressionsParam.getMainInputVar(), text);

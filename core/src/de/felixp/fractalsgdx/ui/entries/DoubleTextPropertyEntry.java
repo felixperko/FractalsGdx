@@ -9,6 +9,7 @@ import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
+@Deprecated
 public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 
     public DoubleTextPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
