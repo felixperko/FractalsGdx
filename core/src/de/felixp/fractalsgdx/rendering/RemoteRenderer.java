@@ -581,6 +581,11 @@ public class RemoteRenderer extends AbstractFractalRenderer {
         return systemInterface.getSystemContext();
     }
 
+    @Override
+    public void setRefreshColoring() {
+
+    }
+
     public void drawPixmap(Integer startX, Integer startY, Pixmap pixmap){
         synchronized (newPixmaps){
             Map<Integer, Pixmap> pixmapsYMap = getPixmapsYMap(startX);

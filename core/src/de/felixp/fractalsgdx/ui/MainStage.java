@@ -238,6 +238,17 @@ public class MainStage extends Stage {
 //        paramUI.refreshClientParameterUI(focusedRenderer);
     }
 
+    public void refreshRenderers(){
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                for (FractalRenderer renderer : renderers){
+                    renderer.setRefresh();
+                }
+            }
+        });
+    }
+
     public Texture getPaletteTexture() {
         String paletteName = clientParams.getClientParameter("palette").getGeneral(String.class);
         if (paletteName.equalsIgnoreCase(PARAMS_PALETTE_VALUE_DISABLED))

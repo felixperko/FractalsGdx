@@ -313,6 +313,7 @@ public class PaletteUI {
                 paletteSelect.setItems(paletteNames.toArray(new String[paletteNames.size()]));
                 paletteSelect.setSelected(paletteName);
                 PaletteUI.palette = stage.getPalettes().get(paletteName);
+                stage.refreshRenderers();
 //                fillControlTable(settingsWindow, controlTable);
                 repopulatePaletteTable(settingsWindow);
                 settingsWindow.pack();
@@ -444,7 +445,10 @@ public class PaletteUI {
                             ((GradientPalette) palette).setPalettePoints(palettePoints);
                             displayPalette(palette);
                             updateColorImage(colorImage, newColor.cpy());
-//                            updatePalette();
+
+                            MainStage stage = (MainStage) FractalsGdxMain.stage;
+                            stage.setPaletteTexture(palette.getName(), palette.getTexture(), false);
+                            stage.refreshRenderers();
                         }
                     });
                     picker.setColor(finalPoint.getColor().cpy());
@@ -462,6 +466,10 @@ public class PaletteUI {
                     ((GradientPalette) palette).paletteGeneratorUpdate();
                     displayPalette(palette);
                     updateColorImage(colorImage, finalPoint.getColor());
+
+                    MainStage stage = (MainStage) FractalsGdxMain.stage;
+                    stage.setPaletteTexture(palette.getName(), palette.getTexture(), false);
+                    stage.refreshRenderers();
                 }
             });
             VisTextButton removeButton = new VisTextButton("remove");
@@ -523,6 +531,10 @@ public class PaletteUI {
                     ((GradientPalette) palette).paletteGeneratorUpdate();
                     displayPalette(palette);
                     fillControlTable(settingsWindow, controlTable);
+
+                    MainStage stage = (MainStage) FractalsGdxMain.stage;
+                    stage.setPaletteTexture(palette.getName(), palette.getTexture(), false);
+                    stage.refreshRenderers();
                 }
             });
         }
@@ -543,6 +555,10 @@ public class PaletteUI {
                 }
                 ((GradientPalette) palette).paletteGeneratorUpdate();
                 displayPalette(palette);
+
+                MainStage stage = (MainStage) FractalsGdxMain.stage;
+                stage.setPaletteTexture(palette.getName(), palette.getTexture(), false);
+                stage.refreshRenderers();
             }
         });
 

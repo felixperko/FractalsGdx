@@ -198,7 +198,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         setBounds(getPrefX(), getPrefY(), getPrefWidth(), getPrefHeight());
     }
 
-    protected synchronized void makeScreenshot(){
+    protected synchronized void makeScreenshot() {
 
         long t1 = System.nanoTime();
 
@@ -216,7 +216,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         rendererContext.madeScreenshot(pixels);
 
         long t3 = System.nanoTime();
-        System.out.println("Screenshot processing times: "+(t2-t1)+", "+(t3-t2));
+        System.out.println("Screenshot processing times: " + (t2 - t1) + ", " + (t3 - t2));
     }
 
     public abstract double getXShift();

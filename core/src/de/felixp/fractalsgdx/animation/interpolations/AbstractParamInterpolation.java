@@ -105,7 +105,7 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     protected InterpolationFunction initNewInterpolationFunction(Class<? extends InterpolationFunction> interpolationFunctionClass) {
         try {
             Constructor<?> declaredConstructor = interpolationFunctionClass.getDeclaredConstructors()[0];
-            InterpolationFunction interpolationFunction = (InterpolationFunction) declaredConstructor.newInstance(null);
+            InterpolationFunction interpolationFunction = (InterpolationFunction) declaredConstructor.newInstance((Object[])null);
             setNumberFactory(getNumberFactory());
             return interpolationFunction;
         } catch (InstantiationException e) {

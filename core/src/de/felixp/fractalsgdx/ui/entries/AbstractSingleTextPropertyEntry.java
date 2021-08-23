@@ -361,11 +361,11 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     }
 
-    @Override
-    protected void submit() {
-        if (submitValue)
-            super.submit();
-    }
+//    @Override
+//    protected void submit() {
+//        if (submitValue)
+//            super.submit();
+//    }
 
     protected double getValueFromSlider(VisSlider slider, double min, double max) {
         return slider.getValue()*(max-min) + min;

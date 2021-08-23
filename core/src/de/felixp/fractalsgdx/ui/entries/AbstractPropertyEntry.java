@@ -61,7 +61,7 @@ public abstract class AbstractPropertyEntry {
 
     ParamControlState paramControlState;
 
-    boolean submitValue = false;
+    boolean submitValue = true;
 
     //e.g. force side menu refresh when switching controls
     boolean forceReset = false;

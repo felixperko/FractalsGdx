@@ -446,6 +446,9 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         entry.setParentPropertyList(this);
         entry.setParamContainer(paramContainer);
         getPropertyCategoryList(entry).add(entry);
+        for (ChangeListener allListener : allListeners){
+            entry.addChangeListener(allListener);
+        }
     }
 
     private List<AbstractPropertyEntry> getPropertyCategoryList(AbstractPropertyEntry entry) {

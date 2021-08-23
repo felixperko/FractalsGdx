@@ -35,6 +35,7 @@ public interface FractalRenderer {
     public SystemContext getSystemContext();
 
     void setRefresh();
+    void setRefreshColoring();
 
     float getPrefWidth();
 

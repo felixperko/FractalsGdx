@@ -74,9 +74,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     final static String shader2 = "SobelDecodeFragment.glsl";
     final static String vertexPassthrough = "PassthroughVertex.glsl";
 
-    int progressiveRenderingOffsetIfFloodfill = 20;
+    int progressiveRenderingMinFramesIfFloodfill = 100;
 
     boolean refresh = true;
+    boolean refreshColoring = false;
     boolean paramsChanged = false;
 
     boolean reshowLastFrameEnabled = true;
@@ -91,7 +92,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
 //    Texture palette;
 
-    boolean reuseEnabled = true;
+    boolean reuseDataEnabled = true;
     boolean renderedPart = false;
     float pannedDeltaX = 0;
     float pannedDeltaY = 0;
@@ -410,32 +411,44 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     private void handleInput() {
 
-        if (!isFocused)
+        boolean alt = Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
+        boolean ctrl = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
+        boolean shift = Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT);
+
+        if (ctrl || alt || shift) {
+            progressiveRenderingMissingFrames = Math.max(1, progressiveRenderingMissingFrames);
+//            resetProgressiveRendering();
+            setRefresh();
+        }
+
+        if (!isFocused) {
             return;
+        }
 
         float deltaTime = Gdx.graphics.getDeltaTime();
-        if (deltaTime > maxTimestep && !Gdx.input.isKeyPressed(Input.Keys.F))
+        if (deltaTime > maxTimestep && !Gdx.input.isKeyPressed(Input.Keys.F)) {
             deltaTime = maxTimestep;
+        }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP))
+        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_UP)) {
             zoom(systemContext.getNumberFactory().createNumber("0.5"));
-        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_DOWN))
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.PAGE_DOWN)) {
             zoom(systemContext.getNumberFactory().createNumber("2.0"));
+        }
 
-//        boolean alt = Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
-        boolean ctrl = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
 
-        int multX = 0;
-        int multY = 0;
+        int panMultX = 0;
+        int panMultY = 0;
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.A))
-            multX++;
+            panMultX++;
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) || Gdx.input.isKeyPressed(Input.Keys.D))
-            multX--;
+            panMultX--;
 //        if (!alt) {
             if (Gdx.input.isKeyPressed(Input.Keys.UP) || Gdx.input.isKeyPressed(Input.Keys.W))
-                multY--;
+                panMultY--;
             if (Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S))
-                multY++;
+                panMultY++;
 //        } else {
 //            if (Gdx.input.isKeyJustPressed(Input.Keys.UP) || Gdx.input.isKeyJustPressed(Input.Keys.W))
 //                zoom(systemContext.getNumberFactory().createNumber("0.5"));
@@ -443,18 +456,21 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                zoom(systemContext.getNumberFactory().createNumber("2.0"));
 //        }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            zoom(systemContext.getNumberFactory().createNumber(ctrl ? "2.0" : "0.5"));
-        }
 //        if (Gdx.input.isKeyJustPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyJustPressed(Input.Keys.ALT_RIGHT))
 //            zoom(systemContext.getNumberFactory().createNumber("2.0"));
 
 
         float currentPanSpeed = this.panSpeed;
-        if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT))
+        if (shift)
             currentPanSpeed *= 2.0f;
 
-        move(multX* currentPanSpeed * deltaTime * getHeight(), multY* currentPanSpeed * deltaTime *getHeight(), 0.5f);
+        move(panMultX* currentPanSpeed * deltaTime * getHeight(), panMultY* currentPanSpeed * deltaTime *getHeight(), 0.5f);
+
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            zoom(systemContext.getNumberFactory().createNumber(ctrl ? "2.0" : "0.5"));
+        }
+
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
             rendererContext.addPathPoint(systemContext.getNumberFactory().createComplexNumber(getReal(mouseX), getImag(mouseY)), systemContext.getNumberFactory());
@@ -743,7 +759,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         updateMousePos();
 
-        boolean reshowLastFrame = isRenderingDone() && reshowLastFrameEnabled && renderedPart && !refresh;
+        boolean reshowLastFrame = isRenderingDone() && reshowLastFrameEnabled && renderedPart && !refresh && !refreshColoring && !isScreenshot(false);
+        refreshColoring = false;
 
         Matrix4 matrix = new Matrix4();
         if (!reshowLastFrame) {
@@ -753,7 +770,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         }
 
         //determine if existing pixels can be reused
-        boolean reusePixels = reuseEnabled && renderedPart && !prevDataFboOutdated;
+        boolean reusePixels = reuseDataEnabled && renderedPart && !prevDataFboOutdated;
         float shiftedX = ((int)(pannedDeltaX*resolutionScaleF))/resolutionScaleF;
         float shiftedY = ((int)(pannedDeltaY*resolutionScaleF))/resolutionScaleF;
         pannedDeltaX = pannedDeltaX-shiftedX;
@@ -776,9 +793,6 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
             //calculate (and reuse) data and store in current data fbo
             fboDataCurr.begin();
-
-            if (reusePixels && isRenderingDone())
-                refresh = false;
 
             renderedPart = true;
 
@@ -820,6 +834,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //                texReg.flip(false, true);
             batch.draw(texReg, 0, 0);
             batch.end();
+            batch.begin();
 
             computeShader.end();
 
@@ -883,7 +898,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //            Gdx.gl.glActiveTexture(GL20.GL_TEXTURE0);
             coloringShader.setUniformi("u_texture", 0);
             coloringShader.setUniformi("palette", 1);
-            batch.begin();
+//            batch.begin();
 
             batch.draw(dataTexture, 0, 0, fboImage.getWidth(), fboImage.getHeight());
 
@@ -901,34 +916,34 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             batch.setProjectionMatrix(matrix);
 
 //            batch.flush();
-            if (reshowLastFrameEnabled)
-                useFirstImageFbo = !useFirstImageFbo;
             batch.begin();
+            useFirstImageFbo = !useFirstImageFbo;
+            fboImage = getFboImageCurrent();
         }
 
         batch.setShader(passthroughShader);
-//        if (reshowLastFrame) {
-//            FrameBuffer fboImageCurr = getFboImageCurrent();
-//            FrameBuffer fboImageLast = getFboImagePrevious();
-//            fboImageCurr.begin();
-////            batch.begin();
-//            Texture tex2 = fboImageLast.getColorBufferTexture();
-////            matrix.setToOrtho2D(0, 0, tex2.getWidth(), tex2.getHeight()); // here is the actual size you want
-////            batch.setProjectionMatrix(matrix);
-////            TextureRegion texReg2 = new TextureRegion(tex2, 0, 0, (int) tex2.getWidth(), (int) tex2.getHeight());
-////            texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-////            texReg2.flip(false, true);
-//            batch.draw(tex2, getX(), getY(), getWidth(), getHeight());
-////            batch.flush();
-//            fboImageCurr.end();
-////            batch.end();
-////            matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
-////            batch.setProjectionMatrix(matrix);
-//        }
+        if (reshowLastFrame) {
+            FrameBuffer fboImageCurr = getFboImageCurrent();
+            FrameBuffer fboImageLast = getFboImagePrevious();
+            fboImageCurr.begin();
+//            batch.begin();
+            Texture tex2 = fboImageLast.getColorBufferTexture();
+//            matrix.setToOrtho2D(0, 0, tex2.getWidth(), tex2.getHeight()); // here is the actual size you want
+//            batch.setProjectionMatrix(matrix);
+//            TextureRegion texReg2 = new TextureRegion(tex2, 0, 0, (int) tex2.getWidth(), (int) tex2.getHeight());
+//            texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+//            texReg2.flip(false, true);
+            batch.draw(tex2, getX(), getY(), getWidth(), getHeight());
+//            batch.flush();
+            fboImageCurr.end();
+//            batch.end();
+//            matrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight()); // here is the actual size you want
+//            batch.setProjectionMatrix(matrix);
+        }
 
 //        batch.begin();
 //        batch.setShader(passthroughShader);
-        Texture tex2 = fboImage.getColorBufferTexture();
+        Texture tex2 = getFboImagePrevious().getColorBufferTexture();
         TextureRegion texReg2 = new TextureRegion(tex2, 0, 0, (int) fboImage.getWidth(), (int) fboImage.getHeight());
 //        texReg2.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         texReg2.flip(false, true);
@@ -947,7 +962,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
         boolean pathVisible = drawPath && inFocus && rendererContext.getSelectedParamInterpolation() != null;
 
-        if ((tracesEnabled && inFocus) || pathVisible || drawAxis || drawMidpoint || drawOrigin) {
+        boolean useShaperenderer = (tracesEnabled && inFocus) || pathVisible || drawAxis || drawMidpoint || drawOrigin;
+        if (useShaperenderer) {
             batch.end();
 
             drawShapes(batch);
@@ -958,8 +974,14 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         long t6 = System.nanoTime();
 
         updateProgressiveRendering();
-        if (isScreenshot(true) && isProgressiveRenderingFinished()) {
+        if (reusePixels && isRenderingDone())
+            refresh = false;
+        if (isScreenshot(true) && isRenderingDone()) {
+            if (!useShaperenderer)
+                batch.end();
             makeScreenshot();
+            if (!useShaperenderer)
+                batch.begin();
         }
 
         long t7 = System.nanoTime();
@@ -1031,14 +1053,14 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     private void resetProgressiveRendering(){
         int samples = (Integer) systemContext.getParamValue(GPUSystemContext.PARAMNAME_SUPERSAMPLING, Integer.class);
-        progressiveRenderingMissingFrames = samples + getProgressiveRenderingOffset();
+        progressiveRenderingMissingFrames = Math.max(samples, getProgressiveRenderingMinFrames());
     }
 
-    protected int getProgressiveRenderingOffset() {
+    protected int getProgressiveRenderingMinFrames() {
         ParamSupplier suppFirstIt = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_FIRSTITERATIONS);
         Number number = suppFirstIt == null ? null : suppFirstIt.getGeneral(Number.class);
         ParamSupplier suppMultisample = systemContext.getParamContainer().getClientParameter(GPUSystemContext.PARAMNAME_SUPERSAMPLING);
-        return (number != null && number.toDouble() == 100.0) || (suppMultisample != null && suppMultisample.getGeneral(Integer.class) == 1) ? 0 : progressiveRenderingOffsetIfFloodfill;
+        return (number != null && number.toDouble() == 100.0) || (suppMultisample != null && suppMultisample.getGeneral(Integer.class) == 1) ? 0 : progressiveRenderingMinFramesIfFloodfill;
     }
 
     protected FrameBuffer getFboDataPrevious() {
@@ -1603,7 +1625,13 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     @Override
     public void setRefresh(){
         refresh = true;
+//        setRefreshColoring();
         super.setRefresh();
+    }
+
+    @Override
+    public void setRefreshColoring(){
+        refreshColoring = true;
     }
 
     @Override
