@@ -95,9 +95,10 @@ public class PaletteUI {
         });
 
         IPalette palette = palettes.get(paletteSelect.getSelected());
-        if (palette != null)
+        if (palette != null) {
             image.setDrawable(new TextureRegionDrawable(palette.getTexture()));
-        texture = new Texture(palette.getTexture().getTextureData());
+            texture = new Texture(palette.getTexture().getTextureData());
+        }
 
         VisTextButton createButton = new VisTextButton("create new");
         createButton.addListener(new ChangeListener() {

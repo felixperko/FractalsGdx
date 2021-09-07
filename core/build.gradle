@@ -9,6 +9,7 @@ sourceCompatibility = '1.8'
 
 dependencies {
     implementation files ('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
+//    implementation ':Fractals2:FractalsCompute'
 
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 //    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.9'
