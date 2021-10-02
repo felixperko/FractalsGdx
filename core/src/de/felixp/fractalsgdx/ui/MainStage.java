@@ -854,6 +854,7 @@ public class MainStage extends Stage {
         if (focusedRenderer != null && focusedRenderer instanceof Actor){
             setKeyboardFocus((Actor)focusedRenderer);
             focusedRenderer.setFocused(true);
+            Gdx.input.setOnscreenKeyboardVisible(false);
         }
     }
 

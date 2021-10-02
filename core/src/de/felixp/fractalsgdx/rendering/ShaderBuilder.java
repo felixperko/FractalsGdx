@@ -95,9 +95,11 @@ public class ShaderBuilder {
 
     private String getFieldsString() {
         StringBuilder sb = new StringBuilder();
+        int paramCount = firstExpression.getParameterList().size();
+        writeStringBuilderLine(sb, null, "uniform float["+ paramCount*3 +"] params;");
         for (Map.Entry<String, ValueReference> e : uniforms.entrySet()){
             float val = getFloatValue(e);
-            writeStringBuilderLine(sb, null, "uniform float "+e.getKey()+" = "+val+";");
+            writeStringBuilderLine(sb, null, "uniform float "+e.getKey()+";");
         }
         return sb.toString();
     }
@@ -318,7 +320,7 @@ public class ShaderBuilder {
                         placeholderValues.put("factorR", otPrefix+"factorR");
                         placeholderValues.put("factorI", otPrefix+"factorI");
                             writeStringBuilderLines(sb, placeholderValues, "//axis orbittrap",
-                                    "abs(local_1*factorR-local_0*factorI - offset) <= (width)");
+                                    "abs(local_1*factorR-local_0*factorI - offset) <= float(width)");
 //                        }
                     }
                     else if (trap instanceof CircleOrbittrap){
@@ -451,7 +453,7 @@ public class ShaderBuilder {
                         "float "+temp3+" = sqrt(fromReal*fromReal + fromImag*fromImag);",
                         "float "+temp2+" = 0.0;",
                         "float "+temp1+" = 0.0;",
-                        "if ("+temp3+" != 0) {",
+                        "if ("+temp3+" != 0.0) {",
                         "    "+temp3+" = log("+temp3+");",
                         "    "+temp1+" = atan(fromImag, fromReal);",
                         "    "+temp2+" = ("+temp3+"*toReal - "+temp1+"*toImag);",

@@ -83,7 +83,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 if (checkValue(newSelectedObj))
                     setCheckedValue(newSelectedObj);
                 else if (newSelectedObj != null)
-                    throw new IllegalArgumentException("Parameter invalid: " + propertyName + " selected: " + newSelectedObj.toString());
+                    throw new IllegalArgumentException("Parameter invalid: '" + propertyName + "' selected: " + newSelectedObj.toString());
 
                 box.addListener(new ChangeListener() {
                     @Override
@@ -142,6 +142,11 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
             if (selection.getOption(optionName).equals(valueObj))
                 return true;
         }
+        try {
+            int index = Integer.parseInt(valueObj.toString());
+            return index >= 0 && index < selection.getOptionNames().size();
+        } catch (NumberFormatException e){
+        }
         return false;
     }
 
@@ -156,9 +161,21 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 newSelectedValue = obj;
             }
         }
-        selectedValue = newSelectedValue;
-        for (Actor contentField : contentFields)
-            ((VisSelectBox)contentField).setSelected(newSelectedName);
+
+        if (newSelectedValue == null){
+            try {
+                int index = Integer.parseInt(newSelectedObj.toString());
+                newSelectedName = selection.getOptionNames().get(index);
+                newSelectedValue = selection.getOption(newSelectedName);
+            } catch (NumberFormatException e){
+            }
+        }
+
+        if (newSelectedValue != null) {
+            selectedValue = newSelectedValue;
+            for (Actor contentField : contentFields)
+                ((VisSelectBox) contentField).setSelected(newSelectedName);
+        }
     }
 
     @Override

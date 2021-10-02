@@ -1,4 +1,5 @@
-#version 130
+#version 320 es
+//#version 130
 //#version 400 //double support
 #ifdef GL_ES //not needed? (ignored by desktop GL)
 precision highp float;
@@ -6,8 +7,8 @@ precision highp float;
 in vec4 v_color;
 in vec2 v_texCoords;
 in vec2 pos;
-out vec4 colour1;
-out vec4 colour2;
+layout(location = 0) out vec4 colour1;
+layout(location = 1) out vec4 colour2;
 uniform sampler2D samplesTexture;
 uniform sampler2D u_texture;
 uniform vec2 bufferOffset;
@@ -20,12 +21,12 @@ uniform float ratio;
 uniform float samples;
 uniform float limit;
 uniform float logPow;
-uniform float[] params;
 uniform vec2 resolution;
 uniform int sampleCountRoot;
 uniform float maxBorderSamples;
 uniform float maxSamplesPerFrame;
 
+//uniform float[1] params;
 //<FIELDS>
 
 const float resultOffset = 10.0;
@@ -145,8 +146,11 @@ void main()
     }
     float n[12];
     make_kernel(n, u_texture, v_texCoords.xy);
-    float frameSampleCount = min(maxSampleCount-samples, maxSamplesPerFrame);
-    if (frameSampleCount <= 0 || (samples > 0.0 && currentValue < 0.0
+    float frameSampleCount = float(maxSampleCount)-samples;
+    if (frameSampleCount > maxSamplesPerFrame)
+        frameSampleCount = maxSamplesPerFrame;
+    int frameSampleCountInt = int(frameSampleCount);
+    if (frameSampleCountInt <= 0 || (samples > 0.0 && currentValue < 0.0
              && n[0] <= resultOffset && n[1] <= resultOffset && n[2] <= resultOffset && n[3] <= resultOffset
              && n[4] <= resultOffset && n[5] <= resultOffset && n[6] <= resultOffset && n[7] <= resultOffset
              && n[8] <= resultOffset && n[9] <= resultOffset && n[10] <= resultOffset && n[11] <= resultOffset
@@ -167,7 +171,7 @@ void main()
         float a1 = 1.0/g;
         float a2 = 1.0/(g*g);
 
-        for (int s = 0 ; s < frameSampleCount ; s++){
+        for (int s = 0 ; s < frameSampleCountInt ; s++){
 
             float sampleNo = samples;
 

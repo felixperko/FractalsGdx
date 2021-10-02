@@ -67,7 +67,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return new StaticParamSupplier(propertyName, checkBox.isChecked());
+        return new StaticParamSupplier(propertyName, checkBox == null ? false : checkBox.isChecked());
     }
 
     @Override

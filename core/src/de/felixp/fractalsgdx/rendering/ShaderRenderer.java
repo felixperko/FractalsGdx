@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.rendering;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
@@ -169,6 +170,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 if (clickedControlPoint)
                     return;
 
+                if (Gdx.app.getType() == Application.ApplicationType.Android)
+                    return;
+
                 Number factor = null;
                 NumberFactory nf = systemContext.getNumberFactory();
                 if (button == Input.Buttons.LEFT) {
@@ -199,13 +203,39 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             @Override
             public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
                 boolean movedControlPoint = dragMovingControlPoint(x, y);
-                if (!movedControlPoint)
+                if (!movedControlPoint) {
+                    //if android -> get delta specifically for last multitouch input
+                    if (Gdx.app.getType() == Application.ApplicationType.Android){
+                        for (int i = 0 ; i < Gdx.input.getMaxPointers() ; i++){
+                            if (Gdx.input.isTouched(i)) {
+                                deltaX = Gdx.input.getDeltaX(i);
+                                deltaY = -Gdx.input.getDeltaY(i);
+                            }
+                        }
+                    }
                     move(deltaX, deltaY, 0.1f);
+                }
             }
+
+            float lastZoomInitialDistance = -1;
 
             @Override
             public void zoom(InputEvent event, float initialDistance, float distance) {
-                super.zoom(event, initialDistance, distance);
+                if (Gdx.app.getType() == Application.ApplicationType.Android){
+                    if (Gdx.input.isTouched(2))
+                        return;
+                    if (initialDistance == lastZoomInitialDistance)
+                        return;
+                    NumberFactory nf = thisRenderer.getSystemContext().getNumberFactory();
+                    if (distance > initialDistance*1.5) {
+                        lastZoomInitialDistance = initialDistance;
+                        thisRenderer.zoom(nf.createNumber(0.5));
+                    }
+                    else if (distance < initialDistance*0.75){
+                        lastZoomInitialDistance = initialDistance;
+                        thisRenderer.zoom(nf.createNumber(2.0));
+                    }
+                }
             }
 
             @Override
@@ -213,6 +243,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 boolean left = Gdx.input.isButtonPressed(0);
                 boolean right = Gdx.input.isButtonPressed(1);
                 boolean middle = Gdx.input.isButtonPressed(2);
+//                if (left && Gdx.app.getType() == Application.ApplicationType.Android) {
+//                    NumberFactory nf = systemContext.getNumberFactory();
+//                    thisRenderer.zoom(nf.createNumber(2));
+//                    return true;
+//                }
                 return super.longPress(actor, x, y);
             }
 
@@ -1423,7 +1458,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 if (pointTransparency != lineTransparency)
                     shapeRenderer.setColor(r, g, b, pointTransparency);
 
-                shapeRenderer.circle(x, y, pointSize);
+                shapeRenderer.rect(x-pointSize/2f, y-pointSize/2f, pointSize, pointSize);
+//                shapeRenderer.circle(x, y, pointSize, 4);
             }
         }
     }
@@ -1508,7 +1544,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (p2Selected)
             shapeRenderer.setColor(controlPointSelectedColor);
         if (radius > 0)
-            shapeRenderer.circle(p2ScreenX, p2ScreenY, radius);
+            shapeRenderer.circle(p2ScreenX, p2ScreenY, radius, 2);
         if (!p1Selected || !p2Selected)
             shapeRenderer.setColor(controlPointColor);
         shapeRenderer.rectLine(p1ScreenX, p1ScreenY, p2ScreenX, p2ScreenY, lineWidth);

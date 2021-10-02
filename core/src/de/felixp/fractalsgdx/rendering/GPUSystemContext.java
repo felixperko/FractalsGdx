@@ -104,7 +104,7 @@ public class GPUSystemContext implements SystemContext {
         midpointDef.setResetRendererOnChange(false);
         defs.add(midpointDef);
         defs.add(new ParamDefinition("c", "Calculator", supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ZSTART, "Calculator", supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element:slider min=-1 max=1"));
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ZSTART, "Calculator", supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element[default]:slider min=-1 max=1"));
         defs.add(new ParamDefinition("condition", "Calculator", StaticParamSupplier.class, CommonFractalParameters.selectionType));
         defs.add(new ParamDefinition("limit", "Calculator", StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=256"));
         defs.add(new ParamDefinition(PARAMNAME_FIRSTITERATIONS, "Quality", StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=100"));

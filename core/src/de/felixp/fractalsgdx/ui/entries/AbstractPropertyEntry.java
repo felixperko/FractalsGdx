@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -106,16 +107,14 @@ public abstract class AbstractPropertyEntry {
     public EntryView openView(String viewName, Table table) {
         EntryView view = views.get(viewName);
         if (view != null) {
-//            Gdx.app.postRunnable(() ->
-//                    {
-                        view.addToTable(table);
-                        if (paramContainer != null) {
-                            ParamSupplier supp = paramContainer.getClientParameter(getPropertyName());
-                            if (supp instanceof StaticParamSupplier)
-                                setValue(supp.getGeneral());
-                        }
-//                    }
-//            );
+            view.addToTable(table);
+            if (paramContainer != null) {
+                ParamSupplier supp = paramContainer.getClientParameter(getPropertyName());
+                Gdx.app.postRunnable(() -> {
+                    if (supp instanceof StaticParamSupplier)
+                        setValue(supp.getGeneral());
+                });
+            }
         }
         return view;
     }
@@ -297,7 +296,7 @@ public abstract class AbstractPropertyEntry {
                 }
 
                 String controlView = getState().getControlView();
-                if (!controlView.equals(VIEWNAME_FIELDS)) {
+                if (controlView == null || !controlView.equals(VIEWNAME_FIELDS)) {
                     MenuItem controlFieldsItem = new MenuItem("Use text controls");
                     controlFieldsItem.addListener(new ChangeListener() {
                         @Override
@@ -361,6 +360,9 @@ public abstract class AbstractPropertyEntry {
                         submit();
                         if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)) {
                             ((MainStage) FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
+                        }
+                        if (Gdx.app.getType() == Application.ApplicationType.Android){
+                            ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
                         }
                         return true;
                     }

@@ -1,4 +1,5 @@
-#version 130
+#version 320 es
+//#version 130
 #define FLT_MIN 1.175494351e-38
 #ifdef GL_ES
 precision highp float;
@@ -6,7 +7,8 @@ precision highp float;
 uniform sampler2D u_texture;
 uniform sampler2D palette;
 uniform int usePalette;
-varying vec2 v_texCoords;
+in vec2 v_texCoords;
+layout(location = 0) out vec4 colour1;
 uniform float sobel_ambient;
 uniform float sobel_magnitude;
 uniform float colorAdd;
@@ -159,20 +161,20 @@ void main(void){
 
         //palette
         if (usePalette > 0)
-            rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
+            rgb = texture(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
 //            rgb = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 1.0), 0.0));
 
         //test: reduce brightness banding at low brightness, might not work
-        gl_FragColor = vec4(brightness, brightness+shiftG, brightness+shiftB, 1.0) * rgb;
+        colour1 = vec4(brightness, brightness+shiftG, brightness+shiftB, 1.0) * rgb;
 //        gl_FragColor = vec4(brightness, brightness, brightness, 1.0) * rgb;
 
         //extract channel
         if (extractChannel == 1)
-            gl_FragColor = vec4(gl_FragColor.r*mappingColorR, gl_FragColor.r*mappingColorG, gl_FragColor.r*mappingColorB, 1.0);
+            colour1 = vec4(colour1.r*mappingColorR, colour1.r*mappingColorG, colour1.r*mappingColorB, 1.0);
         else if (extractChannel == 2)
-            gl_FragColor = vec4(gl_FragColor.g*mappingColorR, gl_FragColor.g*mappingColorG, gl_FragColor.g*mappingColorB, 1.0);
+            colour1 = vec4(colour1.g*mappingColorR, colour1.g*mappingColorG, colour1.g*mappingColorB, 1.0);
         else if (extractChannel == 3)
-            gl_FragColor = vec4(gl_FragColor.b*mappingColorR, gl_FragColor.b*mappingColorG, gl_FragColor.b*mappingColorB, 1.0);
+            colour1 = vec4(colour1.b*mappingColorR, colour1.b*mappingColorG, colour1.b*mappingColorB, 1.0);
         //extract channel end
 
 //            gl_FragColor = texture2D(palette, vec2(mod(d/colorMult+colorAdd, 256.0), 0.0));
@@ -181,6 +183,6 @@ void main(void){
 //            gl_FragColor = texture2D(u_texture, vec2(0.0, mod(v_texCoords.x, 1.0)));
     }
     else {
-        gl_FragColor = vec4(0.0,0.0,0.0,1.0);
+        colour1 = vec4(0.0,0.0,0.0,1.0);
     }
 }

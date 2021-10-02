@@ -1,11 +1,13 @@
-attribute vec4 a_position;
-attribute vec4 a_color;
-attribute vec2 a_texCoord0;
+#version 320 es
+
+in vec4 a_position;
+in vec4 a_color;
+in vec2 a_texCoord0;
 uniform vec2 resolution;
 uniform mat4 u_projTrans;
-varying vec4 v_color;
-varying vec2 v_texCoords;
-varying vec2 pos;
+out vec4 v_color;
+out vec2 v_texCoords;
+out vec2 pos;
 uniform float ratio;
 
 void main()
