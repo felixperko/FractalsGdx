@@ -1,0 +1,82 @@
+Bugs:
+
+- RendererLink: renderers occasionally get linked with themselves? (too?)
+- function menu: frequently looses binding
+- animations: time factors for number animations
+- animations: switch renderer on active renderer change
+- animations: PropertyAttribute identity
+- unescaped palette not separate
+- (minor) ui: Keybinding boxes occasionally too short (e.g. for lshift+tab at 2x ui scale)
+
+TO-DO:
+
+Parameters:
+- rework ParameterDefinition for backwards-compatibility
+  - Identity based on IDs instead of Strings (UUID/shorter alternatives?)
+  - Serialization/Deserialization (support custom instructions?)
+  - global parameters (e.g. handle calculator menu, min target fps)
+- preserve state when changing calculator
+- serialize into screenshot metadata, open when dropped on renderer window (linux? android?)
+- use repository on server for saved param presets? (sanitizing? warning on unknown ParamConfiguration?)
+
+Renderer:
+- better fps control (dynamic upscaling)
+- zoom separately on draw fbo? (how to handle edge detection changes when the calc fbo is stepped?)
+- animated zoom
+- "flashing" for lost focus? (separate darkening shader?; gained focus probably too distracting at low fps, reconsider after better fps control)
+- rename RendererContext to more fitting RendererState?
+
+Animations:
+- nested animations? (adjust "speed of change" - fade in/out)
+- chained animations
+- cubic interpolation
+- beziér curves
+- palette animations?
+
+Expressions:
+- fix expressions not starting with z
+- z_(n-2)...
+- *_0
+- *_(n-1)
+- *_(n-2),...
+- precomputed static subexpressions ("1-f") (recalculate once per sample)
+- derivatives (for newton fractals and coloring) (how to handle non-differentiable functions like abs()?)
+- custom/editable instructions (serialize instructions?)
+- sec(), csc(), cot()?
+- factorial()?
+
+UI:
+- 2d palettes/3d? (smoothed iteration, escape angle, time)
+- persistent ui settings (resume where you left?)
+- PropertyEntries: logarithmic scaling - update ui at value change
+- separate functionality from UI (access through api)
+
+- switch renderers: cycle with keybinding, button: select renderer in popup if more than 2 active?
+- interactive graphs
+    - discrete time/scalarValue (use for number control points (+deriv bars in graph?), palette editing)
+    - function graphs (for custom animation functions)
+- renderer links:
+    - modes ("minimap" link, select custom param links,...)
+    - communicating over different clients for multi-window?
+- proportional ui scaling
+
+- better double precision performance (emulated/perturbation theory)
+- arbitrary precision (like that's ever gonna happen...)
+
+
+
+Obsolete?
+
+New Cpu/GpuCompute system:
+- basic implementation
+- based on ShaderRenderer to reuse texture buffering?
+- JobProviders
+    - select next samples (breadth-first/circular sampling/quadtrees?)
+    - CpuProvider (-> multithreading, native execution in C for SIMD?)
+    - AparapiProvider (prepare parameters for each sample, accumulate enough stripes to saturate GPU APUs or until queue empty, then enqueue as job and distribute to kernel(s))
+    - RemoteProvider
+- settings
+    - cpuCores (default: core count)
+    - gpuKernelSize (default: maybe gpu specific input from Aparapi?)
+    - precision (different kernel sizes?)
+    - stripeLength

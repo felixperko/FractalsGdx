@@ -1,0 +1,49 @@
+<configuration>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    
+	<filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+	  <level>DEBUG</level>
+	</filter>
+	
+    <!-- encoders are assigned the type
+         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <encoder>
+      <pattern>%-5relative [%thread] %logger{10} %-5level - %msg%n</pattern>
+    </encoder>
+  </appender>
+  
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+  
+	<filter class = "ch.qos.logback.classic.filter.ThresholdFilter">
+	  <level>INFO</level>
+	</filter>
+	
+	<file>${user.dir}/latest.log</file>
+	<append>false</append>
+	<encoder>
+ 		<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n</pattern>
+<!--		<pattern>%msg%n</pattern>-->
+	</encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+      <appender-ref ref="FILE" />
+  </root>
+
+    <logger name="de.felixp.fractals.files" level="WARN">
+        <appender-ref ref="FILE" />
+    </logger>
+  
+  <logger name="de.felixperko.fractals.network.threads.WriteThread" level="WARN">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
+  </logger>
+  
+  <logger name="de.felixperko.fractals.network.threads.ListenThread" level="WARN">
+    <appender-ref ref="STDOUT" />
+    <appender-ref ref="FILE" />
+  </logger>
+  
+</configuration>

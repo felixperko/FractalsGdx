@@ -7,7 +7,7 @@
 	<inherits name='com.github.czyzby.kiwi.GdxKiwi' />
 
 	<inherits name='FractalsGdxMain' />
-	<entry-point class='de.felixp.fractalsgdx.client.HtmlLauncher' />
+	<entry-point class='de.felixp.fractalsgdx.remoteclient.HtmlLauncher' />
 	<set-configuration-property name='xsiframe.failIfScriptTag' value='FALSE'/>
 	<set-configuration-property name="gdx.assetpath" value="../android/assets" />
 </module>

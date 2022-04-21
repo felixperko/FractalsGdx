@@ -1,0 +1,5 @@
+Expressions: detect missing parenthesis e.g. z^-var_(n-19)
+Regex:
+(\^|\*)-(([0-9]+(\.[0-9]?)?)|([A-Za-z]+[0-9]?(_(n|\(n(-[1-9][0-9]?)\))?)?))
+Escaped (Java compiler):
+"(\\^|\\*)-(([0-9]+(\\.[0-9]?)?)|([A-Za-z]+[0-9]?(_(n|\\(n(-[1-9][0-9]?)\\))?)?))"

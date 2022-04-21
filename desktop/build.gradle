@@ -1,6 +1,6 @@
-apply plugin: "java"
+apply plugin: "java-library"
 
-sourceCompatibility = 1.6
+sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = [ "src/" ]
 
 project.ext.mainClassName = "de.felixp.fractalsgdx.desktop.DesktopLauncher"
@@ -23,15 +23,30 @@ task debug(dependsOn: classes, type: JavaExec) {
     debug = true
 }
 
+//task dist(type: Jar) {
+//    sourceSets.main.output.resourcesDir = sourceSets.main.java.outputDir
+//    sourceSets.test.output.resourcesDir = sourceSets.test.java.outputDir
+//    from files(sourceSets.main.output.classesDirs)
+//    from files(sourceSets.main.output.resourcesDir)
+//    from {configurations.compile.collect {zipTree(it)}}
+//    from files(project.assetsDir);
+//
+//    manifest {
+//        attributes 'Main-Class': project.mainClassName
+//    }
+//}
+
 task dist(type: Jar) {
-    from files(sourceSets.main.output.classesDir)
-    from files(sourceSets.main.output.resourcesDir)
-    from {configurations.compile.collect {zipTree(it)}}
-    from files(project.assetsDir);
- 
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     manifest {
         attributes 'Main-Class': project.mainClassName
     }
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    from files(project.assetsDir)
+    with jar
 }
 
 dist.dependsOn classes
@@ -43,13 +58,19 @@ eclipse {
     }
 }
 
-task afterEclipseImport(description: "Post processing after project generation", group: "IDE") {
-  doLast {
-    def classpath = new XmlParser().parse(file(".classpath"))
-    new Node(classpath, "classpathentry", [ kind: 'src', path: 'assets' ]);
-    def writer = new FileWriter(file(".classpath"))
-    def printer = new XmlNodePrinter(new PrintWriter(writer))
-    printer.setPreserveWhitespace(true)
-    printer.print(classpath)
-  }
-}
+//task afterEclipseImport(description: "Post processing after project generation", group: "IDE") {
+//  doLast {
+//    def classpath = new XmlParser().parse(file(".classpath"))
+//    new Node(classpath, "classpathentry", [ kind: 'src', path: 'assets' ]);
+//    def writer = new FileWriter(file(".classpath"))
+//    def printer = new XmlNodePrinter(new PrintWriter(writer))
+//    printer.setPreserveWhitespace(true)
+//    printer.print(classpath)
+//  }
+//}
+
+//dependencies {
+//    implementation files('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
+//}
+
+
