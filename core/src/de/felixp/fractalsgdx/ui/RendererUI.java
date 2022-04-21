@@ -242,7 +242,7 @@ public class RendererUI {
 
         VisTable headerTable = new VisTable(true);
         headerTable.add(rendererLabel);
-        headerTable.add(rendererSelection);
+//        headerTable.add(rendererSelection);
         headerTable.add(removeButton);
         if (renderer instanceof RemoteRenderer) {
             headerTable.row();

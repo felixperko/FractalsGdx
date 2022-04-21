@@ -150,13 +150,13 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                System.out.println(System.nanoTime()+" ChangeListener "+this);
                 if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 //                    event.cancel();
                     //autocomplete, insert parentheses
                     String input = textField.getText();
                     int cursorPosition = textField.getCursorPosition();
                     String extracted = extractCurrentTerm(input, textField.getCursorPosition());
+                    int addedChars = 0;
                     if (!extracted.isEmpty()) {
 
                         List<String> autocompleteOptions = updateAutocompleteOptions(extracted);
@@ -189,12 +189,15 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                             }
 //                            if (autocomplete.endsWith("("))
 //                                autocomplete = autocomplete.substring(0, autocomplete.length() - 1);
+                            int charsBefore = input.length();
                             if (replace != null)
                                 input = input.replace(replace, autocomplete);
+                            addedChars = input.length()-charsBefore;
                         }
                         if (!input.equals(text)){
                             setValue(input);
                             textField.setText(input);
+                            textField.setCursorPosition(cursorPosition+addedChars);
                         }
 //                        final String finalInput = input;
                         textField.setProgrammaticChangeEvents(true);
@@ -204,7 +207,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 //                            @Override
 //                            public void run() {
 //                                textField.setText(finalInput);
-                                textField.setCursorPosition(Math.max(cursorPosition-1, 0));
+//                                textField.setCursorPosition(Math.max(cursorPosition-1, 0));
 //                            }
 //                        });
                     }
@@ -229,7 +232,6 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         textField.setTextFieldListener(new VisTextField.TextFieldListener() {
             @Override
             public void keyTyped(VisTextField textField, char c) {
-                System.out.println(System.nanoTime()+" keyTyped "+this);
                 try {
                     boolean setValue = false;
                     int cursorPosition = textField.getCursorPosition();
@@ -237,6 +239,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                     String input = text;
                     Matcher matcher = missingBracketPattern.matcher(input);
                     int replacedIndex = -1;
+                    int removedChars = 0;
                     if (c == '-' && matcher.find()) {
                         //add missing bracket
                         String missingBrackets = matcher.group();
@@ -244,7 +247,8 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                         int end = matcher.end();
                         if (input.length() <= end || input.charAt(end) != ')') {
                             input = input.replace(missingBrackets, missingBrackets.substring(0, 1) + "(" + missingBrackets.substring(1) + ")");
-                            textField.setCursorPosition(cursorPosition+1);
+//                            removedChars = -1;
+//                            textField.setCursorPosition(cursorPosition+1);
 //                            textField.setText(input);
 //                            setValue(input);
                             setValue = true;
@@ -261,7 +265,8 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                     else if (Character.isAlphabetic(c) || Character.isDigit(c)){
                         autocompletionActive = false;
                         extracted = "";
-                    } else if (c == '\u007F' || c == '\b') { //delete
+                    }
+                    else if (c == '\u007F' || c == '\b') { //delete key pressed
                         //remove unpaired parentheses
 //                        int cursorPosition = textField.getCursorPosition();
                         if (text.charAt(cursorPosition) == '(') {
@@ -274,7 +279,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                                         input = input.substring(0, i) + input.substring(i + 1);
                                         replacedIndex = i;
 //                                        if (textField.getCursorPosition() > i)
-                                            textField.setCursorPosition(textField.getCursorPosition()+1);
+                                        textField.setCursorPosition(textField.getCursorPosition()+1);
                                     }
                                 }
                             }
@@ -285,7 +290,20 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                                     searchingOpening++;
                                 else if (input.charAt(i) == '(') {
                                     if (--searchingOpening == 0) {
-                                        input = input.substring(0, i) + input.substring(i + 1);
+                                        input = input.substring(0, cursorPosition) + input.substring(cursorPosition + 1);
+                                        //remove prefix if found
+                                        String firstPart = input.substring(0, i);
+                                        for (String instructionName : instrNames.values()){
+                                            String[] variants = new String[]{instructionName, instructionName+"r", instructionName+"i"};
+                                            for (String variant : variants){
+                                                if (firstPart.endsWith(instructionName.trim())) {
+                                                    removedChars = instructionName.trim().length();
+                                                    textField.setCursorPosition(textField.getCursorPosition()-removedChars);
+                                                    firstPart = firstPart.substring(0, i-removedChars);
+                                                }
+                                            }
+                                        }
+                                        input = firstPart + input.substring(i + 1);
                                         replacedIndex = i;
                                     }
                                 }
@@ -301,7 +319,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                                 textField.setText(input);
                                 text = input;
 //                                setValue(finalInput);
-                                textField.setCursorPosition(cursorPosition >= finalReplacedIndex ? cursorPosition - 1 : cursorPosition - 1);
+                                textField.setCursorPosition(cursorPosition >= finalReplacedIndex ? cursorPosition - removedChars - 1 : cursorPosition - removedChars);
 //                            }
 //                        });
                     }
@@ -436,7 +454,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         try {
             parseErrorMessage = null;
             domain = builder.getComputeExpressionDomain(false);
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException | IllegalStateException e){
             parseErrorMessage = e.getMessage();
             domain = new ComputeExpressionDomain(new ComputeExpression("", new ArrayList<>(), new HashMap<>(), 0, new HashMap<>(), new HashMap<>(), 0));
         }
@@ -590,7 +608,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             sb.append(", ");
         boolean imagValue = slot % 2 == 1;
         int complexSlot = slot / 2;
-        String paramName = params.get(complexSlot);
+        String paramName = params.size() > complexSlot ? params.get(complexSlot) : "unknownName";
 //        sb.append(complexSlot).append("#");
         boolean usingBoth = imagSlot == slot + 1;
         if (!usingBoth) {

@@ -34,7 +34,7 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
             public void changed(ChangeEvent event, Actor actor) {
                 try{
                     ComplexNumber newVal = nf.createComplexNumber(valueField.getText(), valueField2.getText());
-                    valueChanged(newVal);
+                    valueChanged(newVal, null, null);
                 } catch (NumberFormatException e){
 
                 }
@@ -45,7 +45,7 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
             public void changed(ChangeEvent event, Actor actor) {
                 try{
                     ComplexNumber newVal = nf.createComplexNumber(valueField.getText(), valueField2.getText());
-                    valueChanged(newVal);
+                    valueChanged(newVal, null, null);
                 } catch (NumberFormatException e){
 
                 }
@@ -60,7 +60,7 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
     }
 
     @Override
-    public void valueChanged(ComplexNumber newVal) {
+    public void valueChanged(ComplexNumber newVal, ComplexNumber min, ComplexNumber max) {
 
     }
 

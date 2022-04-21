@@ -58,7 +58,9 @@ public class ScreenshotUI {
     static FractalsWindow window;
 
     static VisTable folderTable;
+    static VisTable advancedTable;
     static VisTable previewTable;
+    static VisTable dynamicTable;
     static VisTable buttonTable;
 
     static VisLabel folderLabel;
@@ -84,16 +86,19 @@ public class ScreenshotUI {
     static VisTextButton previewButton;
     static VisTextButton saveButton;
 
-
     static Pixmap originalScreenshotPixmap;
     static Pixmap compressedScreenshotPixmap;
 
+    static String screenshotFolderPath = null;
+
+    static boolean previewVisible = false;
+
     public static void openScreenshotWindow(MainStage stage){
 
+        previewVisible = false;
 
         String startExtensionSelectValue = EXTENSION_PNG;
         float startQualityValue = 95f;
-
 
         String screenshotFileName = getScreenshotFileName();
 
@@ -102,12 +107,17 @@ public class ScreenshotUI {
             ((VisWindow) window).addCloseButton();
 
             folderTable = new VisTable(true);
+            advancedTable = new VisTable(true);
             previewTable = new VisTable(true);
+            dynamicTable = new VisTable(true);
 
             folderLabel = new VisLabel("Folder: ");
 //            folderTextField = new VisTextField(Gdx.files.external(screenshotFileName).parent().path()){
-            String userHome = System.getProperty("user.home");
-            folderTextField = new VisTextField(userHome){
+            if (screenshotFolderPath == null) {
+                String userHome = System.getProperty("user.home");
+                screenshotFolderPath = userHome;
+            }
+            folderTextField = new VisTextField(screenshotFolderPath){
                 @Override
                 public float getPrefWidth() {
                     return 500;
@@ -125,7 +135,7 @@ public class ScreenshotUI {
             extensionSelect = new VisSelectBox<String>();
 
             FileChooser.setDefaultPrefsName("de.felixp.fractalsgdx.ui.filechooser");
-            fileChooser = new FileChooser(userHome, FileChooser.Mode.OPEN);
+            fileChooser = new FileChooser(screenshotFolderPath, FileChooser.Mode.OPEN);
             Class<FileChooser> fileChooserClass = FileChooser.class;
             for (Field field : fileChooserClass.getDeclaredFields()){
                 if (field.getName().equals("confirmButton")){
@@ -144,7 +154,8 @@ public class ScreenshotUI {
             fileChooser.setListener(new FileChooserAdapter() {
                 @Override
                 public void selected (Array<FileHandle> files) {
-                    folderTextField.setText(files.first().file().getAbsolutePath());
+                    screenshotFolderPath = files.first().file().getAbsolutePath();
+                    folderTextField.setText(screenshotFolderPath);
                 }
             });
 
@@ -176,7 +187,12 @@ public class ScreenshotUI {
             extensionSelect.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
+//                    if (EXTENSION_PNG.equals(extensionSelect.getSelected()))
+                    previewVisible = false;
                     updateJpgQualityVisibility();
+                    repopulateDynamicTable();
+                    window.pack();
+                    window.centerWindow();
                 }
             });
 
@@ -218,7 +234,7 @@ public class ScreenshotUI {
                     window.remove();
                 }
             });
-            recordAnimationButton = new VisTextButton("Record...", new ChangeListener() {
+            recordAnimationButton = new VisTextButton("Animation...", new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     window.setAutoRefocus(false);
@@ -253,24 +269,27 @@ public class ScreenshotUI {
             folderTable.add(filenameTextField);
             folderTable.add(extensionSelect).row();
 
-            folderTable.add(qualityLabel);
-            folderTable.add(qualitySlider).expandX().fillX();
-            folderTable.add(qualityValueLabel).row();
-
-//            previewTable.add(imageSelect).left();
-            previewTable.add(outputButton).left();
-            previewTable.add(originalButton).left();
-            previewTable.add(sizeLabel).left().row();
-            previewTable.add(imageRenderer).colspan(3).center();
+            advancedTable.add("post-process mode:");
+            VisSelectBox<String> modeSelect = new VisSelectBox<>();
+            modeSelect.setItems("default", "raw data texture (planned)", "raw data file (planned)", "sample counts texture (planned)");
+            //"raw escaped", "raw unescaped"
+            advancedTable.add(modeSelect);
 
             buttonTable.add(cancelButton);
             buttonTable.add(recordAnimationButton);
             buttonTable.add(previewButton);
             buttonTable.add(saveButton);
+            VisTable buttonWrapperTable = new VisTable(true);
+            buttonWrapperTable.add(buttonTable);
 
-            window.add(folderTable).row();
-            window.add(previewTable).expandX().fillX().row();
-            window.add(buttonTable);
+
+            VisTable windowTable = new VisTable(true);
+            windowTable.add(folderTable).row();
+            windowTable.add(advancedTable).left().row();
+            windowTable.add(dynamicTable).expandX().fillX().row();
+            windowTable.add(buttonWrapperTable).row();
+
+            window.add(windowTable);
 
 //            window.debug();
         }
@@ -280,6 +299,8 @@ public class ScreenshotUI {
             originalButton.setVisible(false);
 //                    imageSelect.setVisible(false);
         }
+
+        repopulateDynamicTable();
 
         imageRenderer.setDimensions(0, 0);
         imageRenderer.invalidate();
@@ -291,6 +312,24 @@ public class ScreenshotUI {
         stage.addActor(window);
         window.pack();
         window.centerWindow();
+    }
+
+    private static void repopulateDynamicTable() {
+
+        dynamicTable.clear();
+
+        boolean jpg = EXTENSION_JPG.equals(extensionSelect.getSelected());
+        if (jpg) {
+            dynamicTable.add(qualityLabel);
+            dynamicTable.add(qualitySlider).expandX().fillX();
+            dynamicTable.add(qualityValueLabel).row();
+
+            dynamicTable.add(outputButton).left();
+            dynamicTable.add(originalButton).left();
+            dynamicTable.add(sizeLabel).left().row();
+        }
+        if (previewVisible)
+            dynamicTable.add(imageRenderer).colspan(3).center();
     }
 
     private static void updatePreviewImage() {
@@ -410,7 +449,10 @@ public class ScreenshotUI {
                 compressedScreenshotPixmap = new Pixmap(data2, 0, data2.length);
                 updatePreviewImage();
                 imageRenderer.setDimensions(640, 360);
+                previewVisible = true;
+                repopulateDynamicTable();
                 window.pack();
+                window.centerWindow();
 
                 //System.out.println("preview image data length: "+data2.length/1000+" kb");
 //                Pixmap pixmap2 = new Pixmap(data2, 0, data2.length);

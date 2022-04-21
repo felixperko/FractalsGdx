@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.rendering.GPUSystemContext;
+import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
@@ -101,7 +101,7 @@ public class PropertyEntryFactory {
                 return new BreadthFirstLayerPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("BreadthFirstUpsampleLayer"):
                 return new BreadthFirstUpsampleLayerPropertyEntry(node, paramCont, paramDef, submitValue);
-            case (GPUSystemContext.PARAMNAME_ORBITTRAPS):
+            case (ShaderSystemContext.PARAMNAME_ORBITTRAPS):
                 return new OrbittrapPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("color"):
                 return new ColorPropertyEntry(node, paramCont, paramDef, submitValue);

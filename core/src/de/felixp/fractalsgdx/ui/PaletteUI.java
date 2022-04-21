@@ -478,8 +478,13 @@ public class PaletteUI {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     ((GradientPalette) palette).removePalettePoint(finalPoint);
+                    ((GradientPalette) palette).paletteGeneratorUpdate();
                     displayPalette(palette);
                     updateColorImage(colorImage, finalPoint.getColor());
+                    MainStage stage = (MainStage) FractalsGdxMain.stage;
+                    stage.setPaletteTexture(palette.getName(), palette.getTexture(), false);
+                    stage.refreshRenderers();
+                    repopulatePaletteTable(settingsWindow);
                 }
             });
 
@@ -499,19 +504,23 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 if (palette instanceof GradientPalette) {
-                    double lowerS = ((GradientPalette) palette).getSettingRandomColorSatMin();
-                    double higherS = ((GradientPalette) palette).getSettingRandomColorSatMax();
-                    double lowerV = ((GradientPalette) palette).getSettingRandomColorValMin();
-                    double higherV = ((GradientPalette) palette).getSettingRandomColorValMax();
+                    GradientPalette pal = (GradientPalette) palette;
+                    double lowerS = pal.getSettingRandomColorSatMin();
+                    double higherS = pal.getSettingRandomColorSatMax();
+                    double lowerV = pal.getSettingRandomColorValMin();
+                    double higherV = pal.getSettingRandomColorValMax();
                     Color randColor = getRandomHsvColor(lowerS, higherS, lowerV, higherV);
                     double pos = (getRandomIntPercentage())/100.0;
-                    ((GradientPalette) palette).addPalettePoint(new PalettePoint(randColor, pos));
+                    pal.addPalettePoint(new PalettePoint(randColor, pos));
                     repopulatePaletteTable(settingsWindow);
                     settingsWindow.pack();
                     settingsWindow.centerWindow();
-                    displayPalette(palette);
+                    displayPalette(PaletteUI.palette);
                     if (MainStageWindows.scrollPane != null)
                         MainStageWindows.scrollPane.setScrollPercentY(100);
+                    MainStage stage = (MainStage) FractalsGdxMain.stage;
+                    stage.setPaletteTexture(PaletteUI.palette.getName(), PaletteUI.palette.getTexture(), false);
+                    stage.refreshRenderers();
                 }
             }
         });

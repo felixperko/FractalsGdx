@@ -21,8 +21,8 @@ public class LogarithmicInterpolationFunction extends  LinearInterpolationFuncti
         if (value0.equals(value1))
             return value0.copy();
 
-        boolean logarithmicGrowth = value1.toDouble() > value0.toDouble();
-        if (logarithmicGrowth){
+        boolean exponentialGrowth = value1.toDouble() > value0.toDouble();
+        if (exponentialGrowth){
             Number valueTemp = value0;
             value0 = value1;
             value1 = valueTemp;
@@ -39,10 +39,10 @@ public class LogarithmicInterpolationFunction extends  LinearInterpolationFuncti
         progressBetweenNormalized.mult(progressBetween);
 
         //f(x) = value0 * 0.5 ^ (x * steps)
-        Number exponentialFactor = getNumberFactory().createNumber(logarithmicGrowth ? 2.0 : 0.5);
+        Number exponentialFactor = getNumberFactory().createNumber(exponentialGrowth ? 2.0 : 0.5);
         exponentialFactor.pow(progressBetweenNormalized);
 
-        Number res = logarithmicGrowth ? value1.copy() : value0.copy();
+        Number res = exponentialGrowth ? value1.copy() : value0.copy();
         res.mult(exponentialFactor);
         return res;
     }

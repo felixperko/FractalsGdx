@@ -43,6 +43,7 @@ import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class AnimationsUI {
 
@@ -141,8 +142,12 @@ public class AnimationsUI {
         progressSlider.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                if (!updatingSliders)
+                if (!updatingSliders) {
                     animation.setProgress(progressSlider.getValue());
+                    SystemContext systemContext = selectedRenderer.getSystemContext();
+                    selectedRenderer.applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParameters(), systemContext.getNumberFactory());
+                    selectedRenderer.reset();
+                }
             }
         });
 
@@ -215,8 +220,8 @@ public class AnimationsUI {
 
     public static String PARAM_TYPE_COMPLEXNUMBER = "complexnumber";
     public static String PARAM_TYPE_NUMBER = "number";
-    public static final String PARAM_CONTAINERKEY_SERVER = "server";
-    public static final String PARAM_CONTAINERKEY_CLIENT = "client";
+    public static final String PARAM_CONTAINERKEY_SERVER = "calc";
+    public static final String PARAM_CONTAINERKEY_CLIENT = "draw";
 
     private static void addInterpolationRow(Table outerTable, ParamAnimation animation, ParamContainer paramContainer, ParamInterpolation interpolation, MainStage mainStage, VisWindow animationsWindow) {
         Table table = new VisTable(true);
@@ -351,8 +356,8 @@ public class AnimationsUI {
             }
         });
 
-        VisRadioButton serverTargetButton = new VisRadioButton("calculation");
-        VisRadioButton clientTargetButton = new VisRadioButton("drawing");
+        VisRadioButton serverTargetButton = new VisRadioButton("calc");
+        VisRadioButton clientTargetButton = new VisRadioButton("draw");
         ButtonGroup<VisRadioButton> targetButtonGroup = new ButtonGroup<>();
         targetButtonGroup.add(serverTargetButton);
         targetButtonGroup.add(clientTargetButton);
@@ -496,14 +501,14 @@ public class AnimationsUI {
         }
         currentInterpolationFunction = updateInterpolationValueTable(window, currentInterpolation, interpolationValuesTable, valueFields, numberFactory);
 
-        table.add("Parameter type:");
-        table.add(paramTypeSelect).expandX().fillX().row();
-
         table.add("Target:");
         VisTable targetButtonsTable = new VisTable(true);
         targetButtonsTable.add(serverTargetButton);
         targetButtonsTable.add(clientTargetButton);
         table.add(targetButtonsTable).row();
+
+        table.add("Parameter type:");
+        table.add(paramTypeSelect).expandX().fillX().row();
 
         table.add("Parameter:");
         table.add(paramSelect).expandX().fillX().row();

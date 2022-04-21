@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -35,7 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
 import de.felixp.fractalsgdx.rendering.RemoteRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
@@ -50,6 +53,7 @@ import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
@@ -58,6 +62,7 @@ import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
@@ -90,12 +95,16 @@ public class MainStage extends Stage {
 
     RendererLink juliasetLink;
 
+    List<Keybinding> keybindings = new ArrayList<>();
+
     public MainStage(Viewport viewport, Batch batch){
         super(viewport, batch);
     }
 
 
     public void create(){
+
+        createKeybindings();
 
         for (FileHandle fileHandle : Gdx.files.internal("palettes").list()){
             String name = fileHandle.nameWithoutExtension();
@@ -151,7 +160,7 @@ public class MainStage extends Stage {
                 super.clicked(event, x, y);
             }
         });
-        VisTextButton positionsBtn = new VisTextButton("Jump to...", new ChangeListener(){
+        VisTextButton positionsBtn = new VisTextButton("Presets", new ChangeListener(){
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 openJumpToWindow();
@@ -214,6 +223,7 @@ public class MainStage extends Stage {
         SystemContext systemContext = renderer.getSystemContext();
         paramUI.getServerParamsSideMenu().setParameterConfiguration(null, null, null);
         paramUI.setServerParameterConfiguration(renderer, systemContext.getParamContainer(), systemContext.getParamConfiguration());
+//        paramUI.setServerParameterConfiguration(renderer, systemContext.getParamContainer(), systemContext.getParamConfiguration());
     }
 
     public void setPaletteTexture(String paletteName, Texture texture, boolean createIfNull){
@@ -249,11 +259,18 @@ public class MainStage extends Stage {
         });
     }
 
-    public Texture getPaletteTexture() {
-        String paletteName = clientParams.getClientParameter("palette").getGeneral(String.class);
+    Texture blackTexture = new Texture(128,1, Pixmap.Format.RGB888);
+    Texture blackTexture2 = new Texture(128,1, Pixmap.Format.RGB888);
+
+    public Texture getPaletteTexture(String postprocessParameter, int fallbackIndex) {
+        String paletteName = clientParams.getClientParameter(postprocessParameter).getGeneral(String.class);
+        Texture fallbackTexture = fallbackIndex == 0 ? blackTexture : blackTexture2;
         if (paletteName.equalsIgnoreCase(PARAMS_PALETTE_VALUE_DISABLED))
-            return null;
-        return palettes.get(paletteName).getTexture();
+            return fallbackTexture;
+        IPalette palette = palettes.get(paletteName);
+        if (palette == null)
+            return fallbackTexture;
+        return palette.getTexture();
     }
 
     public void updateClientParamConfiguration(){
@@ -262,9 +279,39 @@ public class MainStage extends Stage {
 
     @Override
     public void act(float delta) {
+        updateTimeBudgets();
         handleInput();
         updateStatebar();
         super.act(delta);
+    }
+
+    private void updateTimeBudgets() {
+        Object fpsObj = getRenderers().get(0).getSystemContext().getParamValue(ShaderSystemContext.PARAMNAME_TARGET_FRAMERATE);
+        if (fpsObj == null || !(fpsObj instanceof Integer || fpsObj instanceof Double || fpsObj instanceof Float))
+            return;
+        if ((int)fpsObj == 0) {
+            for (FractalRenderer renderer : getRenderers())
+                renderer.setTimeBudget(Integer.MAX_VALUE);
+        }
+        else {
+            double totalTimeBudget = 1.0 / (int) fpsObj;
+            double lastDelta = Gdx.graphics.getDeltaTime();
+
+            Map<FractalRenderer, Double> rendererPrios = new HashMap<>();
+            double totalPrio = 0.0;
+            for (FractalRenderer renderer : getRenderers()) {
+                Object prioObj = renderer.getSystemContext().getParamValue(ShaderSystemContext.PARAMNAME_PRIORITY);
+                Double prio = prioObj == null || !(prioObj instanceof Number) ? 1.0 : ((Number) prioObj).toDouble();
+                prio *= renderer.getPixelCount();
+                rendererPrios.put(renderer, prio);
+                totalPrio += prio;
+            }
+            for (Map.Entry<FractalRenderer, Double> e : rendererPrios.entrySet()) {
+                Double rendererPrio = e.getValue();
+                double newTimeBudget = totalTimeBudget * rendererPrio / totalPrio;
+                e.getKey().setTimeBudget(newTimeBudget);
+            }
+        }
     }
 
     public void submitServer(FractalRenderer renderer, ParamContainer paramContainer){
@@ -296,62 +343,102 @@ public class MainStage extends Stage {
 
     boolean escapeHandled = false;
 
-    private void handleInput() {
-        if (!escapeHandled && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE))
-            MainStageWindows.toggleSettingsWindow(this);
-        escapeHandled = false;
-        boolean controlPressed = Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT);
-        boolean justNum1Pressed = Gdx.input.isKeyJustPressed(Input.Keys.NUM_1) || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_1);
-        boolean justNum2Pressed = Gdx.input.isKeyJustPressed(Input.Keys.NUM_2) || Gdx.input.isKeyJustPressed(Input.Keys.NUMPAD_2);
-
-        if (controlPressed && justNum1Pressed){
-
-            CollapsiblePropertyList serverList = paramUI.serverParamsSideMenu;
-            serverList.getCollapseButton().toggle();
-
-            if (!serverList.getCollapseButton().isChecked()){
-                resetKeyboardFocus();
-            } else {
-                serverList.focusFirstFocusableControl();
+    private void createKeybindings() {
+        MainStage thisStage = this;
+        keybindings.add(new CalcMultKeybinding("increase iterations", ShaderSystemContext.PARAMNAME_ITERATIONS, 2.0, Input.Keys.NUMPAD_ADD));
+        keybindings.add(new CalcMultKeybinding("decrease iterations", ShaderSystemContext.PARAMNAME_ITERATIONS, 0.5, Input.Keys.NUMPAD_SUBTRACT));
+        keybindings.add(new Keybinding("toggle fullscreen/windowed", Input.Keys.F11) {
+            @Override
+            public void apply() {
+                FractalsGdxMain.windowed = !FractalsGdxMain.windowed;
+                FractalsGdxMain.uiScaleWorkaround = false;
+                FractalsGdxMain.setScreenMode(FractalsGdxMain.windowed, 1280, 720);
             }
-
-        }
-        if (controlPressed && justNum2Pressed){
-            CollapsiblePropertyList clientList = paramUI.clientParamsSideMenu;
-            clientList.getCollapseButton().toggle();
-            if (!clientList.getCollapseButton().isChecked()){
-                resetKeyboardFocus();
-            } else {
-//                clientList.focusFirstFocusableControl();
+        });
+        keybindings.add(new Keybinding("switch focused renderer", Input.Keys.TAB) {
+            @Override
+            public void apply() {
+                if (getKeyboardFocus() == getFocusedRenderer()) {
+                    //switch focus
+                    boolean next = false;
+                    FractalRenderer nextFocusedRenderer = null;
+                    for (FractalRenderer renderer : getRenderers()){
+                        if (next){
+                            nextFocusedRenderer = renderer;
+                            next = false;
+                            break;
+                        }
+                        if (renderer == getFocusedRenderer()){
+                            next = true;
+                        }
+                    }
+                    if (next) //the next after the last is the first
+                        nextFocusedRenderer = getRenderers().get(0);
+                    if (nextFocusedRenderer != null){
+                        setFocusedRenderer(nextFocusedRenderer);
+                    }
+                }
             }
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.TAB) && getKeyboardFocus() == getFocusedRenderer()) {
-            if (Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT)){
-                //switch renderers
+        });
+        keybindings.add(new Keybinding("switch renderer positions", Input.Keys.SHIFT_LEFT, Input.Keys.TAB) {
+            @Override
+            public void apply() {
                 pressedSwitchRenderers();
-            } else {
-                //switch focus
-                boolean next = false;
-                FractalRenderer nextFocusedRenderer = null;
-                for (FractalRenderer renderer : getRenderers()){
-                    if (next){
-                        nextFocusedRenderer = renderer;
-                        next = false;
-                        break;
-                    }
-                    if (renderer == getFocusedRenderer()){
-                        next = true;
-                    }
-                }
-                if (next) //the next after the last is the first
-                    nextFocusedRenderer = getRenderers().get(0);
-                if (nextFocusedRenderer != null){
-                    setFocusedRenderer(nextFocusedRenderer);
+            }
+        });
+        Keybinding openCalculationParamMenuBinding = new Keybinding("open calculation param menu", Input.Keys.CONTROL_LEFT, Input.Keys.NUM_1) {
+            @Override
+            public void apply() {
+                CollapsiblePropertyList serverList = paramUI.serverParamsSideMenu;
+                serverList.getCollapseButton().toggle();
+                if (!serverList.getCollapseButton().isChecked()) {
+                    resetKeyboardFocus();
+                } else {
+                    serverList.focusFirstFocusableControl();
                 }
             }
-        }
-//        System.out.println("MainStage focus: " + (getKeyboardFocus() == null ? null : getKeyboardFocus()));
+        };
+        keybindings.add(openCalculationParamMenuBinding);
+        Keybinding openPostprocessingParamMenuBinding = new Keybinding("open postprocess param menu", Input.Keys.CONTROL_LEFT, Input.Keys.NUM_2) {
+            @Override
+            public void apply() {
+                CollapsiblePropertyList clientList = paramUI.clientParamsSideMenu;
+                clientList.getCollapseButton().toggle();
+                if (!clientList.getCollapseButton().isChecked()) {
+                    resetKeyboardFocus();
+                } else {
+                    clientList.focusFirstFocusableControl();
+                }
+            }
+        };
+        keybindings.add(openPostprocessingParamMenuBinding);
+        Keybinding resetKeyboardFocusBinding = new Keybinding("reset focus/close window", Input.Keys.ESCAPE) {
+            @Override
+            public void apply() {
+                if (!escapeHandled) {
+                    MainStageWindows.toggleSettingsWindow(thisStage);
+                    escapeHandled = true;
+                }
+            }
+        };
+        keybindings.add(resetKeyboardFocusBinding);
+        keybindings.add(new PostprocessToggleKeybinding("toggle orbit traces", PARAMS_DRAW_ORBIT, Input.Keys.O));
+        keybindings.add(new PostprocessToggleKeybinding("toggle trace instructions", PARAMS_ORBIT_TRACE_PER_INSTRUCTION, Input.Keys.I));
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay midpoint", PARAMS_DRAW_MIDPOINT, Input.Keys.M));
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay axis", PARAMS_DRAW_AXIS, Input.Keys.C));;
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay zero", PARAMS_DRAW_ZERO, Input.Keys.Z));
+
+        openCalculationParamMenuBinding.setRequiresRendererFocus(false);
+        openPostprocessingParamMenuBinding.setRequiresRendererFocus(false);
+        resetKeyboardFocusBinding.setRequiresRendererFocus(false);
+    }
+
+    private void handleInput() {
+
+    for (Keybinding keybinding : keybindings)
+        keybinding.update();
+
+        escapeHandled = false;
     }
 
     private boolean groupHasChildInHierarchy(Group group, Actor checkActor){
@@ -368,24 +455,34 @@ public class MainStage extends Stage {
 
     public final static String PARAMS_COLOR_ADD = "color offset";
     public final static String PARAMS_COLOR_MULT = "color period";
-    //    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_SOBEL_GLOW_LIMIT = "edge glow";
-    public final static String PARAMS_SOBEL_DIM_PERIOD = "glow fade";
-    public final static String PARAMS_AMBIENT_GLOW = "ambient light";
-
     public final static String PARAMS_COLOR_SATURATION = "saturation";
-    public final static String PARAMS_PALETTE = "palette";
-    public static final String PARAMS_PALETTE_VALUE_DISABLED = "disabled";
+    //    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
+    public final static String PARAMS_SOBEL_GLOW_LIMIT = "edge brightness";
+    public final static String PARAMS_SOBEL_GLOW_FACTOR = "glow period";
+    public final static String PARAMS_AMBIENT_LIGHT = "ambient light";
+
+    public final static String PARAMS_FALLBACK_COLOR_ADD = "color offset 2";
+    public final static String PARAMS_FALLBACK_COLOR_MULT = "color period 2";
+    public final static String PARAMS_FALLBACK_COLOR_SATURATION = "saturation 2";
+    //    public final static String PARAMS_FALLBACK_SOBEL_FACTOR = "glow sensitivity";
+    public final static String PARAMS_FALLBACK_SOBEL_GLOW_LIMIT = "edge brightness 2";
+    public final static String PARAMS_FALLBACK_SOBEL_GLOW_FACTOR = "glow sensitivity 2";
+    public final static String PARAMS_FALLBACK_AMBIENT_LIGHT = "ambient light 2";
+
+    public final static String PARAMS_PALETTE = "palette (condition)";
+    public final static String PARAMS_PALETTE2 = "palette (fallback)";
+    public static final String PARAMS_PALETTE_VALUE_DISABLED = "hue";
     public final static String PARAMS_EXTRACT_CHANNEL = "monochrome source";
     public final static String PARAMS_MAPPING_COLOR = "monochrome color";
 
     public final static String PARAMS_DRAW_AXIS = "draw axis";
     public final static String PARAMS_DRAW_ORBIT = "draw orbit";
-    public final static String PARAMS_DRAW_PATH = "draw animation path";
+    public final static String PARAMS_DRAW_PATH = "draw current path";
     public final static String PARAMS_DRAW_MIDPOINT = "draw midpoint";
-    public final static String PARAMS_DRAW_ZERO = "draw origin";
+    public final static String PARAMS_DRAW_ZERO = "draw (0+0*i)";
 
-    public final static String PARAMS_ORBIT_ITERATIONS = "orbit iterations";
+    public final static String PARAMS_ORBIT_TRACES = "orbit traces";
+    public final static String PARAMS_ORBIT_TRACE_PER_INSTRUCTION = "trace instructions";
     public final static String PARAMS_ORBIT_TARGET = "orbit target";
 
     public final static String PARAMS_TRACES_VALUE = "trace position";
@@ -401,13 +498,22 @@ public class MainStage extends Stage {
     protected void initRightParamContainer() {
         clientParams = new ParamContainer();
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_NUMBERFACTORY, nf));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE, PARAMS_PALETTE_VALUE_DISABLED));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, nf.createNumber(2.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, nf.createNumber(0.0)));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_SATURATION, nf.createNumber(0.5)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_GLOW, nf.createNumber(0.2)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(1.5)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_DIM_PERIOD, nf.createNumber(3.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_LIGHT, nf.createNumber(0.2)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(0.8)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_FACTOR, nf.createNumber(4.0)));
+
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_MULT, nf.createNumber(1.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_ADD, nf.createNumber(0.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_SATURATION, nf.createNumber(0.5)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_AMBIENT_LIGHT, nf.createNumber(0.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, nf.createNumber(1.0)));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, nf.createNumber(1.0)));
+
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE, PARAMS_PALETTE_VALUE_DISABLED));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE2, PARAMS_PALETTE_VALUE_DISABLED));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.WHITE));
 
@@ -417,7 +523,8 @@ public class MainStage extends Stage {
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_ZERO, false));
 
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_ORBIT, false));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_ITERATIONS, 1000));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TRACES, 1000));
+        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, true));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TARGET, "mouse"));
         clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_VALUE, nf.createComplexNumber(0,0)));
 
@@ -448,29 +555,54 @@ public class MainStage extends Stage {
         config.addValueType(colorType);
 
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, "coloring", StaticParamSupplier.class, numberType)
+        String cat_coloring_reached = "Coloring (condition reached)";
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0.02 max=10"), clientParams.getClientParameter(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, "coloring", StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_ADD));
-//        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_GLOW, "coloring", StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_GLOW));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, "coloring", StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-1 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_DIM_PERIOD, "coloring", StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0.01 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_DIM_PERIOD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, "coloring", StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
+//        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring (reached)", StaticParamSupplier.class, doubleType));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_LIGHT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=10"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_FACTOR));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, "coloring II", StaticParamSupplier.class, selectionType),
+        String cat_coloring_fallback = "Coloring (fallback)";
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0.01 max=2"), clientParams.getClientParameter(PARAMS_COLOR_MULT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_ADD));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
+//        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_LIGHT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-10 max=10"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=2"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_FACTOR));
+
+        String cat_coloring_palettes = "Palettes";
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
                 clientParams.getClientParameter(PARAMS_PALETTE));
-        Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
-        paletteSelection.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
-        for (String paletteName : palettes.keySet())
-            paletteSelection.addOption(paletteName, paletteName, "Palette '"+paletteName+"'");
-        config.addSelection(paletteSelection);
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+                clientParams.getClientParameter(PARAMS_PALETTE2));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, "coloring II", StaticParamSupplier.class, selectionType),
+        Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
+        Selection<String> paletteSelection2 = new Selection<>(PARAMS_PALETTE2);
+        paletteSelection.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
+        paletteSelection2.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
+        for (String paletteName : palettes.keySet()) {
+            paletteSelection.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
+            paletteSelection2.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
+        }
+        config.addSelection(paletteSelection);
+        config.addSelection(paletteSelection2);
+
+        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
                 clientParams.getClientParameter(PARAMS_EXTRACT_CHANNEL));
         Selection<Integer> extractChannelSelection = new Selection<Integer>(PARAMS_EXTRACT_CHANNEL);
         extractChannelSelection.addOption("disabled", 0, "No channel remapping");
@@ -478,39 +610,42 @@ public class MainStage extends Stage {
         extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
         extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");
         config.addSelection(extractChannelSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, "coloring II", StaticParamSupplier.class, colorType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType),
                 clientParams.getClientParameter(PARAMS_MAPPING_COLOR));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, "shape rendering", StaticParamSupplier.class, booleanType),
+        String cat_shape_drawing = "Shape drawing";
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType),
                 clientParams.getClientParameter(PARAMS_DRAW_AXIS));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, "shape rendering", StaticParamSupplier.class, booleanType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType)
                 , clientParams.getClientParameter(PARAMS_DRAW_ORBIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, "shape rendering", StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType),
                 clientParams.getClientParameter(PARAMS_DRAW_PATH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, "shape rendering", StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType),
                 clientParams.getClientParameter(PARAMS_DRAW_MIDPOINT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, "shape rendering", StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType),
                 clientParams.getClientParameter(PARAMS_DRAW_ZERO));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, "shape rendering", StaticParamSupplier.class, selectionType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType)
                 , clientParams.getClientParameter(PARAMS_ORBIT_TARGET));
         Selection<String> traceTargetSelection = new Selection<String>(PARAMS_ORBIT_TARGET);
         traceTargetSelection.addOption("mouse", "mouse", "The trace target is set to the current mouse position");
         traceTargetSelection.addOption("path", "path", "The trace target is set to the animation named 'path'");
         config.addSelection(traceTargetSelection);
-
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_ITERATIONS, "shape rendering", StaticParamSupplier.class, integerType)
-                , clientParams.getClientParameter(PARAMS_ORBIT_ITERATIONS));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, "shape rendering", StaticParamSupplier.class, complexNumberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType)
+                , clientParams.getClientParameter(PARAMS_ORBIT_TRACES));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType)
+                , clientParams.getClientParameter(PARAMS_ORBIT_TRACE_PER_INSTRUCTION));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType)
                         .withVisible(false), clientParams.getClientParameter(PARAMS_TRACES_VALUE));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, "shape settings", StaticParamSupplier.class, numberType)
+        String cat_shape_settings = "Shape settings";
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=3"), clientParams.getClientParameter(PARAMS_TRACES_LINE_WIDTH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, "shape settings", StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=10"), clientParams.getClientParameter(PARAMS_TRACES_POINT_SIZE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, "shape settings", StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_LINE_TRANSPARENCY));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, "shape settings", StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
                 .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_POINT_TRANSPARENCY));
 
         //no client param resets the renderer
@@ -646,11 +781,33 @@ public class MainStage extends Stage {
     }
 
     private void openJumpToWindow(){
-        Window window = new VisWindow("Jump to...");
+        Window window = new VisWindow("Presets");
         ((VisWindow) window).addCloseButton();
+
+        VisTable repoTab = new VisTable();
+
+
+        VisSelectBox repoSel = new VisSelectBox();
+        repoSel.setItems("default (local)");
+        VisTextButton repoOptionBtn = new VisTextButton("...");
+        repoTab.add("Repository:");
+        repoTab.add(repoSel).expandX().fillX().padLeft(2).padRight(2).padTop(2);
+        repoTab.add(repoOptionBtn).row();
+
+        window.add(repoTab).colspan(3).fillX().row();
+
+        VisTable presetSelectionTable = new VisTable();
+
         VisSelectBox selection = new VisSelectBox();
         updateParamSelectBox(selection);
-        window.add(selection).colspan(3).fillX().pad(2).row();
+        VisTextButton selectPrev = new VisTextButton("<");
+        VisTextButton selectNext = new VisTextButton(">");
+        presetSelectionTable.add("Preset:");
+        presetSelectionTable.add(selectPrev);
+        presetSelectionTable.add(selection).expandX().fillX().pad(2);
+        presetSelectionTable.add(selectNext);
+
+        window.add(presetSelectionTable).colspan(3).fillX().row();
 
         VisTextButton cancelBtn = new VisTextButton("cancel");
         VisTextButton saveBtn = new VisTextButton("save current");
@@ -868,5 +1025,9 @@ public class MainStage extends Stage {
         if (isNew){
             refreshClientSideMenu();
         }
+    }
+
+    public List<Keybinding> getKeybindings() {
+        return keybindings;
     }
 }

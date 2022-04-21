@@ -17,10 +17,13 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.ui.ParamControlState;
 import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.util.NumberUtil;
@@ -130,8 +133,8 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 addSubmitListenerToField(field1);
                 field2 = new TabTraversableTextField(validator2);
                 addSubmitListenerToField(field2);
-                field1.setPrefWidth(prefControlWidth);
-                field2.setPrefWidth(prefControlWidth);
+//                field1.setPrefWidth(prefControlWidth*0.45f);
+//                field2.setPrefWidth(prefControlWidth*0.45f);
 
 
                 ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
@@ -172,13 +175,26 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 table.add(label).left().padRight(3);
                 table.add(optionButton).padRight(10);
 
-                if (inputDisabled)
-                    table.add("map x + y*i").fillX().expandX().row();
-                else {
-                    table.add(field1).fillX().expandX().row();
-                    table.add();
-                    table.add();
-                    table.add(field2).fillX().expandX().padBottom(2).row();
+                if (inputDisabled) {
+                    String text = "map complex plane";
+                    if (selectedSupplierClass.isAssignableFrom(CoordinateModuloParamSupplier.class)){
+                        text = "map grid of complex planes";
+                    } else if (selectedSupplierClass.isAssignableFrom(CoordinateDiscreteParamSupplier.class)){
+                        text = "map grid constant";
+                    }
+                    table.add(text).fillX().expandX().row();
+                } else {
+                    VisTable fieldTable = new VisTable();
+                    fieldTable.add(field1).expandX().fillX();
+                    fieldTable.add("+");
+                    fieldTable.add(field2).expandX().fillX();
+                    fieldTable.add("*i");
+                    table.add(fieldTable).expandX().fillX().left().padBottom(2).row();
+
+//                    table.add(field1).fillX().expandX().row();
+//                    table.add();
+//                    table.add();
+//                    table.add(field2).fillX().expandX().padBottom(2).row();
                 }
 
 //                if (!inputDisabled)
@@ -257,6 +273,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 min2 = getState().getMin2();
                 max1 = getState().getMax();
                 max2 = getState().getMax2();
+                sliderLogarithmic = getState().getSliderscaling() == ParamControlState.SLIDERSCALING_LOGARITHMIC;
 
                 if (min1 == null || max1 == null || min2 == null || max2 == null) {
                     Double minD = parameterDefinition.getHintAttributeDoubleValue("ui-element[default]:slider", "min");
@@ -440,6 +457,15 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
             }
 
             protected double getValueFromSlider(VisSlider slider, double min, double max) {
+                if (sliderLogarithmic && min != 0){
+
+                    double ratio = max/min;
+                    double steps = Math.log(ratio)/Math.log(2);
+                    if (steps < 0)
+                        steps = 0;
+                    double progress = steps*(1-slider.getValue());
+                    return max * Math.pow(0.5, progress);
+                }
                 return slider.getValue()*(max-min) + min;
             }
 

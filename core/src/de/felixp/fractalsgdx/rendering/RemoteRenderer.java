@@ -623,6 +623,11 @@ public class RemoteRenderer extends AbstractFractalRenderer {
         return map;
     }
 
+    @Override
+    public int getPixelCount() {
+        return (int)(Math.ceil(Gdx.graphics.getWidth()*getWidth())+Math.ceil(Gdx.graphics.getHeight()*getHeight()));
+    }
+
     public UUID getSystemId() {
         return systemId;
     }

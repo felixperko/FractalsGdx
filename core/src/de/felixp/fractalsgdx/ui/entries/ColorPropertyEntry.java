@@ -19,6 +19,9 @@ import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.color.ColorPicker;
 import com.kotcrab.vis.ui.widget.color.ColorPickerListener;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -79,6 +82,9 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
                 color = newColor;
                 applyClientValue();
                 updatePreviewImage();
+                FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).getFocusedRenderer();
+                if (focusedRenderer != null)
+                    focusedRenderer.setRefreshColoring();
             }
 
             @Override

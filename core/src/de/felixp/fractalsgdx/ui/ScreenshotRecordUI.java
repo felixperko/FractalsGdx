@@ -3,7 +3,9 @@ package de.felixp.fractalsgdx.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Timer;
 import com.kotcrab.vis.ui.util.Validators;
@@ -18,6 +20,7 @@ import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
+import com.kotcrab.vis.ui.widget.file.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,6 +31,7 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import de.felixp.fractalsgdx.animation.AnimationListener;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
@@ -36,13 +40,15 @@ import de.felixperko.fractals.util.NumberUtil;
 
 public class ScreenshotRecordUI {
 
+    static String commandString = null;
+    static VideoEncoding selectedVideoEncoding = VideoEncoding.libx265;
+
     static void openRecordAnimationWindow(MainStage stage) {
         //TODO
         VisWindow recordAnimationWindow = new VisWindow("Record animation frames");
         recordAnimationWindow.addCloseButton();
 
-        String userHome = System.getProperty("user.home");
-        String currentPathSetting = userHome;
+        String currentPathSetting = ScreenshotUI.screenshotFolderPath;
         String currentFolderSetting = ScreenshotUI.getScreenshotFileName();
         String currentFfmpegFolderSetting = "D:\\Downloads\\ffmpeg-4.3.1-2021-01-01-full_build\\bin";
         VisTextField pathField = new VisTextField(currentPathSetting){
@@ -81,10 +87,13 @@ public class ScreenshotRecordUI {
             }
         }
         fileChooser.setSelectionMode(FileChooser.SelectionMode.DIRECTORIES);
-        fileChooser.setListener(new FileChooserAdapter() {
+        pathField.addListener(new ClickListener(){
             @Override
-            public void selected (Array<FileHandle> files) {
-                pathField.setText(files.first().file().getAbsolutePath());
+            public void clicked(InputEvent event, float x, float y) {
+                pathField.focusLost();
+                stage.addActor(fileChooser.fadeIn());
+                fileChooser.setSize(Gdx.graphics.getWidth()*0.7f, Gdx.graphics.getHeight()*0.7f);
+                fileChooser.centerWindow();
             }
         });
 
@@ -98,7 +107,8 @@ public class ScreenshotRecordUI {
         VisTextField framerateField = new VisValidatableTextField(Validators.INTEGERS);
         framerateField.setText("60");
         VisTextField qualityField = new VisValidatableTextField(Validators.INTEGERS);
-        qualityField.setText("25");
+        int quality = selectedVideoEncoding == VideoEncoding.libx265 ? 28 : 23;
+        qualityField.setText(quality+"");
 
         VisTextArea commandArea = new VisTextArea("Command goes here..."){
             @Override
@@ -128,6 +138,7 @@ public class ScreenshotRecordUI {
         ffmpegFolderField.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
+                ffmpegFolderField.setInputValid(checkFFmpegFolder(ffmpegFolderField.getText()));
                 refreshCommand(pathField, folderField, ffmpegFolderField, commandArea, framerateField, qualityField, animationsSelect);
             }
         });
@@ -144,7 +155,15 @@ public class ScreenshotRecordUI {
             }
         });
 
-        VisCheckBox saveAnimationCheckbox = new VisCheckBox("save animation");
+        fileChooser.setListener(new FileChooserAdapter() {
+            @Override
+            public void selected (Array<FileHandle> files) {
+                pathField.setText(files.first().file().getAbsolutePath());
+                refreshCommand(pathField, folderField, ffmpegFolderField, commandArea, framerateField, qualityField, animationsSelect);
+            }
+        });
+
+        VisCheckBox saveAnimationCheckbox = new VisCheckBox("encode video");
         VisCheckBox deleteScreenshotsCheckbox = new VisCheckBox("delete images");
 
         VisTextButton cancelButton = new VisTextButton("Cancel", new ChangeListener() {
@@ -158,7 +177,7 @@ public class ScreenshotRecordUI {
             public void changed(ChangeEvent event, Actor actor) {
                 ParamAnimation animation = animationsSelect.getSelected();
                 String path = getOutputPath(pathField, folderField);
-                openRecordAnimationProgressWindow(stage, animation, path, commandArea.getText(), deleteScreenshotsCheckbox.isChecked());
+                openRecordAnimationProgressWindow(stage, animation, path, commandString, deleteScreenshotsCheckbox.isChecked());
                 ScreenshotUI.recordScreenshots(animation, renderer, path.substring(0, path.length()-1));
                 recordAnimationWindow.remove();
             }
@@ -252,6 +271,19 @@ public class ScreenshotRecordUI {
             }
         });
 
+
+        VisTextButton openExplorerButton = new VisTextButton("open folder", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+
+                try {
+                    FileUtils.showDirInExplorer(new FileHandle(path));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         VisTable contentTable = new VisTable(true);
 
 
@@ -267,6 +299,7 @@ public class ScreenshotRecordUI {
         buttonTable.add(cancelButton);
         buttonTable.add(pauseButton);
         buttonTable.add(hideButton);
+        buttonTable.add(openExplorerButton);
         contentTable.add(buttonTable).colspan(2);
 
         progressWindow.add(contentTable);
@@ -426,17 +459,78 @@ public class ScreenshotRecordUI {
         int frameCount = animationsSelect.getSelected().getAnimationFrameCount(frameRate);
         int digits = (int)Math.ceil(Math.log10(frameCount));
         String screenshotFolder = getOutputPath(pathField, folderField);
-        String ffmpegPath = ffmpegFolderField.getText();
+        String ffmpegFolder = ffmpegFolderField.getText();
+        String ffmpegPath = ffmpegFolder+"\\ffmpeg.exe";
         if (!framerateField.isInputValid() || !qualityField.isInputValid())
             return;
         int crf = Integer.parseInt(qualityField.getText());
 
+        boolean ffmpegDetected = checkFFmpegFolder(ffmpegFolder);
+        ffmpegFolderField.setInputValid(ffmpegDetected);
+
+        String imgExt = ScreenshotUI.extensionSelect.getSelected();
+
 //        commandArea.setText("D:\\Downloads\\ffmpeg-4.3.1-2021-01-01-full_build\\bin\\ffmpeg.exe -framerate 60 -i %03d.png -crf 25 output.mp4");
-        commandArea.setText(ffmpegPath+"\\ffmpeg.exe -framerate "+frameRate+" -i "+screenshotFolder+"%0"+digits+"d.png -crf "+crf+" -progress "+screenshotFolder+"log.txt -nostats "+screenshotFolder+"output.mp4");
+        if (selectedVideoEncoding == VideoEncoding.libx265)
+            commandString = ffmpegPath+" -framerate "+frameRate+" -i "+screenshotFolder+"%0"+digits+"d"+imgExt+ " " +
+                    "-c:v libx265 -preset medium " +
+                    "-crf "+crf+" -progress "+screenshotFolder+"log.txt -nostats "+screenshotFolder+"output.mp4";
+        else
+            commandString = ffmpegPath+" -framerate "+frameRate+" -i "+screenshotFolder+"%0"+digits+"d"+imgExt+ " " +
+                    "-crf "+crf+" -progress "+screenshotFolder+"log.txt -nostats "+screenshotFolder+"output.mp4";
+        commandArea.setText(commandString);
+    }
+
+    private static boolean checkFFmpegFolder(String ffmpegFolder) {
+        String ffmpegPath = ffmpegFolder;
+        try {
+            if (!ffmpegFolder.startsWith("ffmpeg")) {
+                ffmpegPath += "\\ffmpeg.exe";
+                File file = new File(ffmpegPath);
+                if (!file.exists())
+                    return false;
+            }
+//            else {
+//                ffmpegPath = System.getenv()
+//            }
+            Process process = Runtime.getRuntime().exec(ffmpegPath+" -version");
+
+//            ProcessBuilder builder = new ProcessBuilder(ffmpegPath+" -version");
+//            builder.inheritIO();
+//            builder.start();
+
+//            BufferedReader processOut = new BufferedReader(new
+//                    InputStreamReader(process.getInputStream()));
+//            BufferedReader processErr = new BufferedReader(new
+//                    InputStreamReader(process.getErrorStream()));
+
+
+//            System.out.println("------------------------------------");
+//            System.out.println("ffmpeg version check out/err:");
+//            System.out.println("------------------------------------");
+//            String out = null;
+//            while ((out = processOut.readLine()) != null){
+//                System.out.println(out);
+//            }
+//            System.out.println("------------------------------------");
+//            while ((out = processErr.readLine()) != null){
+//                System.out.println(out);
+//            }
+//            System.out.println("------------------------------------");
+
+            return true;
+        } catch (IOException e) {
+//            e.printStackTrace();
+            return false;
+        }
     }
 
     private static String getOutputPath(VisTextField pathField, VisTextField folderField) {
         return pathField.getText()+"\\"+folderField.getText()+"\\";
+    }
+
+    enum VideoEncoding{
+        libx264, libx265, other;
     }
 }
 
@@ -560,5 +654,5 @@ class FastReverseLineInputStream extends InputStream {
                 currentLine[currentLineWritePos++] = b;
             }
         }
-    }}
-
+    }
+}

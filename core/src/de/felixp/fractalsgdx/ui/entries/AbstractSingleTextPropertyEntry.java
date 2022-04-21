@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
@@ -17,6 +18,7 @@ import java.util.List;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.ui.ParamControlState;
 import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.Number;
@@ -145,10 +147,15 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
             Double min, max;
 
+            boolean stopSubmit = false;
+
             @Override
             public void applyValue(Object value) {
-                if (slider1 != null)
+                if (slider1 != null) {
+                    stopSubmit = true;
                     slider1.setValue(getSliderPositionFromValue(Float.parseFloat(value.toString()), min, max));
+                    stopSubmit = false;
+                }
             }
 
             @Override
@@ -185,6 +192,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
                 min = getState().getMin();
                 max = getState().getMax();
+//                sliderLogarithmic = getState().getSliderscaling() == ParamControlState.SLIDERSCALING_LOGARITHMIC;
 
                 float step = 0.001f;
 
@@ -217,7 +225,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         }
                         readFields();
                         applyClientValue();
-                        submit();
+                        if (!stopSubmit)
+                            submit();
                         ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
                     }
 
@@ -248,7 +257,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         try {
                             if (rawVal != null && rawVal.length() > 0)
                                 getState().setMin(min = Double.parseDouble(rawVal));
-                        } catch (NumberFormatException e) {//NaN
+                        } catch (NumberFormatException e) {
                             return;
                         }
                         updateSlider(oldVal, max);
@@ -262,10 +271,12 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                         try {
                             if (rawVal != null && rawVal.length() > 0)
                                 getState().setMax(max = Double.parseDouble(rawVal));
-                        } catch (NumberFormatException e) {//NaN
+                        } catch (NumberFormatException e) {
                             return;
                         }
                         updateSlider(min, oldVal);
+                        MainStage stage = (MainStage) FractalsGdxMain.stage;
+                        stage.setKeyboardFocus(maxField1);
                     }
                 });
                 updateLabelText();
@@ -278,7 +289,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 VisTable innerTable1 = new VisTable();
                 if (limitsVisible)
                     innerTable1.add(minField1);
-                innerTable1.add(slider1);
+                innerTable1.add(slider1).expandX().fillX();
                 innerTable1.add(valueLabel1).minWidth(70).padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField1);
@@ -288,7 +299,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                     table.add(optionButton).padRight(10);
                 else
                     table.add().padRight(3);
-                table.add(innerTable1).padBottom(2).row();
+                table.add(innerTable1).expandX().fillX().padBottom(2).row();
 //                table.add();
 //                table.add();
 //                table.add(innerTable2).padBottom(2).row();
@@ -361,17 +372,28 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
     }
 
-//    @Override
-//    protected void submit() {
-//        if (submitValue)
-//            super.submit();
-//    }
-
     protected double getValueFromSlider(VisSlider slider, double min, double max) {
+        if (sliderLogarithmic && min != 0){
+            double ratio = max/min;
+            double steps = Math.log(ratio)/Math.log(2);
+            if (steps < 0)
+                steps = 0;
+            double progress = steps*(1-slider.getValue());
+            return max * Math.pow(0.5, progress);
+        }
         return slider.getValue()*(max-min) + min;
     }
 
     private float getSliderPositionFromValue(double value, double min, double max) {
+        if (sliderLogarithmic){
+            //TODO doesn't work yet
+            double ratio = max/min;
+            double steps = Math.log(ratio)/Math.log(2);
+            if (steps < 0)
+                steps = 0;
+            double progress = (value-min)/ratio;
+            return (float)progress;
+        }
         float sliderPos = (float) ((value - min) / (max - min));
         return sliderPos <= 0f ? 0f : (sliderPos >= 1f ? 1f : sliderPos);
     }

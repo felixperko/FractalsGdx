@@ -15,7 +15,7 @@ public interface PropertyAttributeAdapterUI<T> {
      */
     Actor addToTable(Table table);
 
-    void valueChanged(T newVal);
+    void valueChanged(T newVal, T min, T max);
 
     void setTraversableGroup(TraversableGroup traversableGroup);
 

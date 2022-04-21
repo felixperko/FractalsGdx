@@ -137,18 +137,21 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     private PropertyAttributeAdapterUI getAdapterUI(ParamAttribute attr, NumberFactory nf){
         if (attr.getAttributeClass().isAssignableFrom(Number.class)){
-            return new NumberPropertyAttributeAdapterUI(attr.getName(), nf, (Number) attr.getValue()){
+            return new NumberPropertyAttributeAdapterUI(attr.getName(), nf, (Number) attr.getValue(),
+                    (Number) attr.getMinValue(), (Number) attr.getMaxValue()){
                 @Override
-                public void valueChanged(Number newVal) {
+                public void valueChanged(Number newVal, Number min, Number max) {
                     attr.applyValue(newVal);
+                    attr.setRange(min, max);
                 }
             };
         }
         else if (attr.getAttributeClass().isAssignableFrom(ComplexNumber.class)){
             return new ComplexNumberPropertyAttributeAdapterUI(attr.getName(), nf, (ComplexNumber) attr.getValue()){
                 @Override
-                public void valueChanged(ComplexNumber newVal) {
+                public void valueChanged(ComplexNumber newVal, ComplexNumber min, ComplexNumber max) {
                     attr.applyValue(newVal);
+                    attr.setRange(min, max);
                 }
             };
         }

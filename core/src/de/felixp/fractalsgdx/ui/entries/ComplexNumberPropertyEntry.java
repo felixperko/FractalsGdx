@@ -9,6 +9,8 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
@@ -38,6 +40,12 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
 
         if (selectedSupplierClass.isAssignableFrom(CoordinateBasicShiftParamSupplier.class)){
             supplier = new CoordinateBasicShiftParamSupplier(propertyName);
+        }
+        else if (selectedSupplierClass.isAssignableFrom(CoordinateDiscreteParamSupplier.class)){
+            supplier = new CoordinateDiscreteParamSupplier(propertyName);
+        }
+        else if (selectedSupplierClass.isAssignableFrom(CoordinateModuloParamSupplier.class)){
+            supplier = new CoordinateModuloParamSupplier(propertyName);
         }
         else {
             String real = (text1 == null || text1.length() == 0) ? "0" : text1;

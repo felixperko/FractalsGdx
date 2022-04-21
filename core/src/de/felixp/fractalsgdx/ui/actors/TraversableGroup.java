@@ -78,33 +78,46 @@ public class TraversableGroup {
                 if (value instanceof Group){
                     for (Actor actor : ((Group)value).getChildren()){
                         Tree.Node katNode = node.getParent();
-                        if (temp_next && actor instanceof TabTraversableTextField){
-                            if (autoExpand && katNode != temp_currentKatNode && !katNode.isExpanded()) {
-                                if (autoCollapse)
-                                    temp_currentKatNode.setExpanded(false);
-                                if (autoExpand)
-                                    katNode.setExpanded(true);
-                            }
-                            temp_next = false;
-                            return (TabTraversableTextField) actor;
+
+                        List<Actor> checkActors = new ArrayList<>();
+                        if (actor instanceof Group){ //get content of tables
+                            for (Actor actor2 : ((Group)actor).getChildren())
+                                checkActors.add(actor2);
                         }
-                        if (actor == currentField){ //found current node
-                            if (up){
-                                if (temp_previousNode != null && temp_previousNode != katNode && !temp_previousNode.isExpanded()) {
-                                    if (autoExpand)
-                                        temp_previousNode.setExpanded(true);
+                        else {
+                            checkActors.add(actor);
+                        }
+
+                        for (Actor actor2 : checkActors) {
+                            if (temp_next && actor2 instanceof TabTraversableTextField){
+                                if (autoExpand && katNode != temp_currentKatNode && !katNode.isExpanded()) {
                                     if (autoCollapse)
-                                        katNode.setExpanded(false);
+                                        temp_currentKatNode.setExpanded(false);
+                                    if (autoExpand)
+                                        katNode.setExpanded(true);
                                 }
-                                return temp_previousActor;
-                            } else {
-                                temp_currentKatNode = katNode;
-                                temp_next = true;
+                                temp_next = false;
+                                return (TabTraversableTextField) actor2;
                             }
-                        }
-                        if (actor instanceof TabTraversableTextField) {
-                            temp_previousActor = (TabTraversableTextField) actor;
-                            temp_previousNode = katNode;
+
+                            if (actor2 == currentField) { //found current node
+                                if (up) {
+                                    if (temp_previousNode != null && temp_previousNode != katNode && !temp_previousNode.isExpanded()) {
+                                        if (autoExpand)
+                                            temp_previousNode.setExpanded(true);
+                                        if (autoCollapse)
+                                            katNode.setExpanded(false);
+                                    }
+                                    return temp_previousActor;
+                                } else {
+                                    temp_currentKatNode = katNode;
+                                    temp_next = true;
+                                }
+                            }
+                            if (actor2 instanceof TabTraversableTextField) {
+                                temp_previousActor = (TabTraversableTextField) actor2;
+                                temp_previousNode = katNode;
+                            }
                         }
                     }
                 }

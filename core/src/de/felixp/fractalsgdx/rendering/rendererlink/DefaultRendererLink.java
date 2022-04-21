@@ -67,6 +67,10 @@ public class DefaultRendererLink implements RendererLink {
      * @return whether target Parameters were changed
      */
     protected boolean syncParams(){
+
+        if (!isActive())
+            return false;
+
         boolean changed = false;
         for (String paramName : syncedParameterNames){
             ParamSupplier sourceSupp = getSourceParamContainer().getClientParameter(paramName);
@@ -79,6 +83,10 @@ public class DefaultRendererLink implements RendererLink {
             }
         }
         return changed;
+    }
+
+    public boolean isActive(){
+        return true;
     }
 
     @Override

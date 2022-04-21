@@ -22,13 +22,14 @@
 	<file>${user.dir}/latest.log</file>
 	<append>false</append>
 	<encoder>
-<!-- 		<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n</pattern> -->
-		<pattern>%msg%n</pattern>
+ 		<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{35} - %msg%n</pattern>
+<!--		<pattern>%msg%n</pattern>-->
 	</encoder>
   </appender>
 
-  <root level="DEBUG">
+  <root level="INFO">
     <appender-ref ref="STDOUT" />
+      <appender-ref ref="FILE" />
   </root>
 
     <logger name="de.felixp.fractals.files" level="WARN">

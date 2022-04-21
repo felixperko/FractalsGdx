@@ -3,12 +3,18 @@ package de.felixp.fractalsgdx.ui;
 import static com.badlogic.gdx.utils.Align.*;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.DragListener;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.widget.CollapsibleWidget;
 import com.kotcrab.vis.ui.widget.VisSplitPane;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -28,33 +34,10 @@ public class CollapsibleSideMenu {
     public CollapsibleSideMenu(){
 
         tree = new VisTree();
-        //tree.add().expand(false, true).fill(false, true);
-        //tree.row();
-
-        //ScrollPane scrollPane = new ScrollPane(tree);
 
         collapsibleTable = new VisTable();
-//        collapsibleTable.setFillParent(true);
-
-//        VisTable dummyActor = new VisTable(){
-//
-//        };
-////        dummyActor.setVisible(false);
-//        VisSplitPane visSplitPane = new VisSplitPane(tree, dummyActor, false);
-//        visSplitPane.addListener(new DragListener(){
-//            @Override
-//            public void drag(InputEvent event, float x, float y, int pointer) {
-//                super.drag(event, x, y, pointer);
-//                tree.invalidateHierarchy();
-//            }
-//        });
-//
-//        collapsibleTable.add(visSplitPane).fillX().expandX().fillY().expandY().left();
 
         collapsibleTable.add(tree).fillY().expandY().left();
-
-//        collapsibleTable.add(tree).fillX().expandX();
-//        collapsibleTable.add(dummyActor).expandX().fillX();
 
         collapsibleWidget = new CollapsibleWidget(collapsibleTable);
         collapsibleWidget.setCollapsed(true);

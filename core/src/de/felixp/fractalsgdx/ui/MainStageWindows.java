@@ -26,6 +26,8 @@ import com.kotcrab.vis.ui.widget.VisWindow;
 import net.dermetfan.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +49,7 @@ public class MainStageWindows {
     public static final String CATEGORY_RENDERERS = "Renderers";
     public static final String CATEGORY_WINDOW = "Window";
     public static final String CATEGORY_PALETTES = "Palettes";
+    public static final String CATEGORY_KEYS = "Keys";
 
     public static ScrollPane scrollPane;
 
@@ -144,7 +147,7 @@ public class MainStageWindows {
 //            }
 //        }
         ;
-        categoryList.setItems(CATEGORY_WINDOW, CATEGORY_RENDERERS, CATEGORY_PALETTES);
+        categoryList.setItems(CATEGORY_WINDOW, CATEGORY_KEYS, CATEGORY_RENDERERS, CATEGORY_PALETTES);
         categoryList.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) { //switch to selected tab
@@ -180,6 +183,8 @@ public class MainStageWindows {
             case CATEGORY_PALETTES:
                 stage.setActiveSettingsTable(PaletteUI.getPaletteTable(settingsWindow));
                 break;
+            case CATEGORY_KEYS:
+                stage.setActiveSettingsTable(KeybindingsUI.getKeysTable(settingsWindow));
         }
         VisScrollPane sp = new VisScrollPane(stage.getActiveSettingsTable());
         sp.setScrollingDisabled(true, false);
@@ -278,7 +283,7 @@ public class MainStageWindows {
         });
         Map<Graphics.DisplayMode, String> names = new HashMap<>();
         Map<String, Graphics.DisplayMode> fullscreenOptions = new HashMap<>();
-        Map<String, List<Graphics.DisplayMode>> modesPerResolution = new HashMap<>();
+        Map<String, List<Graphics.DisplayMode>> modesPerResolution = new LinkedHashMap<>();
         Graphics.DisplayMode currentMode = Gdx.graphics.getDisplayMode();
         for (Graphics.Monitor monitor : Gdx.graphics.getMonitors()) {
             for (Graphics.DisplayMode mode : Gdx.graphics.getDisplayModes(monitor)) {
@@ -296,7 +301,20 @@ public class MainStageWindows {
             for (Graphics.DisplayMode mode : modes) {
                 if (mode.refreshRate != currentMode.refreshRate)
                     continue;
-                String name = mode.width + "x" + mode.height + " @" + mode.refreshRate + "hz";
+
+                int gcd = gcd(mode.width, mode.height);
+                int ratioW = mode.width/gcd;
+                int ratioH = mode.height/gcd;
+                String ratioPrefix = "";
+                if (ratioW == 8 && ratioH == 5){ //e.g. 1680 x 1050
+                    ratioW = 16; ratioH = 10;
+                }
+                if (ratioW == 683 && ratioH == 384){//1366x768 (16.0078125:9)
+                    ratioW = 16; ratioH = 9;
+                    ratioPrefix = "~";
+                }
+
+                String name = mode.width + "x" + mode.height + " (" +ratioPrefix+ratioW+":"+ratioH + ") " + mode.refreshRate + "hz";
                 names.put(mode, name);
                 fullscreenOptions.put(name, mode);
                 for (int i = 0; i < items.size(); i++) {
@@ -323,23 +341,42 @@ public class MainStageWindows {
                 windowedBtn.setChecked(true);
             }
         });
+
         Map<String, Pair<Integer, Integer>> windowedOptions = new LinkedHashMap<>();
         int currWidth = Gdx.graphics.getWidth();
         int currHeight = Gdx.graphics.getHeight();
-        windowedOptions.put(currWidth+"x"+currHeight, new Pair<>(currWidth, currHeight));
-        int testWidth = currWidth*2/3;
-        int testHeight = currHeight*2/3;
-        if (testWidth*3/2 == currWidth && testHeight*3/2 == currHeight)
-            windowedOptions.put(testWidth+"x"+testHeight, new Pair<>(testWidth, testHeight));
-        int div = 2;
-        while (testWidth >= 300 && testHeight >= 300){
-            testWidth = currWidth/div;
-            testHeight = currHeight/div;
-            if (testWidth*div == currWidth && testHeight*div == currHeight){
-                windowedOptions.put(testWidth+"x"+testHeight, new Pair<>(testWidth, testHeight));
-            }
-            div++;
+//        windowedOptions.put(currWidth+"x"+currHeight, new Pair<>(currWidth, currHeight));
+//        int testWidth = currWidth*2/3;
+//        int testHeight = currHeight*2/3;
+//        if (testWidth*3/2 == currWidth && testHeight*3/2 == currHeight)
+//            windowedOptions.put(testWidth+"x"+testHeight, new Pair<>(testWidth, testHeight));
+//        int div = 2;
+//        while (testWidth >= 300 && testHeight >= 300){
+//            testWidth = currWidth/div;
+//            testHeight = currHeight/div;
+//            if (testWidth*div == currWidth && testHeight*div == currHeight){
+//                windowedOptions.put(testWidth+"x"+testHeight, new Pair<>(testWidth, testHeight));
+//            }
+//            div++;
+//        }
+
+        List<String> sortedKeys = new ArrayList<>();
+        for (String key : modesPerResolution.keySet()){
+            sortedKeys.add(key);
         }
+        Collections.sort(sortedKeys, new Comparator<String>() {
+            @Override
+            public int compare(String s, String t1) {
+                return -Integer.compare(modesPerResolution.get(s).get(0).width,
+                        modesPerResolution.get(t1).get(0).width);
+            }
+        });
+        for (String key : sortedKeys){
+            Graphics.DisplayMode mode = modesPerResolution.get(key).get(0);
+            String newKey = mode.width+"x"+mode.height;
+            windowedOptions.put(newKey, new Pair<>(mode.width, mode.height));
+        }
+
         String[] itemArray2 = new String[windowedOptions.size()];
         int  i = 0;
         for (String windowedOptionName : windowedOptions.keySet()){
@@ -493,6 +530,10 @@ public class MainStageWindows {
         contentTable.add(btnRow);
 
         return contentTable;
+    }
+
+    private static int gcd(int x, int y) {
+        return (y == 0) ? x : gcd(y, x % y);
     }
 
 }

@@ -32,8 +32,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 	private static final String UI_PREFS_HEIGHT = "height";
 	private static final String UI_PREFS_VSYNC = "vsync";
 
-	static boolean windowed = true;
-    static boolean uiScaleWorkaround = false;
+	public static boolean windowed = true;
+    public static boolean uiScaleWorkaround = false;
     static int forceWidth = -1;
     static int forceHeight = -1;
 
@@ -67,6 +67,8 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		System.out.println("GL_MAX_VARYING_VECTORS: "+queryArr.get(0));
 		Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_SIZE, queryArr);
 		System.out.println("GL_MAX_TEXTURE_SIZE: "+queryArr.get(0));
+		Gdx.gl.glGetIntegerv(GL20.GL_MAX_TEXTURE_IMAGE_UNITS, queryArr);
+		System.out.println("GL_MAX_TEXTURE_IMAGE_UNITS: "+queryArr.get(0));
 
         Preferences uiPrefs = Gdx.app.getPreferences(UI_PREFS_NAME);
 		uiScale = 1;
@@ -153,14 +155,6 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		Gdx.gl.glClearColor( 0, 0, 0, 1 );
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		if (Gdx.input.isKeyJustPressed(Input.Keys.F11)){
-			boolean isFullScreen = Gdx.graphics.isFullscreen();
-            FractalsGdxMain.windowed = !FractalsGdxMain.windowed;
-            FractalsGdxMain.uiScaleWorkaround = false;
-            setScreenMode(FractalsGdxMain.windowed, 1280, 720);
-		}
-
-
 		try {
 			stage.act(Gdx.graphics.getDeltaTime());
 			stage.draw();
@@ -176,189 +170,13 @@ public class FractalsGdxMain extends ApplicationAdapter {
 //		}
 	}
 
-	protected void setScreenMode(Boolean windowed, int width, int height) {
+	public static void setScreenMode(Boolean windowed, int width, int height) {
 		Graphics.DisplayMode currentMode = Gdx.graphics.getDisplayMode();
 		if (windowed)
 			System.out.println(Gdx.graphics.setWindowedMode(width, height));
 		else
 			Gdx.graphics.setFullscreenMode(currentMode);
 	}
-
-	public int getUiScale() {
-		return uiScale;
-	}
-
-	//	private boolean handleInput() {
-//		boolean refresh = false;
-//
-//		float deltaTime = Gdx.graphics.getDeltaTime();
-//		double absFactor = deltaTime * uiScale;
-//
-//		if (Gdx.input.isKeyPressed(Keys.C)){
-//			colorShift += -deltaTime*0.5;
-//		}
-//
-//		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-//			refresh = true;
-//		}
-//
-//		//uiScale *= 1 + scalingFactor * deltaTime;
-//
-//		if (Gdx.input.isKeyPressed(Keys.LEFT)) {
-//			xPos -= absFactor * FractalsInputProcessor.speedMultiplier_pan;
-//			refresh = true;
-//		}
-//		if (Gdx.input.isKeyPressed(Keys.RIGHT)) {
-//			xPos += absFactor * FractalsInputProcessor.speedMultiplier_pan;
-//			refresh = true;
-//		}
-//		if (Gdx.input.isKeyPressed(Keys.DOWN)) {
-//			yPos -= FractalsInputProcessor.yMultiplier * absFactor * FractalsInputProcessor.speedMultiplier_pan;
-//			refresh = true;
-//		}
-//		if (Gdx.input.isKeyPressed(Keys.UP)) {
-//			yPos += FractalsInputProcessor.yMultiplier * absFactor * FractalsInputProcessor.speedMultiplier_pan;
-//			refresh = true;
-//		}
-//
-//		if (Gdx.input.isKeyPressed(Keys.PLUS) && !Gdx.input.isKeyPressed(Keys.MINUS)){
-//			FractalsInputProcessor.iterationsStep = FractalsInputProcessor.iterationsChangeSpeed;
-//			refresh = true;
-//		} else if (Gdx.input.isKeyPressed(Keys.MINUS)){
-//			FractalsInputProcessor.iterationsStep = -FractalsInputProcessor.iterationsChangeSpeed;
-//			refresh = true;
-//		} else {
-//			FractalsInputProcessor.lastIterationStepTime = System.currentTimeMillis();
-//			FractalsInputProcessor.iterationsStep = 0;
-//		}
-//
-//		if (Gdx.input.isKeyPressed(Keys.I) && !Gdx.input.isKeyPressed(Keys.K)){
-//			biasReal += biasChangeSpeed*absFactor;
-//			refresh = true;
-//		} else if (Gdx.input.isKeyPressed(Keys.K)){
-//			biasReal -= biasChangeSpeed*absFactor;
-//			refresh = true;
-//		}
-//		if (Gdx.input.isKeyPressed(Keys.O) && !Gdx.input.isKeyPressed(Keys.L)){
-//			biasImag += biasChangeSpeed*absFactor;
-//			refresh = true;
-//		} else if (Gdx.input.isKeyPressed(Keys.L)){
-//			biasImag -= biasChangeSpeed*absFactor;
-//			refresh = true;
-//		}
-//
-//		if (Gdx.input.isKeyPressed(Keys.J)){
-//			juliaset = !juliaset;
-//		}
-//		if (Gdx.input.isKeyPressed(Keys.B)){
-//			burningship = !burningship;
-//		}
-//
-//		if (velocityX != 0) {
-//			xPos += velocityX * absFactor;
-//			refresh = true;
-//		}
-//		if (velocityY != 0) {
-//			yPos += FractalsInputProcessor.yMultiplier * velocityY * absFactor;
-//			refresh = true;
-//		}
-//
-//		double decayFactor = (velocityDecay*deltaTime);
-//		if (decayFactor > 1)
-//			decayFactor = 1;
-//		double length = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-//		if (length > 0) {
-//			double newLength = length * (1 - decayFactor) - velocityDecayFixed * deltaTime;
-//			if (newLength < 0) {
-//				velocityX = 0;
-//				velocityY = 0;
-//			} else {
-//				double factor = newLength / length;
-//				velocityX *= factor;
-//				velocityY *= factor;
-//			}
-//		}
-//		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-//			velocityX = 0;
-//			velocityY = 0;
-//		}
-
-//		if (velocityX > 0) {
-//			velocityX -= Math.min(decayFactor, velocityX);
-//		} else if (velocityX < 0) {
-//			velocityX += Math.min(decayFactor, -velocityX);
-//		}
-//		if (velocityY > 0) {
-//			velocityY -= Math.min(decayFactor, velocityY);
-//		} else if (velocityY < 0) {
-//			velocityY += Math.min(decayFactor, -velocityY);
-//		}
-
-//		if (FractalsInputProcessor.iterationsStep != 0){
-//			long t = System.currentTimeMillis();
-//			double deltaT = (t - FractalsInputProcessor.lastIterationStepTime)/1000.0;
-//			int change = (int)(FractalsInputProcessor.iterationsStep * deltaT * (iterations+1000));
-//			if (change < 0 && iterations < -change)
-//				change = -iterations;
-//			if (change != 0) {
-//				FractalsInputProcessor.lastIterationStepTime = t;
-//				iterations += change;
-//				refresh = true;
-//				System.out.println("set iterations to " + iterations);
-//			}
-//		}
-//		return refresh;
-//	}
-
-//	private void setShaderUniforms() {
-//		float currentWidth = Gdx.graphics.getWidth();
-//		float currentHeight = Gdx.graphics.getHeight();
-//		shader.setUniformMatrix("u_projTrans", matrix);
-//		shader.setUniformf("ratio", currentWidth/(float)currentHeight);
-//		shader.setUniformf("resolution", width, height);
-//
-//		shader.setUniformf("colorShift", colorShift);
-//
-////		long t = System.currentTimeMillis();
-////		if (t-lastIncrease > 1) {
-////			lastIncrease = t;
-////			iterations++;
-////		}
-//		shader.setUniformi("iterations", iterations);
-//		shader.setUniformf("uiScale", (float)uiScale);
-//		float xVariation = (float)((Math.random()-0.5)*(uiScale/width));
-//		float yVariation = (float)((Math.random()-0.5)*(uiScale/width));
-//		shader.setUniformf("center", (float) xPos + xVariation, (float) yPos + yVariation);
-//		shader.setUniformf("biasReal", biasReal);
-//		shader.setUniformf("biasImag", biasImag);
-//		shader.setUniformf("samples", currentRefreshes+1);
-//		shader.setUniformf("flip", currentRefreshes%2 == 1 ? -1 : 1);
-//		//shader.setUniformi("u_texture", 0);
-//		//palette.bind(1);
-//		shader.setUniformi("palette", 0);
-//		shader.setUniformf("burningship", burningship ? 1f : 0f);
-//		shader.setUniformf("juliaset", juliaset ? 1f : 0f);
-//	}
-//
-//	public void compileShaders() {
-//		ShaderProgram.pedantic = false;
-//		String vertexPassthrough = "PassthroughVertex.glsl";
-//		shader = compileShader(vertexPassthrough, shader1);
-////		sobelShader = compileShader(vertexPassthrough, shader2);
-//		passthroughShader = compileShader(vertexPassthrough, "PassthroughFragment.glsl");
-//
-//		width = Gdx.graphics.getWidth();
-//		height = Gdx.graphics.getHeight();
-//	}
-
-//	public ShaderProgram compileShader(String vertexPath, String fragmentPath){
-//		ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
-//				Gdx.files.internal(fragmentPath));
-//		if (!shader.isCompiled()) {
-//			throw new IllegalStateException("Error compiling shaders ("+vertexPath+", "+fragmentPath+"): "+shader.getLog());
-//		}
-//		return shader;
-//	}
 
 	@Override
 	public void resize(int width, int height) {

@@ -84,4 +84,8 @@ public interface FractalRenderer {
     void setFocused(boolean focused);
 
     boolean isFocused();
+
+    void setTimeBudget(double newTimeBudgetS);
+
+    int getPixelCount();
 }

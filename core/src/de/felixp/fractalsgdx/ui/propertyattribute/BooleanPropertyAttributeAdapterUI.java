@@ -42,13 +42,13 @@ public class BooleanPropertyAttributeAdapterUI extends AbstractPropertyAttribute
         o1Btn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                valueChanged(o1Btn.isChecked());
+                valueChanged(o1Btn.isChecked(), null, null);
             }
         });
         o2Btn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                valueChanged(!o2Btn.isChecked());
+                valueChanged(!o2Btn.isChecked(), null, null);
             }
         });
 
@@ -57,7 +57,7 @@ public class BooleanPropertyAttributeAdapterUI extends AbstractPropertyAttribute
     }
 
     @Override
-    public void valueChanged(Boolean newVal) {
+    public void valueChanged(Boolean newVal, Boolean min, Boolean max) {
 
     }
 }

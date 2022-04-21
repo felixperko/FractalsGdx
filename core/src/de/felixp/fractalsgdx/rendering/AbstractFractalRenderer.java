@@ -29,13 +29,20 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
 //        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
         shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMS_PALETTE_VALUE_DISABLED) ? 0 : 1);
+        shader.setUniformi("usePalette2", stage.getClientParameter(MainStage.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMS_PALETTE_VALUE_DISABLED) ? 0 : 1);
         shader.setUniformf("colorAdd", (float)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorAdd2", (float)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_ADD).getGeneral(Number.class).toDouble());
         shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_MULT).getGeneral(Number.class).toDouble());
         shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());
 //        shader.setUniformf("sobelLuminance", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_FACTOR).getGeneral(Double.class));
-        shader.setUniformf("sobel_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_GLOW).getGeneral(Number.class).toDouble());
-        shader.setUniformf("sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("sobelPeriod", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_DIM_PERIOD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_ambient2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
+        shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
         shader.setUniformi("extractChannel", (int)(int)stage.getClientParameter(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
         Object color = stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR).getGeneral();
 //        float[] hsv = ((Color)color).toHsv(new float[4]);
@@ -47,6 +54,10 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         shader.setUniformf("mappingColorB", ((Color)color).b);
 
         shader.setUniformf("resolution", width, height);
+//        float defaultWidth = 1920;
+//        shader.setUniformi("sobelSpan", (int)Math.round(Gdx.graphics.getWidth()/defaultWidth));
+//        shader.setUniformi("sobelSpan", Gdx.graphics.getWidth() >= defaultWidth*2 ? 2 : 1 );
+        shader.setUniformi("sobelSpan", 2);
     }
 
     int position = -1;
@@ -61,9 +72,14 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     protected boolean isFocused = false;
 
+    boolean multisampleByRepeating = false;
+
+    double timeBudgetS = 0.0;
+
     public AbstractFractalRenderer(RendererContext rendererContext){
         this.rendererContext = rendererContext;
     }
+
 
     @Override
     public void initRenderer() {
@@ -82,6 +98,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     }
 
     public abstract void init();
+    public abstract int getPixelCount();
 
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){
 //        ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
@@ -96,13 +113,6 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
             String fragmentTemplate = fragmentTemplateHandle.readString();
             vertexString = fillShaderTemplate(Arrays.asList(vertexTemplate));
             fragmentString = fillShaderTemplate(Arrays.asList(fragmentTemplate));
-//            List<String> vertexStringTemplate = Files.readAllLines(Paths.get(vertexShaderPath));
-//            List<String> fragmentStringTemplate = Files.readAllLines(Paths.get(fragmentShaderPath));
-//            LOG.warn("compiling shaders "+vertexShaderPath+", "+fragmentShaderPath);
-//            List<String> vertexStringTemplate = Files.readAllLines(Paths.get(vertexShaderPath));
-//            List<String> fragmentStringTemplate = Files.readAllLines(Paths.get(fragmentShaderPath));
-//            vertexString = fillShaderTemplate(vertexStringTemplate);
-//            fragmentString = fillShaderTemplate(fragmentStringTemplate);
             shader = new ShaderProgram(vertexString, fragmentString);
 //        }
 //        catch (IOException e) {
@@ -110,12 +120,19 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 //        }
         if (!shader.isCompiled()) {
             System.out.println("----VERTEX----");
-            System.out.println(vertexString);
+            printShaderLines(vertexString);
             System.out.println("---FRAGMENT---");
-            System.out.println(fragmentString);
+            printShaderLines(fragmentString);
             throw new IllegalStateException("Error compiling shaders ("+vertexPath+", "+fragmentPath+"): "+shader.getLog());
         }
         return shader;
+    }
+
+    private void printShaderLines(String lines) {
+        String[] l = lines.split(System.lineSeparator());
+        for (int i = 0 ; i < l.length ; i++){
+            System.out.println((i+1)+": "+l[i]);
+        }
     }
 
     protected String fillShaderTemplate(List<String> vertexStringTemplate) {
@@ -295,6 +312,11 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     public void removePanListener(PanListener panListener){
         rendererContext.removePanListener(panListener);
+    }
+
+    @Override
+    public void setTimeBudget(double newTimeBudgetS) {
+        this.timeBudgetS = newTimeBudgetS;
     }
 
     @Override

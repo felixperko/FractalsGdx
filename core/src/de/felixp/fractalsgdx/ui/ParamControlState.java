@@ -8,7 +8,11 @@ import de.felixperko.fractals.system.numbers.Number;
  */
 public class ParamControlState {
 
+    public static final int SLIDERSCALING_LINEAR = 0;
+    public static final int SLIDERSCALING_LOGARITHMIC = 1;
+
     String controlView;
+    Integer sliderScaling;
     Double minLimit;
     Double maxLimit;
     Double minLimit2;
@@ -28,6 +32,8 @@ public class ParamControlState {
             this.minLimit = other.minLimit;
         if (this.maxLimit == null)
             this.maxLimit = other.maxLimit;
+        if (this.sliderScaling == null)
+            this.sliderScaling = other.sliderScaling;
     }
 
 
@@ -71,4 +77,11 @@ public class ParamControlState {
         this.maxLimit2 = maxLimit2;
     }
 
+    public void setSliderScaling(int sliderScaling) {
+        this.sliderScaling = sliderScaling;
+    }
+
+    public int getSliderscaling() {
+        return this.sliderScaling != null ? this.sliderScaling : 0;
+    }
 }

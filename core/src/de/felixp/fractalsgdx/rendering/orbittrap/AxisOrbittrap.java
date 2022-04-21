@@ -27,7 +27,7 @@ public class AxisOrbittrap extends AbstractOrbittrap{
         this.offset = offset;
         this.width = width;
         setAngle(angle);
-        attrs.add(new NumberParamAttribute(name, "width") {
+        attrs.add(new NumberParamAttribute(name, "width", nf.createNumber(0.001), nf.createNumber(0.1)) {
             @Override
             public Number<?> getValue() {
                 return getWidth();
@@ -38,7 +38,7 @@ public class AxisOrbittrap extends AbstractOrbittrap{
                 setWidth((Number)number);
             }
         });
-        attrs.add(new NumberParamAttribute(name, "offset") {
+        attrs.add(new NumberParamAttribute(name, "offset", nf.createNumber(-1.0), nf.createNumber(1.0)) {
             @Override
             public Number<?> getValue() {
                 return getOffset();
@@ -49,7 +49,7 @@ public class AxisOrbittrap extends AbstractOrbittrap{
                 setOffset((Number)number);
             }
         });
-        attrs.add(new NumberParamAttribute(name, "angle") {
+        attrs.add(new NumberParamAttribute(name, "angle", nf.createNumber(0.0), nf.createNumber(180.0)) {
             @Override
             public Number<?> getValue() {
                 return getAngle();

@@ -115,7 +115,7 @@ public class ParamUI {
 //    }
 
     public CollapsiblePropertyListButton getSwitchRenderersButton() {
-        return new CollapsiblePropertyListButton("switch juliaset", "Calculator", new ChangeListener() {
+        return new CollapsiblePropertyListButton("switch sets", "Calculator", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
 
@@ -183,66 +183,14 @@ public class ParamUI {
         boolean reset = false;
         for (ParamSupplier supp : paramContainer.getParameters()){
             ParamDefinition paramDefinition = parameterConfiguration != null ? parameterConfiguration.getParamDefinition(supp.getName()) : null;
-            if (supp.isChanged() && paramDefinition != null && paramDefinition.isResetRendererOnChange())
+            if (supp.isChanged() && paramDefinition != null && paramDefinition.isResetRendererOnChange()) {
                 reset = true;
+                supp.updateChanged(supp);
+            }
         }
         if (reset)
             focusedRenderer.reset();
         else
             focusedRenderer.setRefresh();
-
-//        stage.updateStateBar();
-//        for (AbstractPropertyEntry entry : propertyEntryList) {
-//            entry.closeView(AbstractPropertyEntry.VIEW_LIST);
-//        }
-//        propertyEntryList.clear();
-//
-//        VisTable tree = serverParamsSideMenu.getTree();
-//
-//        tree.clear();
-//
-//        //NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-//
-//        //addEntry(new IntTextPropertyEntry(tree, systemClientData, "iterations"));
-//        //addEntry(new ComplexNumberPropertyEntry(tree, systemClientData, "pow", nf));
-//
-//        if (submitButton != null)
-//            submitButton.remove();
-//
-//        List<ParameterDefinition> parameterDefinitions = new ArrayList<>(parameterConfiguration.getParameters());
-//        List<ParameterDefinition> calculatorParameterDefinitions = parameterConfiguration.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
-//        parameterDefinitions.addAll(calculatorParameterDefinitions);
-//        for (ParameterDefinition parameterDefinition : parameterDefinitions) {
-//            AbstractPropertyEntry entry = serverPropertyEntryFactory.getPropertyEntry(parameterDefinition, paramContainer);
-//            if (entry != null) {
-//                entry.initRenderer();
-//                entry.openView(AbstractPropertyEntry.VIEW_LIST, tree);
-//                addEntry(entry);
-//            }
-//        }
-//
-//        ClientSystem clientSystem = ((RemoteRenderer)renderer).getSystemInterface().getClientSystem();
-//
-//        submitButton = new VisTextButton("Submit", new ChangeListener() {
-//            @Override
-//            public void changed(ChangeEvent event, Actor actor) {
-//                clientSystem.setOldParams(paramContainer.getClientParameters());
-//                for (AbstractPropertyEntry entry : propertyEntryList){
-//                    entry.applyClientValue();
-//                }
-//                if (paramContainer.needsReset(clientSystem.getOldParams())) {
-//                    clientSystem.incrementJobId();
-//                    renderer.reset();
-//                }
-//                clientSystem.updateConfiguration();
-////                }
-//            }
-//        });
-//
-//        tree.add();
-//        tree.add(submitButton).row();
-//
-//        renderer.setRefresh();
-//        updateStateBar();
     }
 }
