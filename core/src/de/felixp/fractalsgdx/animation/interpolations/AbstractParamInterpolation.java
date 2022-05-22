@@ -17,10 +17,12 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
     boolean automaticTimings = true;
 
+    String paramUid;
     String paramName;
+    String attrUid;
+    String attrName;
     String paramType;
     String paramContainerKey;
-    String attributeName;
 
     InterpolationFunction interpolationFunction;
 
@@ -41,8 +43,9 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     boolean inheritRealPart = false;
     boolean inheritImagPart = false;
 
-    public AbstractParamInterpolation(String paramName, String paramType, String paramContainerKey, String attributeName, Class<? extends InterpolationFunction> interpolationFunctionClass){
-        this.paramName = paramName;
+    public AbstractParamInterpolation(String paramUid, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass){
+        this.paramUid = paramUid;
+        this.attrUid = attributeUid;
         this.paramType = paramType;
         this.paramContainerKey = paramContainerKey;
         this.interpolationFunction = initInterpolationFunction(interpolationFunctionClass);
@@ -51,7 +54,7 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
 
     @Override
     public String getAttributeName() {
-        return attributeName;
+        return attrName;
     }
 
     /**
@@ -167,17 +170,32 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     }
 
     @Override
+    public String getParamUid() {
+        return paramUid;
+    }
+
+    @Override
     public String getParamName() {
         return paramName;
     }
 
+    @Override
+    public String getDisplayString(boolean includeContainerKey) {
+        String attrStr = attrUid == null ? "" : " : "+attrName;
+        if (includeContainerKey)
+            return getParamName()+attrStr+" ("+getParamContainerKey()+")";
+        else
+            return getParamName()+attrStr;
+    }
 
     @Override
-    public void setParam(String paramName, String paramType, String paramContainerKey, String attributeName){
+    public void setParam(String paramUid, String paramName, String paramType, String paramContainerKey, String attrUid, String attributeName){
+        this.paramUid = paramUid;
         this.paramName = paramName;
         this.paramType = paramType;
+        this.attrName = attributeName;
+        this.attrUid = attrUid;
         this.paramContainerKey = paramContainerKey;
-        this.attributeName = attributeName;
     }
 
     @Override

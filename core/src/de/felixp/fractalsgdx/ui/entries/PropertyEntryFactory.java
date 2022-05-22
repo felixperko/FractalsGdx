@@ -18,6 +18,7 @@ import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.ParamValueField;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.util.UIDGenerator;
 
 public class PropertyEntryFactory {
 
@@ -49,7 +50,7 @@ public class PropertyEntryFactory {
 
             for (ParamValueField field : type.getSubTypes()){
                 ParamValueType subType = field.getType();
-                ParamDefinition subDefinition = new ParamDefinition(field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
+                ParamDefinition subDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
                 subDefinition.setConfiguration(paramDef.getConfiguration());
                 AbstractPropertyEntry entry = createEntry(subType, paramContainer, subDefinition);
                 if (entry != null) {
@@ -109,7 +110,7 @@ public class PropertyEntryFactory {
 //                return new CompositePropertyEntry(node, paramCont, paramDef){
 //                    @Override
 //                    public void addSubEntries(List<AbstractPropertyEntry> subEntries) {
-//                        LayerConfiguration current = paramCont.getClientParameter(propertyName).getGeneral(LayerConfiguration.class);
+//                        LayerConfiguration current = paramCont.getParam(propertyName).getGeneral(LayerConfiguration.class);
 //                        if (current != null) {
 //                            ((ListPropertyEntry) subEntries.get(0)).setContent(current.getLayers());
 //                        }

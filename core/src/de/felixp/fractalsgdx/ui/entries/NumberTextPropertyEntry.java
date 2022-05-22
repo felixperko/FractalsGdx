@@ -25,7 +25,7 @@ public class NumberTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     @Override
     public ParamSupplier getSupplier() {
         Number val = text == null || text.equals("") ? numberFactory.createNumber(0.0) : numberFactory.createNumber(text);
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyUID(), val);
         supplier.setLayerRelevant(true);
         return supplier;
     }

@@ -143,7 +143,8 @@ public class ClientSystem {
         params.put("view", new StaticParamSupplier("view", 0));
 
         BFSystemContext systemContext = new BFSystemContext(null, paramConfiguration);
-        ParamContainer paramContainer = new ParamContainer(params);
+        ParamContainer paramContainer = new ParamContainer(paramConfiguration);
+        paramContainer.setParams(params, null);
         systemContext.setParameters(paramContainer);
         return systemContext;
 
@@ -161,25 +162,25 @@ public class ClientSystem {
 
         LOG.warn("updating midpoint from "+systemContext.getMidpoint()+" to "+midpoint);
         systemContext.setMidpoint(midpoint);
-        //systemClientData.getClientParameters().put("midpoint", new StaticParamSupplier("midpoint", midpoint));
+        //systemClientData.getParamMap().put("midpoint", new StaticParamSupplier("midpoint", midpoint));
         updateConfiguration();
     }
 
     public void updateZoom(Number zoomFactor){
         Number zoom = systemContext.getZoom();
         zoom.mult(zoomFactor);
-        setOldParams(systemContext.getParamContainer().getClientParameters()); //TODO !
+        setOldParams(systemContext.getParamContainer().getParamMap()); //TODO !
         systemContext.setZoom(zoom);
-//        systemClientData.getClientParameters().put("zoom", supplier);
+//        systemClientData.getParamMap().put("zoom", supplier);
         incrementJobId();
         updateConfiguration();
         resetAnchor();
     }
 
     public void incrementJobId(){
-        //ParamSupplier viewSupplier = systemClientData.getClientParameters().get("view");
+        //ParamSupplier viewSupplier = systemClientData.getParamMap().get("view");
         //Integer view = viewSupplier != null ? viewSupplier.getGeneral(Integer.class) : -1;
-        //systemClientData.getClientParameters().put("view", new StaticParamSupplier("view", view + 1));
+        //systemClientData.getParamMap().put("view", new StaticParamSupplier("view", view + 1));
         systemContext.incrementViewId();
         //jobId = view+1;
     }
@@ -230,7 +231,7 @@ public class ClientSystem {
             contextParamContainer.setParamConfiguration(getParamConfiguration());
             //add additional params
             for (Map.Entry<String, ParamSupplier> e : this.systemContext.getParameters().entrySet()){
-                Map<String, ParamSupplier> parameters = contextParamContainer.getClientParameters();
+                Map<String, ParamSupplier> parameters = contextParamContainer.getParamMap();
                 if (!parameters.containsKey(e.getKey()))
                     parameters.put(e.getKey(), e.getValue());
             }

@@ -77,7 +77,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 float step = 0.001f;
                 slider = new VisSlider(0, 1, step, false);
 
-                ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier supplier = paramContainer.getParam(propertyUID);
                 if (supplier != null) {
                     value = (double) supplier.getGeneral(Double.class);
                     slider.setValue((float)((value-min)/(max-min)));
@@ -209,7 +209,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
                 label = new VisLabel(propertyName);
                 field = new VisValidatableTextField(Validators.FLOATS);
 
-                ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier textSupplier = paramContainer.getParam(propertyUID);
 
                 if (textSupplier != null) {
                     //TODO arbitrary precision
@@ -246,7 +246,7 @@ public class DoubleSliderPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return new StaticParamSupplier(propertyName, (Double)value);
+        return new StaticParamSupplier(propertyUID, (Double)value);
     }
 
     @Override

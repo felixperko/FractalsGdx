@@ -4,17 +4,17 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 
 public class PostprocessToggleKeybinding extends Keybinding{
 
-    String paramName;
+    String paramUID;
 
     public PostprocessToggleKeybinding(String description, String paramName, int... keys){
         super(description, keys);
-        this.paramName = paramName;
+        this.paramUID = paramName;
     }
 
     @Override
     public void apply() {
         MainStage stage = (MainStage) FractalsGdxMain.stage;
-        Object val = stage.getClientParameter(paramName).getGeneral();
-        stage.getParamUI().clientParamsSideMenu.getPropertyEntry(paramName).setValue(!(Boolean)val);
+        Object val = stage.getClientParam(paramUID).getGeneral();
+        stage.getParamUI().clientParamsSideMenu.getPropertyEntryByUID(paramUID).setValue(!(Boolean)val);
     }
 }

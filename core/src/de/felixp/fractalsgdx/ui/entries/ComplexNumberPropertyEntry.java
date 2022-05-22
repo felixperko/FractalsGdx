@@ -39,18 +39,18 @@ public class ComplexNumberPropertyEntry extends AbstractDoubleTextPropertyEntry 
         ParamSupplier supplier = null;
 
         if (selectedSupplierClass.isAssignableFrom(CoordinateBasicShiftParamSupplier.class)){
-            supplier = new CoordinateBasicShiftParamSupplier(propertyName);
+            supplier = new CoordinateBasicShiftParamSupplier(propertyUID);
         }
         else if (selectedSupplierClass.isAssignableFrom(CoordinateDiscreteParamSupplier.class)){
-            supplier = new CoordinateDiscreteParamSupplier(propertyName);
+            supplier = new CoordinateDiscreteParamSupplier(propertyUID);
         }
         else if (selectedSupplierClass.isAssignableFrom(CoordinateModuloParamSupplier.class)){
-            supplier = new CoordinateModuloParamSupplier(propertyName);
+            supplier = new CoordinateModuloParamSupplier(propertyUID);
         }
         else {
             String real = (text1 == null || text1.length() == 0) ? "0" : text1;
             String imag = (text2 == null || text2.length() == 0) ? "0" : text2;
-            supplier = new StaticParamSupplier(propertyName, numberFactory.createComplexNumber(real, imag));
+            supplier = new StaticParamSupplier(propertyUID, numberFactory.createComplexNumber(real, imag));
         }
         supplier.setLayerRelevant(true);//TODO only if in definition! other flags!
         return supplier;

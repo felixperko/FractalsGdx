@@ -137,7 +137,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 //                field2.setPrefWidth(prefControlWidth*0.45f);
 
 
-                ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier paramSupplier = paramContainer.getParam(propertyUID);
 
                 field1.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
                 field2.setTraversalPaused(!(paramSupplier instanceof StaticParamSupplier));
@@ -269,11 +269,12 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 label = new VisLabel(propertyName);
                 optionButton = new VisTextButton("...");
 
-                min1 = getState().getMin();
-                min2 = getState().getMin2();
-                max1 = getState().getMax();
-                max2 = getState().getMax2();
-                sliderLogarithmic = getState().getSliderscaling() == ParamControlState.SLIDERSCALING_LOGARITHMIC;
+                ParamControlState state = getState();
+                min1 = state.getMin();
+                min2 = state.getMin2();
+                max1 = state.getMax();
+                max2 = state.getMax2();
+                sliderLogarithmic = state.getSliderscaling() == ParamControlState.SLIDERSCALING_LOGARITHMIC;
 
                 if (min1 == null || max1 == null || min2 == null || max2 == null) {
                     Double minD = parameterDefinition.getHintAttributeDoubleValue("ui-element[default]:slider", "min");
@@ -294,7 +295,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 slider1 = new TestSlider(0, 1, 0.001f, false);
                 slider2 = new TestSlider(0, 1, 0.001f, false);
 
-                ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier paramSupplier = paramContainer.getParam(propertyUID);
 
                 inputDisabled = !(paramSupplier instanceof StaticParamSupplier);
                 if (!inputDisabled) {

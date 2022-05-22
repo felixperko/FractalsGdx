@@ -182,7 +182,7 @@ public class ParamUI {
 
         boolean reset = false;
         for (ParamSupplier supp : paramContainer.getParameters()){
-            ParamDefinition paramDefinition = parameterConfiguration != null ? parameterConfiguration.getParamDefinition(supp.getName()) : null;
+            ParamDefinition paramDefinition = parameterConfiguration != null ? parameterConfiguration.getParamDefinitionByUID(supp.getUID()) : null;
             if (supp.isChanged() && paramDefinition != null && paramDefinition.isResetRendererOnChange()) {
                 reset = true;
                 supp.updateChanged(supp);

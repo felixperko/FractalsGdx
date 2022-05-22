@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.rendering.rendererlink;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
@@ -12,15 +13,23 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 
+import static de.felixperko.fractals.system.systems.common.CommonFractalParameters.*;
+
 public class JuliasetRendererLink extends DefaultRendererLink{
 
     public JuliasetRendererLink(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
-        super(sourceRenderer, targetRenderer, Arrays.asList("limit", ShaderSystemContext.PARAMNAME_ITERATIONS, CommonFractalParameters.PARAM_EXPRESSIONS, "condition", ShaderSystemContext.PARAMNAME_ORBITTRAPS));
+        super(sourceRenderer, targetRenderer,
+                Arrays.asList(ShaderSystemContext.PARAM_LIMIT,
+                        CommonFractalParameters.PARAM_ITERATIONS,
+                        CommonFractalParameters.PARAM_EXPRESSIONS,
+                        ShaderSystemContext.PARAM_CONDITION,
+                        ShaderSystemContext.PARAM_ORBITTRAPS));
     }
 
     boolean switching = false;
@@ -32,33 +41,33 @@ public class JuliasetRendererLink extends DefaultRendererLink{
             return;
         switching = true;
 
-        ComplexNumber preservedSourceMidpoint = getSourceParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-        ComplexNumber preservedTargetMidpoint = getTargetParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        ComplexNumber preservedSourceMidpoint = getSourceParamContainer().getParam(PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
+        ComplexNumber preservedTargetMidpoint = getTargetParamContainer().getParam(PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
 
-        Number preservedSourceZoom = getSourceParamContainer().getClientParameter("zoom").getGeneral(Number.class);
-        Number preservedTargetZoom = getTargetParamContainer().getClientParameter("zoom").getGeneral(Number.class);
+        Number preservedSourceZoom = getSourceParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class);
+        Number preservedTargetZoom = getTargetParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class);
 
         super.switchRenderers();
 
 //        ComplexNumber newSourceStart = getSourceRenderer().getSystemContext().getNumberFactory().createComplexNumber(0, 0);
-        ParamSupplier newSourceStartSupp = getTargetParamContainer().getClientParameter(CommonFractalParameters.PARAM_ZSTART);
+        ParamSupplier newSourceStartSupp = getTargetParamContainer().getParam(PARAM_ZSTART);
         NumberFactory nf = getSourceRenderer().getSystemContext().getNumberFactory();
         ComplexNumber newSourceStart = newSourceStartSupp instanceof StaticParamSupplier ? newSourceStartSupp.getGeneral(ComplexNumber.class) : nf.createComplexNumber(0,0);
-        getSourceParamContainer().addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_ZSTART, newSourceStart));
-        getSourceParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier("c"));
-        getSourceParamContainer().addClientParameter(new StaticParamSupplier("midpoint", preservedSourceMidpoint.copy()));
-        getSourceParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedSourceZoom.copy()));
+        getSourceParamContainer().addParam(new StaticParamSupplier(PARAM_ZSTART, newSourceStart));
+        getSourceParamContainer().addParam(new CoordinateBasicShiftParamSupplier(PARAM_C));
+        getSourceParamContainer().addParam(new StaticParamSupplier(PARAM_MIDPOINT, preservedSourceMidpoint.copy()));
+        getSourceParamContainer().addParam(new StaticParamSupplier(ShaderSystemContext.PARAM_ZOOM, preservedSourceZoom.copy()));
 
-        getTargetParamContainer().addClientParameter(new CoordinateBasicShiftParamSupplier(CommonFractalParameters.PARAM_ZSTART));
-        getTargetParamContainer().addClientParameter(new StaticParamSupplier("c", preservedSourceMidpoint.copy()));
-        getTargetParamContainer().addClientParameter(new StaticParamSupplier("midpoint", preservedTargetMidpoint.copy()));
-        getTargetParamContainer().addClientParameter(new StaticParamSupplier("zoom", preservedTargetZoom.copy()));
+        getTargetParamContainer().addParam(new CoordinateBasicShiftParamSupplier(PARAM_ZSTART));
+        getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_C, preservedSourceMidpoint.copy()));
+        getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_MIDPOINT, preservedTargetMidpoint.copy()));
+        getTargetParamContainer().addParam(new StaticParamSupplier(ShaderSystemContext.PARAM_ZOOM, preservedTargetZoom.copy()));
 
         resetRenderer(getSourceRenderer());
         resetRenderer(getTargetRenderer());
 
-//        getTargetParamContainer().getClientParameter("c").updateChanged(getTargetParamContainer().getClientParameter("c"));
-//        getSourceParamContainer().getClientParameter("c").updateChanged(getSourceParamContainer().getClientParameter("c"));
+//        getTargetParamContainer().getParam("c").updateChanged(getTargetParamContainer().getParam("c"));
+//        getSourceParamContainer().getParam("c").updateChanged(getSourceParamContainer().getParam("c"));
 
         switching = false;
     }
@@ -71,23 +80,25 @@ public class JuliasetRendererLink extends DefaultRendererLink{
 
         boolean changed = super.syncParams();
 
-        ExpressionsParam expressions = getSourceParamContainer().getClientParameter(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
+        ExpressionsParam expressions = getSourceParamContainer().getParam(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
         ComputeExpression computeExpression;
         try {
-            computeExpression = new ComputeExpressionBuilder(expressions, new HashMap<>()).getComputeExpression();
+            ParamConfiguration sourceConfig = sourceRenderer.getSystemContext().getParamConfiguration();
+            computeExpression = new ComputeExpressionBuilder(expressions, getSourceParamContainer().getParamMap(), sourceConfig.getUIDsByName()).getComputeExpression();
         } catch (IllegalArgumentException e){
-            getSourceParamContainer().addClientParameter(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, new ExpressionsParam("z^2+c", "z")));
+            getSourceParamContainer().addParam(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, new ExpressionsParam("z^2+c", "z")));
             e.printStackTrace();
             return false;
         }
         if (computeExpression != null){
+            //sync static values
             for (String name : computeExpression.getConstantNames()){
-                ParamSupplier actualSupp = (ParamSupplier) getSourceParamContainer().getClientParameter(name);
-                ParamSupplier prevTargetSupp = (ParamSupplier) getTargetParamContainer().getClientParameter(name);
+                ParamSupplier actualSupp = (ParamSupplier) getSourceParamContainer().getParam(name);
+                ParamSupplier prevTargetSupp = (ParamSupplier) getTargetParamContainer().getParam(name);
                 if (actualSupp != null && (prevTargetSupp == null || !actualSupp.equals(prevTargetSupp))) {
-                    String nameFromSupp = actualSupp.getName();
-                    if (!name.equals("c") && !name.equals(CommonFractalParameters.PARAM_ZSTART)) {
-                        getTargetParamContainer().addClientParameter(actualSupp);
+                    String uid = actualSupp.getUID();
+                    if (!uid.equals(PARAM_C) && !uid.equals(CommonFractalParameters.PARAM_ZSTART)) {
+                        getTargetParamContainer().addParam(actualSupp);
                         changed = true;
                     }
                 }
@@ -95,7 +106,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         }
 
         boolean setTargetJuliaset = getSourceParamContainer()
-                .getClientParameter(CommonFractalParameters.PARAM_ZSTART) instanceof StaticParamSupplier;
+                .getParam(CommonFractalParameters.PARAM_ZSTART) instanceof StaticParamSupplier;
 
         if (!setTargetJuliaset) {
             switchRenderers();
@@ -105,14 +116,14 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         ParamContainer sourceContainer = getSourceParamContainer();
         ParamContainer targetContainer = getTargetParamContainer();
 
-        ComplexNumber sourceMidpoint = sourceContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
-        ParamSupplier targetCSupp = targetContainer.getClientParameter("c");
+        ComplexNumber sourceMidpoint = sourceContainer.getParam(PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
+        ParamSupplier targetCSupp = targetContainer.getParam(PARAM_C);
         if (!(targetCSupp instanceof StaticParamSupplier) || !sourceMidpoint.equals(targetCSupp.getGeneral(ComplexNumber.class))) {
-            targetContainer.addClientParameter(new StaticParamSupplier("c", sourceMidpoint.copy()));
+            targetContainer.addParam(new StaticParamSupplier(PARAM_C, sourceMidpoint.copy()));
             changed = true;
         }
-        if (!(targetContainer.getClientParameter(CommonFractalParameters.PARAM_ZSTART) instanceof CoordinateBasicShiftParamSupplier)){
-            targetContainer.addClientParameter(new CoordinateBasicShiftParamSupplier(CommonFractalParameters.PARAM_ZSTART));
+        if (!(targetContainer.getParam(CommonFractalParameters.PARAM_ZSTART) instanceof CoordinateBasicShiftParamSupplier)){
+            targetContainer.addParam(new CoordinateBasicShiftParamSupplier(CommonFractalParameters.PARAM_ZSTART));
             changed = true;
         }
 
@@ -121,10 +132,10 @@ public class JuliasetRendererLink extends DefaultRendererLink{
 
     @Override
     public boolean isActive() {
-        ParamSupplier sourceStart = getSourceParamContainer().getClientParameter(CommonFractalParameters.PARAM_ZSTART);
-        ParamSupplier sourceC = getSourceParamContainer().getClientParameter("c");
-        ParamSupplier targetStart = getTargetParamContainer().getClientParameter(CommonFractalParameters.PARAM_ZSTART);
-        ParamSupplier targetC = getTargetParamContainer().getClientParameter("c");
+        ParamSupplier sourceStart = getSourceParamContainer().getParam(CommonFractalParameters.PARAM_ZSTART);
+        ParamSupplier sourceC = getSourceParamContainer().getParam(PARAM_C);
+        ParamSupplier targetStart = getTargetParamContainer().getParam(CommonFractalParameters.PARAM_ZSTART);
+        ParamSupplier targetC = getTargetParamContainer().getParam(PARAM_C);
 
         ParamSupplier[] checkParams = new ParamSupplier[]{sourceStart, sourceC, targetStart, targetC};
         for (ParamSupplier supp : checkParams)

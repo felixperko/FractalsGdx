@@ -42,6 +42,7 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
@@ -475,14 +476,14 @@ public class RemoteRenderer extends AbstractFractalRenderer {
 //        ComplexNumber currentMidpoint = systemInterface.getCurrentMidpoint();
 //        if (currentMidpoint != null) {
 //            ParamContainer systemClientData = systemInterface.getParamContainer();
-//            int w = systemClientData.getClientParameter("width").getGeneral(Integer.class);
-//            int h = systemClientData.getClientParameter("height").getGeneral(Integer.class);
-//            NumberFactory nf = systemClientData.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+//            int w = systemClientData.getParam("width").getGeneral(Integer.class);
+//            int h = systemClientData.getParam("height").getGeneral(Integer.class);
+//            NumberFactory nf = systemClientData.getParam("numberFactory").getGeneral(NumberFactory.class);
 //
 //            ComplexNumber screenMid = nf.createComplexNumber(w/2., h/2.);
 //            ComplexNumber screenPos = systemInterface.getWorldCoords(screenMid);
 //            screenPos.sub(currentMidpoint);
-//            screenPos.divNumber(systemClientData.getClientParameter("zoom").getGeneral(Number.class));
+//            screenPos.divNumber(systemClientData.getParam("zoom").getGeneral(Number.class));
 //            //screenPos.add(screenMid);
 ////            screenPos.divNumber(nf.createNumber(30.4));
 ////            screenPos.sub(screenMid);
@@ -555,8 +556,8 @@ public class RemoteRenderer extends AbstractFractalRenderer {
             return;
 
         SystemContext context = systemInterface.getSystemContext();
-        context.getParamContainer().addClientParameter(new StaticParamSupplier("width", (int)getWidth()));
-        context.getParamContainer().addClientParameter(new StaticParamSupplier("height", (int)getHeight()));
+        context.getParamContainer().addParam(new StaticParamSupplier("width", (int)getWidth()));
+        context.getParamContainer().addParam(new StaticParamSupplier("height", (int)getHeight()));
         context.setParameters(context.getParamContainer());
 
         setRefresh();

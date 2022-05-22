@@ -87,7 +87,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                 }
             }
         }, submitValue);
-        ParamSupplier clientParameter = paramContainer.getClientParameter(propertyName);
+        ParamSupplier clientParameter = paramContainer.getParam(propertyUID);
         if (clientParameter != null) {
             expressionsParam = clientParameter.getGeneral(ExpressionsParam.class);
             text = expressionsParam.getMainExpression();
@@ -109,7 +109,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             if (str.contains(extracted))
                 options.add(str);
         }
-        for (String paramName : paramContainer.getClientParameters().keySet()) {
+        for (String paramName : paramContainer.getParamMap().keySet()) {
             if (paramName.contains(extracted) && !paramName.equalsIgnoreCase(getPropertyName())) {
                 options.add(paramName);
                 if (!paramName.endsWith("_0"))
@@ -447,7 +447,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         contentTable.clear();
 
         ExpressionsParam expressionsParam = getSupplier().getGeneral(ExpressionsParam.class);
-        ComputeExpressionBuilder builder = new ComputeExpressionBuilder(expressionsParam, paramContainer.getClientParameters());
+        ComputeExpressionBuilder builder = new ComputeExpressionBuilder(expressionsParam, paramContainer.getParamMap(), null);
         ComputeExpressionDomain domain = null;
         String parseErrorMessage;
 
@@ -456,7 +456,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             domain = builder.getComputeExpressionDomain(false);
         } catch (IllegalArgumentException | IllegalStateException e){
             parseErrorMessage = e.getMessage();
-            domain = new ComputeExpressionDomain(new ComputeExpression("", new ArrayList<>(), new HashMap<>(), 0, new HashMap<>(), new HashMap<>(), 0));
+            domain = new ComputeExpressionDomain(new ComputeExpression("", new ArrayList<>(), new HashMap<>(), 0, new HashMap<>(), new HashMap<>(), 0, new HashMap<>()));
         }
 
         if (parseErrorMessage != null){
@@ -475,7 +475,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 
         int counter = 0;
         for (ParamSupplier supp : firstExpression.getParameterList()){
-            String varName = supp.getName();
+            String varName = getPropertyName();
             if (varName.endsWith("_0"))
                 varName = varName.substring(0, varName.length()-2);
             boolean isIt = varName.equals("n");
@@ -484,7 +484,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             if (!isVar)
                 varName = varName.replaceFirst("_", " - ");
 
-            ExpressionSymbol symbol = builder.getExpressionSymbol(supp.getName());
+            ExpressionSymbol symbol = builder.getExpressionSymbol(varName);
             if (symbol.getCopyIndices() != null) {
                 for (int index : symbol.getCopyIndices()) {
                     copySlotVariables.put(index, varName);
@@ -673,7 +673,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         expressionsParam = new ExpressionsParam(text, expressionsParam.getMainInputVar());
         expressionsParam.putExpressions(exprs);
         expressionsParam.putExpression(expressionsParam.getMainInputVar(), text);
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), expressionsParam);
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyUID(), expressionsParam);
         supplier.setChanged(exprs.equals(expressionsParam.getExpressions()));
         supplier.setLayerRelevant(true);
         return supplier;

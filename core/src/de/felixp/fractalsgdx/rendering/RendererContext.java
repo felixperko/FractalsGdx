@@ -22,6 +22,7 @@ import de.felixperko.fractals.system.parameters.attributes.ParamAttributeContain
 import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 
@@ -187,7 +188,7 @@ public class RendererContext {
         if (serverParamContainer != null){
             for (ParamAnimation ani : paramAnimations){
                 ani.updateProgress();
-                boolean applied = applyAnimation(serverParamContainer, clientParamContainer, numberFactory, ani);
+                boolean applied = applyAnimation(serverParamContainer, clientParamContainer, numberFactory, ani, systemContext);
                 if (applied)
                     changed = true;
             }
@@ -211,13 +212,13 @@ public class RendererContext {
         return new boolean[]{changed, reset};
     }
 
-    protected boolean applyAnimation(ParamContainer paramContainerCalculate, ParamContainer paramContainerDraw, NumberFactory numberFactory, ParamAnimation animation) {
+    protected boolean applyAnimation(ParamContainer paramContainerCalculate, ParamContainer paramContainerDraw, NumberFactory numberFactory, ParamAnimation animation, SystemContext systemContext) {
         if (!animation.isApplyValue())
             return false;
         boolean changed = false;
         for (ParamInterpolation interpolation : animation.getInterpolations().values()){
-            String paramName = interpolation.getParamName();
-            if (paramName != null) {
+            String paramUid = interpolation.getParamUid();
+            if (paramUid != null) {
                 Object interpolatedValue = interpolation.getInterpolatedValue(animation.getLoopProgress(), numberFactory);
 
                 if (interpolatedValue == null) //interpolated parameter/attribute probably deleted, ignore
@@ -230,31 +231,33 @@ public class RendererContext {
 
                 if (serverParamContainer) {
                     paramContainer = paramContainerCalculate;
+                    paramConfiguration = systemContext.getParamConfiguration();
                 } else if (clientParamContainer) {
                     paramContainer = paramContainerDraw;
+                    paramConfiguration = FractalsGdxMain.mainStage.getClientParamConfiguration();
                 }
                 if (paramContainer == null)
                     throw new IllegalStateException("Unknown param container key: "+interpolation.getParamContainerKey());
 
-                ParamSupplier currentSupplier = paramContainer.getClientParameter(paramName);
+                ParamSupplier currentSupplier = paramContainer.getParam(paramUid);
                 Object currentValue = currentSupplier != null ? currentSupplier.getGeneral() : null;
 
                 if (interpolation.getAttributeName() != null){ //set attribute
                     if (!(currentValue instanceof ParamAttributeHolder))
                         throw new IllegalStateException("Can't set ParamAttribute "+interpolation.getAttributeName()+
-                                " for param "+interpolation.getParamName()+": Param not a ParamAttributeHolder");
+                                " for param "+interpolation.getParamUid()+": Param not a ParamAttributeHolder");
                     ParamAttributeContainer attrCont = ((ParamAttributeHolder)currentValue).getParamAttributeContainer();
                     ParamAttribute<?> attribute = attrCont.getAttribute(interpolation.getAttributeName());
                     //TODO NPE! removing an orbit trap a second time (?) results in attribute == null
                     attribute.applyValue(interpolatedValue);
                 } else { //set parameter
                     if (currentSupplier instanceof StaticParamSupplier && !interpolatedValue.equals(currentValue)) {
-                        StaticParamSupplier paramSupplier = new StaticParamSupplier(paramName, interpolatedValue);
+                        StaticParamSupplier paramSupplier = new StaticParamSupplier(currentSupplier.getUID(), interpolatedValue);
 //                    paramSupplier.setLayerRelevant(true);
                         paramSupplier.setChanged(true);
-                        paramContainer.addClientParameter(paramSupplier);
+                        paramContainer.addParam(paramSupplier);
                         changed = true;
-                        if (paramName.equalsIgnoreCase("midpoint"))
+                        if (paramUid.equalsIgnoreCase(CommonFractalParameters.PARAM_MIDPOINT))
                             changedMidpoint = true;
                     }
                 }
@@ -276,7 +279,7 @@ public class RendererContext {
                 continue;
 
             for (ParamInterpolation interpolation : animation.getInterpolations().values()){
-                String name = interpolation.getParamName();
+                String uid = interpolation.getParamUid();
                 ParamConfiguration paramConfiguration = null;
                 if (interpolation.getParamContainerKey().equals(AnimationsUI.PARAM_CONTAINERKEY_SERVER)){
                     paramConfiguration = paramConfigurationCalculate;
@@ -286,7 +289,7 @@ public class RendererContext {
 
                 boolean found = false;
                 for (ParamDefinition paramDef : paramConfiguration.getParameters()){
-                    if (paramDef.getName().equalsIgnoreCase(name)){
+                    if (paramDef.getUID().equalsIgnoreCase(uid)){
                         if (paramDef.isResetRendererOnChange())
                             return true;
                         found = true;
@@ -325,7 +328,7 @@ public class RendererContext {
     }
 
     public void panned(ParamContainer paramContainer) {
-        ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        ComplexNumber midpoint = paramContainer.getParam(CommonFractalParameters.PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
         for (PanListener panListener : panListeners) {
             panListener.panned(midpoint);
         }

@@ -64,8 +64,8 @@ public class SystemInterfaceGdx extends ViewContainerAdapter implements ClientSy
     }
 
     public void setParamContainer(ParamContainer systemClientData) {
-        int newImgWidth = systemClientData.getClientParameter("width").getGeneral(Integer.class);
-        int newImgHeight = systemClientData.getClientParameter("height").getGeneral(Integer.class);
+        int newImgWidth = systemClientData.getParam("width").getGeneral(Integer.class);
+        int newImgHeight = systemClientData.getParam("height").getGeneral(Integer.class);
 
         if (/*image == null || */newImgWidth != imgWidth || newImgHeight != imgHeight) {
             imgWidth = newImgWidth;

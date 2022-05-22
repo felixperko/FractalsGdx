@@ -136,8 +136,8 @@ public class MainStage extends Stage {
         ui.align(Align.topLeft);
         ui.setFillParent(true);
 
-        initRightParamContainer();
         ParamConfiguration clientParameterConfiguration = initRightParamConfiguration();
+        initRightParamContainer();
 
         //initRenderer ParamUI
         paramUI = new ParamUI(this);
@@ -234,7 +234,7 @@ public class MainStage extends Stage {
             palettes.put(paletteName, new ImagePalette(paletteName, texture));
             refreshClientSideMenu();
         }
-        if (paletteName.equals(getClientParameter(PARAMS_PALETTE).getGeneral(String.class))){
+        if (paletteName.equals(getClientParam(PARAMS_PALETTE).getGeneral(String.class))){
             for (FractalRenderer renderer : renderers){
                 renderer.setRefresh();
             }
@@ -263,9 +263,9 @@ public class MainStage extends Stage {
     Texture blackTexture2 = new Texture(128,1, Pixmap.Format.RGB888);
 
     public Texture getPaletteTexture(String postprocessParameter, int fallbackIndex) {
-        String paletteName = clientParams.getClientParameter(postprocessParameter).getGeneral(String.class);
+        String paletteName = clientParams.getParam(postprocessParameter).getGeneral(String.class);
         Texture fallbackTexture = fallbackIndex == 0 ? blackTexture : blackTexture2;
-        if (paletteName.equalsIgnoreCase(PARAMS_PALETTE_VALUE_DISABLED))
+        if (paletteName.equalsIgnoreCase(PARAMVALUE_PALETTE_DISABLED))
             return fallbackTexture;
         IPalette palette = palettes.get(paletteName);
         if (palette == null)
@@ -286,7 +286,7 @@ public class MainStage extends Stage {
     }
 
     private void updateTimeBudgets() {
-        Object fpsObj = getRenderers().get(0).getSystemContext().getParamValue(ShaderSystemContext.PARAMNAME_TARGET_FRAMERATE);
+        Object fpsObj = getRenderers().get(0).getSystemContext().getParamValue(ShaderSystemContext.PARAM_TARGET_FRAMERATE);
         if (fpsObj == null || !(fpsObj instanceof Integer || fpsObj instanceof Double || fpsObj instanceof Float))
             return;
         if ((int)fpsObj == 0) {
@@ -300,7 +300,7 @@ public class MainStage extends Stage {
             Map<FractalRenderer, Double> rendererPrios = new HashMap<>();
             double totalPrio = 0.0;
             for (FractalRenderer renderer : getRenderers()) {
-                Object prioObj = renderer.getSystemContext().getParamValue(ShaderSystemContext.PARAMNAME_PRIORITY);
+                Object prioObj = renderer.getSystemContext().getParamValue(ShaderSystemContext.PARAM_PRIORITY);
                 Double prio = prioObj == null || !(prioObj instanceof Number) ? 1.0 : ((Number) prioObj).toDouble();
                 prio *= renderer.getPixelCount();
                 rendererPrios.put(renderer, prio);
@@ -323,9 +323,9 @@ public class MainStage extends Stage {
             ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
             if (paramContainer.needsReset(clientSystem.getOldParams())) {
                 clientSystem.incrementJobId();
-                paramContainer.getClientParameters().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
+                paramContainer.getParamMap().put("view", new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
             }
-            clientSystem.setOldParams(paramContainer.getClientParameters());
+            clientSystem.setOldParams(paramContainer.getParamMap());
             clientSystem.getSystemContext().setParameters(paramContainer);
             clientSystem.updateConfiguration();
             clientSystem.resetAnchor();//TODO integrate...
@@ -345,8 +345,8 @@ public class MainStage extends Stage {
 
     private void createKeybindings() {
         MainStage thisStage = this;
-        keybindings.add(new CalcMultKeybinding("increase iterations", ShaderSystemContext.PARAMNAME_ITERATIONS, 2.0, Input.Keys.NUMPAD_ADD));
-        keybindings.add(new CalcMultKeybinding("decrease iterations", ShaderSystemContext.PARAMNAME_ITERATIONS, 0.5, Input.Keys.NUMPAD_SUBTRACT));
+        keybindings.add(new CalcMultKeybinding("increase iterations", CommonFractalParameters.PARAM_ITERATIONS, 2.0, Input.Keys.NUMPAD_ADD));
+        keybindings.add(new CalcMultKeybinding("decrease iterations", CommonFractalParameters.PARAM_ITERATIONS, 0.5, Input.Keys.NUMPAD_SUBTRACT));
         keybindings.add(new Keybinding("toggle fullscreen/windowed", Input.Keys.F11) {
             @Override
             public void apply() {
@@ -451,90 +451,95 @@ public class MainStage extends Stage {
         return false;
     }
 
-    public final static String PARAMS_NUMBERFACTORY = "numberFactory";
+    public final static String PARAMNAME_NUMBERFACTORY = "numberFactory";
 
-    public final static String PARAMS_COLOR_ADD = "color offset";
-    public final static String PARAMS_COLOR_MULT = "color period";
-    public final static String PARAMS_COLOR_SATURATION = "saturation";
+    public final static String PARAMNAME_COLOR_ADD = "color offset";
+    public final static String PARAMNAME_COLOR_MULT = "color period";
+    public final static String PARAMNAME_COLOR_SATURATION = "saturation";
+    public final static String PARAMNAME_SOBEL_GLOW_LIMIT = "edge brightness";
+    public final static String PARAMNAME_SOBEL_GLOW_FACTOR = "glow period";
+    public final static String PARAMNAME_AMBIENT_LIGHT = "ambient light";
+
+    public final static String PARAMNAME_FALLBACK_COLOR_ADD = "color offset 2";
+    public final static String PARAMNAME_FALLBACK_COLOR_MULT = "color period 2";
+    public final static String PARAMNAME_FALLBACK_COLOR_SATURATION = "saturation 2";
+    public final static String PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT = "edge brightness 2";
+    public final static String PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR = "glow sensitivity 2";
+    public final static String PARAMNAME_FALLBACK_AMBIENT_LIGHT = "ambient light 2";
+
+    public final static String PARAMNAME_PALETTE = "palette (condition)";
+    public final static String PARAMNAME_PALETTE2 = "palette (fallback)";
+    public final static String PARAMNAME_EXTRACT_CHANNEL = "monochrome source";
+    public final static String PARAMNAME_MAPPING_COLOR = "monochrome color";
+
+    public final static String PARAMNAME_DRAW_AXIS = "draw axis";
+    public final static String PARAMNAME_DRAW_ORBIT = "draw orbit";
+    public final static String PARAMNAME_DRAW_PATH = "draw current path";
+    public final static String PARAMNAME_DRAW_MIDPOINT = "draw midpoint";
+    public final static String PARAMNAME_DRAW_ZERO = "draw (0+0*i)";
+
+    public final static String PARAMNAME_ORBIT_TRACES = "orbit traces";
+    public final static String PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION = "trace instructions";
+    public final static String PARAMNAME_ORBIT_TARGET = "orbit target";
+
+    public final static String PARAMNAME_TRACES_VALUE = "trace position";
+    public final static String PARAMNAME_TRACES_LINE_WIDTH = "line width";
+    public final static String PARAMNAME_TRACES_POINT_SIZE = "point size";
+    public final static String PARAMNAME_TRACES_LINE_TRANSPARENCY = "line transparency";
+    public final static String PARAMNAME_TRACES_POINT_TRANSPARENCY = "point transparency";
+    public final static String PARAMNAME_TRACES_START_COLOR = "";
+    public final static String PARAMNAME_TRACES_END_COLOR = "";
+
+    public final static String PARAMS_NUMBERFACTORY = "0oizcO";
+
+    public final static String PARAMS_COLOR_ADD = "UgHgR5";
+    public final static String PARAMS_COLOR_MULT = "OFTMFw";
+    public final static String PARAMS_COLOR_SATURATION = "EgDJY4";
     //    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_SOBEL_GLOW_LIMIT = "edge brightness";
-    public final static String PARAMS_SOBEL_GLOW_FACTOR = "glow period";
-    public final static String PARAMS_AMBIENT_LIGHT = "ambient light";
+    public final static String PARAMS_SOBEL_GLOW_LIMIT = "bW0VpF";
+    public final static String PARAMS_SOBEL_GLOW_FACTOR = "iOOW84";
+    public final static String PARAMS_AMBIENT_LIGHT = "0IH3rK";
 
-    public final static String PARAMS_FALLBACK_COLOR_ADD = "color offset 2";
-    public final static String PARAMS_FALLBACK_COLOR_MULT = "color period 2";
-    public final static String PARAMS_FALLBACK_COLOR_SATURATION = "saturation 2";
+    public final static String PARAMS_FALLBACK_COLOR_ADD = "12f1jD";
+    public final static String PARAMS_FALLBACK_COLOR_MULT = "56al2K";
+    public final static String PARAMS_FALLBACK_COLOR_SATURATION = "pDD1eC";
     //    public final static String PARAMS_FALLBACK_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_FALLBACK_SOBEL_GLOW_LIMIT = "edge brightness 2";
-    public final static String PARAMS_FALLBACK_SOBEL_GLOW_FACTOR = "glow sensitivity 2";
-    public final static String PARAMS_FALLBACK_AMBIENT_LIGHT = "ambient light 2";
+    public final static String PARAMS_FALLBACK_SOBEL_GLOW_LIMIT = "VujYT7";
+    public final static String PARAMS_FALLBACK_SOBEL_GLOW_FACTOR = "2NgNhI";
+    public final static String PARAMS_FALLBACK_AMBIENT_LIGHT = "PWfG3I";
 
-    public final static String PARAMS_PALETTE = "palette (condition)";
-    public final static String PARAMS_PALETTE2 = "palette (fallback)";
-    public static final String PARAMS_PALETTE_VALUE_DISABLED = "hue";
-    public final static String PARAMS_EXTRACT_CHANNEL = "monochrome source";
-    public final static String PARAMS_MAPPING_COLOR = "monochrome color";
+    public final static String PARAMS_PALETTE = "pLrKY-";
+    public final static String PARAMS_PALETTE2 = "3YtNML";
+    public static final String PARAMVALUE_PALETTE_DISABLED = "hue";
+    public final static String PARAMS_EXTRACT_CHANNEL = "xbMt0u";
+    public final static String PARAMS_MAPPING_COLOR = "gS2lYj";
 
-    public final static String PARAMS_DRAW_AXIS = "draw axis";
-    public final static String PARAMS_DRAW_ORBIT = "draw orbit";
-    public final static String PARAMS_DRAW_PATH = "draw current path";
-    public final static String PARAMS_DRAW_MIDPOINT = "draw midpoint";
-    public final static String PARAMS_DRAW_ZERO = "draw (0+0*i)";
+    public final static String PARAMS_DRAW_AXIS = "CGrDXZ";
+    public final static String PARAMS_DRAW_ORBIT = "m9TYl2";
+    public final static String PARAMS_DRAW_PATH = "ENQY4_";
+    public final static String PARAMS_DRAW_MIDPOINT = "LHvVgb";
+    public final static String PARAMS_DRAW_ZERO = "Vwr62J";
 
-    public final static String PARAMS_ORBIT_TRACES = "orbit traces";
-    public final static String PARAMS_ORBIT_TRACE_PER_INSTRUCTION = "trace instructions";
-    public final static String PARAMS_ORBIT_TARGET = "orbit target";
+    public final static String PARAMS_ORBIT_TRACES = "aW_XS3";
+    public final static String PARAMS_ORBIT_TRACE_PER_INSTRUCTION = "cqTeeI";
+    public final static String PARAMS_ORBIT_TARGET = "mzwBNO";
 
-    public final static String PARAMS_TRACES_VALUE = "trace position";
-    public final static String PARAMS_TRACES_LINE_WIDTH = "line width";
-    public final static String PARAMS_TRACES_POINT_SIZE = "point size";
-    public final static String PARAMS_TRACES_LINE_TRANSPARENCY = "line transparency";
-    public final static String PARAMS_TRACES_POINT_TRANSPARENCY = "point transparency";
+    public final static String PARAMS_TRACES_VALUE = "mCZoSI";
+    public final static String PARAMS_TRACES_LINE_WIDTH = "Rr79wb";
+    public final static String PARAMS_TRACES_POINT_SIZE = "ZEMbVL";
+    public final static String PARAMS_TRACES_LINE_TRANSPARENCY = "jcENk2";
+    public final static String PARAMS_TRACES_POINT_TRANSPARENCY = "2fXEPs";
     public final static String PARAMS_TRACES_START_COLOR = "";
     public final static String PARAMS_TRACES_END_COLOR = "";
 
     public final static NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
     protected void initRightParamContainer() {
-        clientParams = new ParamContainer();
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_NUMBERFACTORY, nf));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_MULT, nf.createNumber(2.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_ADD, nf.createNumber(0.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_COLOR_SATURATION, nf.createNumber(0.5)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_AMBIENT_LIGHT, nf.createNumber(0.2)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(0.8)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_SOBEL_GLOW_FACTOR, nf.createNumber(4.0)));
-
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_MULT, nf.createNumber(1.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_ADD, nf.createNumber(0.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_SATURATION, nf.createNumber(0.5)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_AMBIENT_LIGHT, nf.createNumber(0.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, nf.createNumber(1.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, nf.createNumber(1.0)));
-
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE, PARAMS_PALETTE_VALUE_DISABLED));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_PALETTE2, PARAMS_PALETTE_VALUE_DISABLED));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.WHITE));
-
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_MIDPOINT, false));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_ZERO, false));
-
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_DRAW_ORBIT, false));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TRACES, 1000));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, true));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_ORBIT_TARGET, "mouse"));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_VALUE, nf.createComplexNumber(0,0)));
-
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_WIDTH, nf.createNumber(1.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_SIZE, nf.createNumber(3.0)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_LINE_TRANSPARENCY, nf.createNumber(0.5)));
-        clientParams.addClientParameter(new StaticParamSupplier(PARAMS_TRACES_POINT_TRANSPARENCY, nf.createNumber(0.75)));
+        
     }
 
     protected ParamConfiguration initRightParamConfiguration() {
+        
         ParamConfiguration config = new ParamConfiguration();
 
         ParamValueType integerType = new ParamValueType("integer");
@@ -553,48 +558,94 @@ public class MainStage extends Stage {
         config.addValueType(numberType);
         ParamValueType colorType = new ParamValueType("color");
         config.addValueType(colorType);
+        ParamValueType numberFactoryType = new ParamValueType("numberfactory");
+        config.addValueType(numberFactoryType);
 
+
+        List<ParamSupplier> params = new ArrayList<>();
+
+        params.add(new StaticParamSupplier(PARAMS_NUMBERFACTORY, nf));
+        params.add(new StaticParamSupplier(PARAMS_COLOR_MULT, nf.createNumber(2.5)));
+        params.add(new StaticParamSupplier(PARAMS_COLOR_ADD, nf.createNumber(0.0)));
+        params.add(new StaticParamSupplier(PARAMS_COLOR_SATURATION, nf.createNumber(0.5)));
+        params.add(new StaticParamSupplier(PARAMS_AMBIENT_LIGHT, nf.createNumber(0.2)));
+        params.add(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(0.8)));
+        params.add(new StaticParamSupplier(PARAMS_SOBEL_GLOW_FACTOR, nf.createNumber(4.0)));
+
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_MULT, nf.createNumber(1.0)));
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_ADD, nf.createNumber(0.0)));
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_SATURATION, nf.createNumber(0.5)));
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_AMBIENT_LIGHT, nf.createNumber(0.0)));
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, nf.createNumber(1.0)));
+        params.add(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, nf.createNumber(1.0)));
+
+        params.add(new StaticParamSupplier(PARAMS_PALETTE, PARAMVALUE_PALETTE_DISABLED));
+        params.add(new StaticParamSupplier(PARAMS_PALETTE2, PARAMVALUE_PALETTE_DISABLED));
+        params.add(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
+        params.add(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.WHITE));
+
+        params.add(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
+        params.add(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
+        params.add(new StaticParamSupplier(PARAMS_DRAW_MIDPOINT, false));
+        params.add(new StaticParamSupplier(PARAMS_DRAW_ZERO, false));
+
+        params.add(new StaticParamSupplier(PARAMS_DRAW_ORBIT, false));
+        params.add(new StaticParamSupplier(PARAMS_ORBIT_TRACES, 1000));
+        params.add(new StaticParamSupplier(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, true));
+        params.add(new StaticParamSupplier(PARAMS_ORBIT_TARGET, "mouse"));
+        params.add(new StaticParamSupplier(PARAMS_TRACES_VALUE, nf.createComplexNumber(0,0)));
+
+        params.add(new StaticParamSupplier(PARAMS_TRACES_LINE_WIDTH, nf.createNumber(1.0)));
+        params.add(new StaticParamSupplier(PARAMS_TRACES_POINT_SIZE, nf.createNumber(3.0)));
+        params.add(new StaticParamSupplier(PARAMS_TRACES_LINE_TRANSPARENCY, nf.createNumber(0.5)));
+        params.add(new StaticParamSupplier(PARAMS_TRACES_POINT_TRANSPARENCY, nf.createNumber(0.75)));
+        
+        Map<String, ParamSupplier> paramMap = new HashMap<>();
+        params.stream().map(e -> paramMap.put(e.getUID(), e));
+        
+        config.addParameterDefinition(new ParamDefinition(PARAMS_NUMBERFACTORY, PARAMNAME_NUMBERFACTORY, "Calculator", StaticParamSupplier.class, numberFactoryType),
+                paramMap.get(PARAMS_NUMBERFACTORY));
 
         String cat_coloring_reached = "Coloring (condition reached)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0.02 max=10"), clientParams.getClientParameter(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, PARAMNAME_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0.02 max=10"), paramMap.get(PARAMS_COLOR_MULT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, PARAMNAME_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, PARAMNAME_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
 //        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring (reached)", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-1 max=5"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=10"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_FACTOR));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, PARAMNAME_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, PARAMNAME_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=5"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, PARAMNAME_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
 
         String cat_coloring_fallback = "Coloring (fallback)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0.01 max=2"), clientParams.getClientParameter(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_COLOR_SATURATION));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, PARAMNAME_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0.01 max=2"), paramMap.get(PARAMS_COLOR_MULT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, PARAMNAME_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, PARAMNAME_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
 //        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-1 max=1"), clientParams.getClientParameter(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=-10 max=10"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=2"), clientParams.getClientParameter(PARAMS_SOBEL_GLOW_FACTOR));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, PARAMNAME_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=-10 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=2"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
 
         String cat_coloring_palettes = "Palettes";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
-                clientParams.getClientParameter(PARAMS_PALETTE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
-                clientParams.getClientParameter(PARAMS_PALETTE2));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, PARAMNAME_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+                paramMap.get(PARAMS_PALETTE));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, PARAMNAME_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+                paramMap.get(PARAMS_PALETTE2));
 
         Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
         Selection<String> paletteSelection2 = new Selection<>(PARAMS_PALETTE2);
-        paletteSelection.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
-        paletteSelection2.addOption(PARAMS_PALETTE_VALUE_DISABLED, PARAMS_PALETTE_VALUE_DISABLED, "No predefined palette");
+        paletteSelection.addOption(PARAMVALUE_PALETTE_DISABLED, PARAMVALUE_PALETTE_DISABLED, "No predefined palette");
+        paletteSelection2.addOption(PARAMVALUE_PALETTE_DISABLED, PARAMVALUE_PALETTE_DISABLED, "No predefined palette");
         for (String paletteName : palettes.keySet()) {
             paletteSelection.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
             paletteSelection2.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
@@ -602,57 +653,59 @@ public class MainStage extends Stage {
         config.addSelection(paletteSelection);
         config.addSelection(paletteSelection2);
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
-                clientParams.getClientParameter(PARAMS_EXTRACT_CHANNEL));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, PARAMNAME_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+                paramMap.get(PARAMS_EXTRACT_CHANNEL));
         Selection<Integer> extractChannelSelection = new Selection<Integer>(PARAMS_EXTRACT_CHANNEL);
         extractChannelSelection.addOption("disabled", 0, "No channel remapping");
         extractChannelSelection.addOption("red", 1, "Remap red channel to all (greyscale)");
         extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
         extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");
         config.addSelection(extractChannelSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType),
-                clientParams.getClientParameter(PARAMS_MAPPING_COLOR));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, PARAMNAME_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType),
+                paramMap.get(PARAMS_MAPPING_COLOR));
 
         String cat_shape_drawing = "Shape drawing";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType),
-                clientParams.getClientParameter(PARAMS_DRAW_AXIS));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, PARAMNAME_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+                paramMap.get(PARAMS_DRAW_AXIS));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType)
-                , clientParams.getClientParameter(PARAMS_DRAW_ORBIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType),
-                clientParams.getClientParameter(PARAMS_DRAW_PATH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType),
-                clientParams.getClientParameter(PARAMS_DRAW_MIDPOINT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType),
-                clientParams.getClientParameter(PARAMS_DRAW_ZERO));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType)
-                , clientParams.getClientParameter(PARAMS_ORBIT_TARGET));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, PARAMNAME_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType)
+                , paramMap.get(PARAMS_DRAW_ORBIT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, PARAMNAME_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+                paramMap.get(PARAMS_DRAW_PATH));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, PARAMNAME_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+                paramMap.get(PARAMS_DRAW_MIDPOINT));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, PARAMNAME_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+                paramMap.get(PARAMS_DRAW_ZERO));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, PARAMNAME_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType)
+                , paramMap.get(PARAMS_ORBIT_TARGET));
         Selection<String> traceTargetSelection = new Selection<String>(PARAMS_ORBIT_TARGET);
         traceTargetSelection.addOption("mouse", "mouse", "The trace target is set to the current mouse position");
         traceTargetSelection.addOption("path", "path", "The trace target is set to the animation named 'path'");
         config.addSelection(traceTargetSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType)
-                , clientParams.getClientParameter(PARAMS_ORBIT_TRACES));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType)
-                , clientParams.getClientParameter(PARAMS_ORBIT_TRACE_PER_INSTRUCTION));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType)
-                        .withVisible(false), clientParams.getClientParameter(PARAMS_TRACES_VALUE));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, PARAMNAME_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType)
+                , paramMap.get(PARAMS_ORBIT_TRACES));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType)
+                , paramMap.get(PARAMS_ORBIT_TRACE_PER_INSTRUCTION));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, PARAMNAME_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType)
+                        .withVisible(false), paramMap.get(PARAMS_TRACES_VALUE));
 
         String cat_shape_settings = "Shape settings";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=3"), clientParams.getClientParameter(PARAMS_TRACES_LINE_WIDTH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=10"), clientParams.getClientParameter(PARAMS_TRACES_POINT_SIZE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_LINE_TRANSPARENCY));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
-                .withHints("ui-element[default]:slider min=0 max=1"), clientParams.getClientParameter(PARAMS_TRACES_POINT_TRANSPARENCY));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, PARAMNAME_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=3"), paramMap.get(PARAMS_TRACES_LINE_WIDTH));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, PARAMNAME_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_TRACES_POINT_SIZE));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, PARAMNAME_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_LINE_TRANSPARENCY));
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, PARAMNAME_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
+                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_POINT_TRANSPARENCY));
 
         //no client param resets the renderer
         for (ParamDefinition paramDef : config.getParameters())
             paramDef.setResetRendererOnChange(false);
 
         this.clientParamConfiguration = config;
+        this.clientParams = new ParamContainer(config);
+        params.forEach(supp -> clientParams.addParam(supp));
         return config;
     }
 
@@ -698,8 +751,8 @@ public class MainStage extends Stage {
         return true;
     }
 
-    public ParamSupplier getClientParameter(String name){
-        return clientParams.getClientParameter(name);
+    public ParamSupplier getClientParam(String uid){
+        return clientParams.getParam(uid);
     }
 
     VisLabel samplesLeftLabel = null;
@@ -839,7 +892,7 @@ public class MainStage extends Stage {
                     Integer viewId = systemContext.getViewId();
                     Integer newViewId = viewId + 1;
                     ParamContainer newContainer = new ParamContainer(container, true);
-                    newContainer.addClientParameter(new StaticParamSupplier("view", newViewId));
+                    newContainer.addParam(new StaticParamSupplier("view", newViewId));
                     boolean reset = systemContext.setParameters(newContainer);
                     if (reset) {
                         focusedRenderer.reset();
@@ -939,7 +992,7 @@ public class MainStage extends Stage {
             public void changed(ChangeEvent event, Actor actor) {
                 ParamContainer data = focusedRenderer.getSystemContext().getParamContainer();
                 ParamContainer container = new ParamContainer(data, true);
-                container.getClientParameters().remove("view");
+                container.getParamMap().remove("view");
                 locations.put(nameFld.getText(), container);
 
                 try {
@@ -978,7 +1031,7 @@ public class MainStage extends Stage {
         return renderers;
     }
 
-    public ParamContainer getClientParameters() {
+    public ParamContainer getClientParams() {
         return clientParams;
     }
 

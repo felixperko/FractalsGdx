@@ -23,6 +23,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.remoteclient.Client;
 import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 
 public class FractalsGdxMain extends ApplicationAdapter {
 
@@ -43,6 +44,7 @@ public class FractalsGdxMain extends ApplicationAdapter {
 //	public static int iterations = 500;
 
 	public static Stage stage;
+    public static MainStage mainStage;
 
 	public static Client client;
 
@@ -114,8 +116,9 @@ public class FractalsGdxMain extends ApplicationAdapter {
 		batch = new SpriteBatch();
 
 		viewport = new ScreenViewport();
-		stage = new MainStage(viewport, batch);
-		((MainStage) stage).create();
+		mainStage = new MainStage(viewport, batch);
+		stage = mainStage;
+		mainStage.create();
 
 		client = new Client(this);
 		client.start();

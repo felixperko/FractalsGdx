@@ -31,7 +31,7 @@ uniform float mappingColorB;
 uniform vec2 resolution;
 uniform int sobelSpan;
 
-const float resultOffset = 10.0;
+const float resultOffset = 5.0;
 const int kernelRadius = 2;
 const int kernelDim = (kernelRadius*2+1);
 const int kernelLength = kernelDim*kernelDim;
@@ -121,7 +121,7 @@ void main(void){
     float n2[kernelLength];
 
 //    float d = decode(texture2D(u_texture, v_texCoords.xy));
-    float d = decode(texelFetch(u_texture, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
+    float value1 = decode(texelFetch(u_texture, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0));
 
 //    vec4 extraColor = texelFetch(extraTexture, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0);
 //    float dim = useExtraData * extraColor.b;
@@ -140,7 +140,7 @@ void main(void){
         sobel = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2))/(12.0*12.0));
     }
     float sobel2 = 0.0;
-    if (light_sobel_magnitude2 != 0.0 && d <= 0.0){
+    if (light_sobel_magnitude2 != 0.0 && value1 <= 0.0){
         make_kernel(n2, altColorTexture, v_texCoords.xy, 1);
         //        float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
         //        float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
@@ -155,9 +155,9 @@ void main(void){
     vec3 add = vec3(0.0, 0.0, 0.0);
     float brightness = light_ambient;
 
-    if (d > 0.0){
+    if (value1 > 0.0){
 
-        d = log(d);
+        value1 = log(value1);
 
         float s = 0.0;
 
@@ -178,17 +178,18 @@ void main(void){
             //to avoid strangely dim single pixels in constrast to isles a few bright pixels in otherwise stable/black regions.
             //        float s = sobel > 0.0 || (n[0] == n[4] && n[1] == n[4] && n[2] == n[4] && n[3] == n[4]
             //            && n[5] == n[4] && n[6] == n[4] && n[7] == n[4] && n[8] == n[4]) ? sobel : min(abs(n[4]-n[0]), 1.0);
-            s = sobel;
-            s = log(s+1.0);
+            s = log(sobel+1.0);
 
             if (light_sobel_period > 0.0){
+//                s = fract(s/light_sobel_period);
+//                s =
                 s = fract(s*0.5/light_sobel_period)*2.0;
                 s = 1.0 - abs(1.0 - s);
             }
         }
 
         //select color based on iteration count
-        vec3 hsv = vec3(d/colorMult+colorAdd,colorSaturation, 1.0);
+        vec3 hsv = vec3(value1/colorMult+colorAdd,colorSaturation, 1.0);
         rgb = vec4(hsv2rgb(hsv), 1.0);
 
         if (gl_FragCoord.x >= 2.0 && gl_FragCoord.x < resolution.x-2.0 && gl_FragCoord.y >= 2.0 && gl_FragCoord.y < resolution.y-2.0)
@@ -250,10 +251,14 @@ void main(void){
 //    }
 
     if (light_sobel_period2 != 0.0){
-        sobel2 = fract(sobel2*0.5/light_sobel_period2)*2.0;
+        sobel2 = fract(sobel2/light_sobel_period2);
         //        s = 1.0 - abs(1.0 - s);
-        if (sobel2 > 1.0)
-            sobel2 = 2.0-sobel2;
+
+        //        sobel2 = fract(sobel2/light_sobel_period2)*2.0;
+        //        sobel2 = sobel2*2.0;
+//        if (sobel2 > 1.0)
+//            sobel2 = 2.0-sobel2;
+//            sobel2 = sobel2 - 1.0;
     }
 
     float brightness2 = light_ambient2;
@@ -263,13 +268,13 @@ void main(void){
     //        float brightness = 1.0;
     //        float brightness = min(log(sobel+1.0)*light_sobel_magnitude2+light_ambient2, 1.0);
 
-    float val1 = d/colorMult + colorAdd;
+    float val1 = value1/colorMult + colorAdd;
     float val2 = value2/(1000.0*colorMult2) + colorAdd2;
     rgb = rgb*brightness;
     vec3 c = vec3(rgb.r+add.r, rgb.g+add.g, rgb.b+add.b);
     vec3 c2 = hsv2rgb(vec3(val2, colorSaturation2, brightness2));
-    float f = d > 0.0 ? 1.0 : 0.0;
-    float f2 = d > 0.0 ? 0.0 : 1.0;
+    float f = value1 > 0.0 ? 1.0 : 0.0;
+    float f2 = value1 > 0.0 ? 0.0 : 1.0;
     vec4 rgb1 = texture(paletteEscaped, vec2(mod(val1, 1.0), 0.0));
     vec4 rgb2 = texture(paletteFallback, vec2(mod(val2, 1.0), 0.0));
     if (usePalette > 0){

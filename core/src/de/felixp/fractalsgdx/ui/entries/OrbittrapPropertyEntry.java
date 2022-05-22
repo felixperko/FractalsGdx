@@ -20,6 +20,7 @@ import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
+import de.felixp.fractalsgdx.ui.propertyattribute.AbstractPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.NumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
@@ -30,6 +31,7 @@ import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 
 public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
@@ -44,9 +46,9 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
         TraversableGroup traversableGroup = new TraversableGroup();
 
-        ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);
+        ParamSupplier contSupp = paramContainer.getParam(propertyUID);
         OrbittrapContainer cont = contSupp.getGeneral(OrbittrapContainer.class);
-        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
+        NumberFactory nf = paramContainer.getParam(CommonFractalParameters.PARAM_NUMBERFACTORY).getGeneral(NumberFactory.class);
 
         VisTable contentTable = new VisTable(true);
 
@@ -108,7 +110,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         VisTable valueTable = prepareOrbittrapTables(window, contentTable, counter, trap, addControls);
 
         for(ParamAttribute attr : trap.getParamAttributes()){
-            PropertyAttributeAdapterUI adapter = getAdapterUI(attr, nf);
+            PropertyAttributeAdapterUI adapter = AbstractPropertyAttributeAdapterUI.getAdapterUI(attr, nf);
             adapter.setTraversableGroup(traversableGroup);
             adapter.addToTable(valueTable);
             contentTableAttributeAdapters.add(adapter);
@@ -133,29 +135,6 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
             return new CircleOrbittrap(newId, nf.createComplexNumber(0f,0f), nf.createNumber("0.1f"));
         else
             return null;
-    }
-
-    private PropertyAttributeAdapterUI getAdapterUI(ParamAttribute attr, NumberFactory nf){
-        if (attr.getAttributeClass().isAssignableFrom(Number.class)){
-            return new NumberPropertyAttributeAdapterUI(attr.getName(), nf, (Number) attr.getValue(),
-                    (Number) attr.getMinValue(), (Number) attr.getMaxValue()){
-                @Override
-                public void valueChanged(Number newVal, Number min, Number max) {
-                    attr.applyValue(newVal);
-                    attr.setRange(min, max);
-                }
-            };
-        }
-        else if (attr.getAttributeClass().isAssignableFrom(ComplexNumber.class)){
-            return new ComplexNumberPropertyAttributeAdapterUI(attr.getName(), nf, (ComplexNumber) attr.getValue()){
-                @Override
-                public void valueChanged(ComplexNumber newVal, ComplexNumber min, ComplexNumber max) {
-                    attr.applyValue(newVal);
-                    attr.setRange(min, max);
-                }
-            };
-        }
-        return null;
     }
 
     Orbittrap newTrap = null;
@@ -239,7 +218,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         removeBtn.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                ParamSupplier contSupp = paramContainer.getClientParameter(propertyName);
+                ParamSupplier contSupp = paramContainer.getParam(propertyUID);
                 OrbittrapContainer cont = contSupp.getGeneral(OrbittrapContainer.class);
                 cont.removeOrbittrap(orbittrap);
                 Stage stage = window.getStage();
@@ -258,7 +237,7 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return paramContainer.getClientParameter(propertyName);
+        return paramContainer.getParam(propertyUID);
     }
 
     @Override

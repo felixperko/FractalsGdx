@@ -1,6 +1,7 @@
 package de.felixp.fractalsgdx.ui.propertyattribute;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
@@ -59,5 +60,9 @@ public class BooleanPropertyAttributeAdapterUI extends AbstractPropertyAttribute
     @Override
     public void valueChanged(Boolean newVal, Boolean min, Boolean max) {
 
+    }
+
+    @Override
+    public void addListenerToFields(EventListener listener) {
     }
 }

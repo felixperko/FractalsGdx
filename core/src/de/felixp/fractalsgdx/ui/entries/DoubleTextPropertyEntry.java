@@ -23,7 +23,7 @@ public class DoubleTextPropertyEntry extends AbstractSingleTextPropertyEntry {
             val = text == null ? 0.0 : Double.parseDouble(text);
         } catch (NumberFormatException e){
         }
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyUID(), val);
         supplier.setLayerRelevant(true); //TODO move declaration to paramConfiguration
         supplier.setChanged(true);
         return supplier;

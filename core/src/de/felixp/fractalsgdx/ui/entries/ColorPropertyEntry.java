@@ -44,7 +44,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
 
     public ColorPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue) {
         super(node, paramContainer, parameterDefinition, submitValue);
-        color = paramContainer.getClientParameter(getPropertyName()).getGeneral(Color.class);
+        color = paramContainer.getParam(parameterDefinition.getUID()).getGeneral(Color.class);
 
 
         previewImage = new VisImage(white);
@@ -115,7 +115,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return new StaticParamSupplier(getPropertyName(), color);
+        return new StaticParamSupplier(getPropertyUID(), color);
     }
 }
 

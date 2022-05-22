@@ -61,7 +61,7 @@ public class ChunkData {
 
     public ComplexNumber getScreenCoords(ComplexNumber worldCoords, ClientSystem clientSystem){
 
-        Map<String, ParamSupplier> parameters = clientData.getClientParameters();
+        Map<String, ParamSupplier> parameters = clientData.getParamMap();
         double height = parameters.get("height").getGeneral(Integer.class);
         Number zoom = parameters.get("zoom").getGeneral(Number.class);
         NumberFactory nf = parameters.get("numberFactory").getGeneral(NumberFactory.class);

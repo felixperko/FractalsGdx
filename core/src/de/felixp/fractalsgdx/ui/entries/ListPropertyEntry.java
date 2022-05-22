@@ -23,6 +23,7 @@ import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
+import de.felixperko.fractals.util.UIDGenerator;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class ListPropertyEntry extends AbstractPropertyEntry {
@@ -98,9 +99,9 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     private void addNewElement(ParamValueType type){
         int index = menu.getRows();
-        ParamDefinition parameterDefinition = new ParamDefinition("list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type); //TODO ParameterDefinition again, see other TODO
+        ParamDefinition parameterDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), "list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type); //TODO ParameterDefinition again, see other TODO
         parameterDefinition.setConfiguration(parameterDefinition.getConfiguration());
-        paramContainer.addClientParameter(new StaticParamSupplier(parameterDefinition.getName(), new BreadthFirstLayer()));
+        paramContainer.addParam(new StaticParamSupplier(parameterDefinition.getUID(), new BreadthFirstLayer()));
 
         AbstractPropertyEntry entry = entryFactory.getPropertyEntry(parameterDefinition, paramContainer);
         if (entry != null) {
@@ -152,7 +153,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
     public ParamSupplier getSupplier() {
         List<?> list = new ArrayList<>();
         //TODO add values to list
-        return new StaticParamSupplier(propertyName, list);
+        return new StaticParamSupplier(propertyUID, list);
     }
 
     @Override

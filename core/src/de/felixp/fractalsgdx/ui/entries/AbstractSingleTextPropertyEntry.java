@@ -94,7 +94,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 field = createTextField();
                 optionButton = new VisTextButton("...");
 
-                ParamSupplier textSupplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier textSupplier = paramContainer.getParam(propertyUID);
 
                 field.setTraversalPaused(!(textSupplier instanceof StaticParamSupplier));
                 traversableGroup.addField(field);
@@ -198,7 +198,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
                 slider1 = new VisSlider(0, 1, 0.001f, false);
 
-                ParamSupplier paramSupplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier paramSupplier = paramContainer.getParam(propertyUID);
 
                 inputDisabled = !(paramSupplier instanceof StaticParamSupplier);
                 if (!inputDisabled) {

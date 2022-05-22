@@ -48,7 +48,7 @@ public interface ParamAnimation {
     void setInterpolation(ParamInterpolation interpolation);
     ParamInterpolation removeInterpolation(String paramName, String attributeName);
 
-    void changeInterpolationParamName(ParamInterpolation interpolation, String newParamName, String paramType, String paramContainer, String newAttributeName);
+    void changeInterpolationParamName(ParamInterpolation interpolation, String newParamUid, String newParamName, String paramType, String paramContainer, String newAttrUid, String newAttrName);
 
     boolean isApplyValue();
     void setSingleApply();

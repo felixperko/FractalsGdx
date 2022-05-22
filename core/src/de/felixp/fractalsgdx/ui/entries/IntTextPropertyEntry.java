@@ -20,7 +20,7 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
     @Override
     public ParamSupplier getSupplier() {
         int val = text == null ? 0 : (int)Double.parseDouble(text);
-        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyName(), val);
+        StaticParamSupplier supplier = new StaticParamSupplier(getPropertyUID(), val);
         supplier.setLayerRelevant(true);
         return supplier;
     }

@@ -56,7 +56,7 @@ public class DefaultRendererLink implements RendererLink {
         } else if (renderer instanceof RemoteRenderer) {
             ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
             clientSystem.incrementJobId();
-            renderer.getSystemContext().getParamContainer().addClientParameter(new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
+            renderer.getSystemContext().getParamContainer().addParam(new StaticParamSupplier("view", clientSystem.getSystemContext().getViewId()));
             clientSystem.updateConfiguration();
             clientSystem.resetAnchor();//TODO integrate...
         }
@@ -73,12 +73,12 @@ public class DefaultRendererLink implements RendererLink {
 
         boolean changed = false;
         for (String paramName : syncedParameterNames){
-            ParamSupplier sourceSupp = getSourceParamContainer().getClientParameter(paramName);
+            ParamSupplier sourceSupp = getSourceParamContainer().getParam(paramName);
             if (sourceSupp == null)
                 continue;
-            ParamSupplier targetSupp = getTargetParamContainer().getClientParameter(paramName);
+            ParamSupplier targetSupp = getTargetParamContainer().getParam(paramName);
             if (!sourceSupp.equals(targetSupp)) {
-                getTargetParamContainer().addClientParameter(sourceSupp);
+                getTargetParamContainer().addParam(sourceSupp);
                 changed = true;
             }
         }

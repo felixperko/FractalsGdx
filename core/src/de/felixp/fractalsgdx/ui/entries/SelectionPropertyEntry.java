@@ -34,9 +34,9 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
         super(node, paramContainer, parameterDefinition, submitValue);
 
-        selection = parameterDefinition.getConfiguration().getSelection(propertyName);
+        selection = parameterDefinition.getConfiguration().getSelection(propertyUID);
 
-        ParamSupplier clientParameter = paramContainer.getClientParameter(propertyName);
+        ParamSupplier clientParameter = paramContainer.getParam(propertyUID);
         if (clientParameter != null)
             selectedValue = clientParameter.getGeneral().toString();
     }
@@ -75,7 +75,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 box.setItems(arr);
                 if (selectedValue == null && box.getSelected() != null)
                     selectedValue = box.getSelected();
-                ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier supplier = paramContainer.getParam(getPropertyUID());
                 if (supplier == null)
                     throw new IllegalArgumentException("Parameter missing: " + propertyName);
                 contentFields.add(box);
@@ -117,7 +117,7 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyName, selectedValue);
+        StaticParamSupplier staticParamSupplier = new StaticParamSupplier(propertyUID, selectedValue);
         staticParamSupplier.setSystemRelevant(true); //TODO only set system relevant if it really is!
         return staticParamSupplier;
     }

@@ -80,14 +80,14 @@ public class PaletteUI {
         SelectBox<String> paletteSelect = new VisSelectBox<>();
         List<String> items = new ArrayList<>((palettes.keySet()));
         paletteSelect.setItems(items.toArray(new String[items.size()]));
-        name = stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class);
+        name = stage.getClientParam(MainStage.PARAMS_PALETTE).getGeneral(String.class);
         paletteSelect.setSelected(name);
         palette = palettes.get(name);
         paletteSelect.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 name = paletteSelect.getSelected();
-                stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, name));
+                stage.getClientParams().addParam(new StaticParamSupplier(MainStage.PARAMS_PALETTE, name));
                 palette = palettes.get(name);
                 displayPalette(palette);
                 fillControlTable(settingsWindow, controlTable);
@@ -127,7 +127,7 @@ public class PaletteUI {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 MainStage stage = (MainStage) FractalsGdxMain.stage;
-                stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, MainStage.PARAMS_PALETTE_VALUE_DISABLED));
+                stage.getClientParams().addParam(new StaticParamSupplier(MainStage.PARAMS_PALETTE, MainStage.PARAMVALUE_PALETTE_DISABLED));
                 stage.getPalettes().remove(name);
                 name = paletteSelect.getSelected();
                 repopulatePaletteTable(settingsWindow);
@@ -306,7 +306,7 @@ public class PaletteUI {
                     palettePoints.add(new PalettePoint(randomHsvColor, relativePos));
                 }
                 palette.setPalettePoints(palettePoints);
-                stage.getParamUI().getClientParamsSideMenu().getParamContainer().addClientParameter(
+                stage.getParamUI().getClientParamsSideMenu().getParamContainer().addParam(
                         new StaticParamSupplier(MainStage.PARAMS_PALETTE, paletteName)
                 );
                 stage.refreshClientSideMenu();
@@ -369,7 +369,7 @@ public class PaletteUI {
                     GradientPalette currPal = (GradientPalette)palette;
                     GradientPalette newPal = currPal.copy();
                     stage.addPalette(newPal);
-                    stage.getClientParameters().addClientParameter(new StaticParamSupplier(MainStage.PARAMS_PALETTE, newPal.getName()));
+                    stage.getClientParams().addParam(new StaticParamSupplier(MainStage.PARAMS_PALETTE, newPal.getName()));
                     repopulatePaletteTable(settingsWindow);
                 }
             }

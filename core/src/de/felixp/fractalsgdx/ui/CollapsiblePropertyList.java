@@ -33,6 +33,7 @@ import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -41,6 +42,7 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
+import de.felixperko.fractals.util.UIDGenerator;
 
 public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
@@ -77,6 +79,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     String focusParamName;
 
+    Map<String, ParamDefinition> generatedDefs = new HashMap<>();
+
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
 
         //allow force reset by first setting paramContainer null and then setting a new one
@@ -106,10 +110,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             //check PropertyEntries
             for (AbstractPropertyEntry e : propertyEntryList){
                 e.setPrefControlWidth(getPrefControlWidth());
-                ParamDefinition paramDefinitionFromConfig = paramConfig.getParamDefinition(e.getPropertyName());
+                ParamDefinition paramDefinitionFromConfig = paramConfig.getParamDefinitionByUID(e.getPropertyUID());
                 if (paramDefinitionFromConfig != null && !e.getParameterDefinition().equals(paramDefinitionFromConfig))
                     reset = true;
-                ParamControlState paramControlState = getParamControlState(e.getPropertyName());
+                ParamControlState paramControlState = getParamControlState(e.getPropertyUID());
                 String controlView = paramControlState.getControlView();
                 if (controlView != null)
                     e.setCurrentControlView(controlView, true);
@@ -119,7 +123,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                     reset = true;
                 }
                 if (!reset) {
-                    ParamSupplier supp = paramContainer.getClientParameter(e.getPropertyName());
+                    ParamSupplier supp = paramContainer.getParam(e.getPropertyUID());
                     if (!(supp instanceof StaticParamSupplier))
                         continue;
                     if (!(e.getSupplier() instanceof StaticParamSupplier)) {
@@ -135,8 +139,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         if (!reset) {
             //check for new params
             for (ParamSupplier supp : paramContainer.getParameters()) {
-                String name = supp.getName();
-                ParamSupplier oldSupp = this.paramContainer.getClientParameter(name);
+                String uid = supp.getUID();
+                ParamSupplier oldSupp = this.paramContainer.getParam(uid);
                 if (oldSupp == null) {
                     //new param --> reset to maintain proper order
                     reset = true;
@@ -147,8 +151,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         if (!reset){
             //check for removed params
             for (ParamSupplier supp : this.paramContainer.getParameters()){
-                String name = supp.getName();
-                ParamSupplier newSupp = paramContainer.getClientParameter(name);
+                String uid = supp.getUID();
+                ParamSupplier newSupp = paramContainer.getParam(uid);
                 if (newSupp == null){
                     //removed param --> reset to remove property entry
                     reset = true;
@@ -159,18 +163,19 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         //add calculator specific parameter definitions
         List<ParamDefinition> paramDefs = new ArrayList<>(paramConfig.getParameters());
-        Map<String, ParamSupplier> newParams = paramContainer.getClientParameters();
+        Map<String, ParamSupplier> newParams = paramContainer.getParamMap();
         if (newParams.containsKey("calculator")) {
-            List<ParamDefinition> calculatorParameterDefinitions = paramConfig.getCalculatorParameters(paramContainer.getClientParameter("calculator").getGeneral(String.class));
+            List<ParamDefinition> calculatorParameterDefinitions = paramConfig.getCalculatorParameters(paramContainer.getParam("calculator").getGeneral(String.class));
             if (calculatorParameterDefinitions != null)
                 paramDefs.addAll(calculatorParameterDefinitions);
         }
 
         //parse expression from 'f(z)=' if set
+        //TODO multi expression support
         ComputeExpressionDomain expressionDomain = null;
         if (newParams.containsKey(CommonFractalParameters.PARAM_EXPRESSIONS)){
-            ExpressionsParam expressionsParam = paramContainer.getClientParameter(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
-            ComputeExpressionBuilder exprBuilder = new ComputeExpressionBuilder(expressionsParam, newParams);
+            ExpressionsParam expressionsParam = paramContainer.getParam(CommonFractalParameters.PARAM_EXPRESSIONS).getGeneral(ExpressionsParam.class);
+            ComputeExpressionBuilder exprBuilder = new ComputeExpressionBuilder(expressionsParam, newParams, paramConfig.getUIDsByName());
             try {
                 expressionDomain = exprBuilder.getComputeExpressionDomain(false);
             } catch (IllegalArgumentException e){
@@ -186,22 +191,32 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             if (expressionDomain != null) {
                 List<ParamSupplier> exprParams = expressionDomain.getParameterList();
                 for (ParamSupplier exprParam : exprParams) {
-                    if (expressionDomain.getExplicitValues().containsKey(exprParam.getName()))
+                    ParamDefinition def = paramConfig.getParamDefinitionByUID(exprParam.getUID());
+                    String name = def != null ? def.getName() : exprParam.getUID();
+//                    String name = def.getName();
+                    if (expressionDomain.getExplicitValues().containsKey(name))
                         continue;
                     boolean predefined = false;
                     for (ParamDefinition paramDefinition : paramDefs) {
-                        if (paramDefinition.getName().equals(exprParam.getName())) {
+                        if (paramDefinition.getUID().equals(exprParam.getUID())) {
                             predefined = true;
                             break;
                         }
                     }
                     if (!predefined) {
-                        paramDefs.add(new ParamDefinition(exprParam.getName(), "Calculator",
-                                CommonFractalParameters.complexnumberType, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class));
-                        paramContainer.addClientParameter(exprParam);
-                        if (getPropertyEntry(exprParam.getName()) == null) {
+                        String uid = UIDGenerator.fromRandomBytes(6);
+                        uid = name;
+                        ParamDefinition newDef = new ParamDefinition(uid, name, "Calculator",
+                                CommonFractalParameters.complexnumberType, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class);
+                        paramDefs.add(newDef);
+                        generatedDefs.put(uid, newDef);
+                        NumberFactory nf = paramContainer.getParam(CommonFractalParameters.PARAM_NUMBERFACTORY).getGeneral(NumberFactory.class);
+                        StaticParamSupplier defaultVal = new StaticParamSupplier(uid, nf.ccn(1, 0));
+                        paramConfig.addParameterDefinition(newDef, defaultVal);
+                        paramContainer.addParam(exprParam);
+                        if (getPropertyEntryByUID(exprParam.getUID()) == null) {
                             if (focusParamName == null)
-                                focusParamName = exprParam.getName();
+                                focusParamName = name;
                             reset = true;
                         }
                     }
@@ -229,18 +244,18 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         //remove entries for old, missing parameters
         for (AbstractPropertyEntry entry : new ArrayList<>(propertyEntryList)){
-            String name = entry.getPropertyName();
+            String uid = entry.getPropertyUID();
             boolean isStaticallyDefined = false;
             boolean isExprParam = false;
             for (ParamDefinition def : paramConfig.getParameters()){
-                if (def.getName().equals(name)){
+                if (def.getUID().equals(uid)){
                     isStaticallyDefined = true;
                     break;
                 }
             }
             if (expressionDomain != null) {
                 for (ParamSupplier exprParam : expressionDomain.getParameterList()){
-                    if (exprParam.getName().equals(name)){
+                    if (exprParam.getUID().equals(uid)){
                         isExprParam = true;
                         break;
                     }
@@ -253,7 +268,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 Iterator<ParamDefinition> paramDefIt = paramDefs.iterator();
                 while (paramDefIt.hasNext()){
                     ParamDefinition def = paramDefIt.next();
-                    if (def.getName().equals(name)){
+                    if (def.getName().equals(uid)){
                         paramDefIt.remove();
                         break;
                     }
@@ -269,10 +284,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             boolean entryExists = false;
             //does entry exist?
             for (AbstractPropertyEntry entry : propertyEntryList){
-                if (entry.getPropertyName().equals(paramDef.getName())){
+                if (entry.getPropertyUID().equals(paramDef.getUID())){
                     //entry already exists -> update value
                     entryExists = true;
-                    ParamSupplier supplier = paramContainer.getClientParameter(entry.getPropertyName());
+                    ParamSupplier supplier = paramContainer.getParam(entry.getPropertyUID());
                     entry.setParamContainer(paramContainer);
                     if (supplier instanceof StaticParamSupplier)
                         entry.setValue(supplier.getGeneral());
@@ -312,6 +327,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 for (AbstractPropertyEntry entry : e.getValue()) {
                     entry.setTraversableGroup(traversableGroup);
                     entry.setPrefControlWidth(getPrefControlWidth());
+                    ParamControlState state = getParamControlState(entry.getPropertyUID());
+                    entry.setCurrentControlView(state.getControlView(), false);
                     closeEntryView(entry);
                     openEntryView(table, entry);
                 }
@@ -440,7 +457,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     public void addEntry(AbstractPropertyEntry entry){
         propertyEntryList.add(entry);
-        String storedControlViewName = getParamControlState(entry.getPropertyName()).getControlView();
+        String storedControlViewName = getParamControlState(entry.getPropertyUID()).getControlView();
         if (storedControlViewName != null)
             entry.setCurrentControlView(storedControlViewName, false);
         entry.setParentPropertyList(this);
@@ -519,9 +536,16 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         return  propertyEntryList;
     }
 
-    public AbstractPropertyEntry getPropertyEntry(String paramName){
+    public AbstractPropertyEntry getPropertyEntryByName(String paramName){
         for (AbstractPropertyEntry entry : propertyEntryList)
             if (entry.getPropertyName().equals(paramName))
+                return entry;
+        return null;
+    }
+
+    public AbstractPropertyEntry getPropertyEntryByUID(String uid){
+        for (AbstractPropertyEntry entry : propertyEntryList)
+            if (entry.getPropertyUID().equals(uid))
                 return entry;
         return null;
     }
@@ -534,21 +558,21 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         return paramContainer;
     }
 
-    public ParamControlState getParamControlState(String paramName){
+    public ParamControlState getParamControlState(String paramUID){
         String containerName = "Renderer"+((MainStage)FractalsGdxMain.stage).getFocusedRenderer().getId();
-        return getParamControlState(containerName, paramName);
+        return getParamControlState(containerName, paramUID);
     }
 
-    public ParamControlState getParamControlState(String containerName, String paramName){
+    public ParamControlState getParamControlState(String containerName, String paramUID){
         Map<String, ParamControlState> container = paramControlStates.get(containerName);
         if (container == null) {
             container = new HashMap<>();
             paramControlStates.put(containerName, container);
         }
-        ParamControlState paramControlState = container.get(paramName);
+        ParamControlState paramControlState = container.get(paramUID);
         if (paramControlState == null) {
             paramControlState = new ParamControlState();
-            container.put(paramName, paramControlState);
+            container.put(paramUID, paramControlState);
         }
         return paramControlState;
     }

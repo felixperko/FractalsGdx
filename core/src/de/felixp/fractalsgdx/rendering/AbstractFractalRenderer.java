@@ -27,24 +27,22 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     private static int ID_COUNTER = 1;
 
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
-//        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getClientParameters(), systemContext.getNumberFactory());
-        shader.setUniformi("usePalette", stage.getClientParameter(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMS_PALETTE_VALUE_DISABLED) ? 0 : 1);
-        shader.setUniformi("usePalette2", stage.getClientParameter(MainStage.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMS_PALETTE_VALUE_DISABLED) ? 0 : 1);
-        shader.setUniformf("colorAdd", (float)stage.getClientParameter(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorAdd2", (float)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_ADD).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorMult", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorMult2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_MULT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParameter(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());
-//        shader.setUniformf("sobelLuminance", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_FACTOR).getGeneral(Double.class));
-        shader.setUniformf("light_ambient", (float)(double)stage.getClientParameter(MainStage.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_ambient2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_magnitude2", (float)(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParameter(MainStage.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
-        shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParameter(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
-        shader.setUniformi("extractChannel", (int)(int)stage.getClientParameter(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
-        Object color = stage.getClientParameter(MainStage.PARAMS_MAPPING_COLOR).getGeneral();
+//        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getParamMap(), systemContext.getNumberFactory());
+        shader.setUniformi("usePalette", stage.getClientParam(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
+        shader.setUniformi("usePalette2", stage.getClientParam(MainStage.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
+        shader.setUniformf("colorAdd", (float)stage.getClientParam(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorAdd2", (float)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult", (float)(double)stage.getClientParam(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParam(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());shader.setUniformf("light_ambient", (float)(double)stage.getClientParam(MainStage.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_ambient2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
+        shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
+        shader.setUniformi("extractChannel", (int)(int)stage.getClientParam(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
+        Object color = stage.getClientParam(MainStage.PARAMS_MAPPING_COLOR).getGeneral();
 //        float[] hsv = ((Color)color).toHsv(new float[4]);
 //        shader.setUniformf("mappingColorR", hsv[0]);
 //        shader.setUniformf("mappingColorG", hsv[1]);
@@ -57,7 +55,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 //        float defaultWidth = 1920;
 //        shader.setUniformi("sobelSpan", (int)Math.round(Gdx.graphics.getWidth()/defaultWidth));
 //        shader.setUniformi("sobelSpan", Gdx.graphics.getWidth() >= defaultWidth*2 ? 2 : 1 );
-        shader.setUniformi("sobelSpan", 2);
+        shader.setUniformi("sobelSpan", 1);
     }
 
     int position = -1;

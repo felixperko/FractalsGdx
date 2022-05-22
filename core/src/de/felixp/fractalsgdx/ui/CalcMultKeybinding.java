@@ -3,19 +3,18 @@ package de.felixp.fractalsgdx.ui;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class CalcMultKeybinding extends Keybinding {
 
-    String paramName;
+    String uid;
     double factor;
 
-    public CalcMultKeybinding(String description, String paramName, double factor, int... keys) {
+    public CalcMultKeybinding(String description, String uid, double factor, int... keys) {
         super(description, keys);
-        this.paramName = paramName;
+        this.uid = uid;
         this.factor = factor;
     }
 
@@ -24,14 +23,14 @@ public class CalcMultKeybinding extends Keybinding {
         MainStage stage = (MainStage) FractalsGdxMain.stage;
         SystemContext systemContext = stage.getFocusedRenderer().getSystemContext();
         ParamContainer paramContainer = systemContext.getParamContainer();
-        Object val = paramContainer.getClientParameter(paramName).getGeneral();
+        Object val = paramContainer.getParam(uid).getGeneral();
         //TODO clamp CalcMultKeybinding resulting value?
-        AbstractPropertyEntry propertyEntry = stage.getParamUI().serverParamsSideMenu.getPropertyEntry(paramName);
+        AbstractPropertyEntry propertyEntry = stage.getParamUI().serverParamsSideMenu.getPropertyEntryByUID(uid);
         if (val instanceof Number) {
             Number n = (Number) val;
             Number newN = systemContext.getNumberFactory().createNumber(factor);
             newN.mult(n);
-            paramContainer.addClientParameter(new StaticParamSupplier(paramName, newN));
+            paramContainer.addParam(new StaticParamSupplier(uid, newN));
             propertyEntry.setValue(newN);
             try {
                 propertyEntry.submit();
@@ -42,7 +41,7 @@ public class CalcMultKeybinding extends Keybinding {
         else if (val instanceof Integer){
             Integer n = (Integer) val;
             Integer newN = (int)Math.round(n*factor);
-            paramContainer.addClientParameter(new StaticParamSupplier(paramName, newN));
+            paramContainer.addParam(new StaticParamSupplier(uid, newN));
             propertyEntry.setValue(newN);
             try {
                 propertyEntry.submit();

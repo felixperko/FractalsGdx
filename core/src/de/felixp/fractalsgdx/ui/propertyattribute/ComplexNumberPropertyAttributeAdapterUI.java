@@ -1,6 +1,8 @@
 package de.felixp.fractalsgdx.ui.propertyattribute;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.EventListener;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -11,9 +13,13 @@ import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
 public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeAdapterUI<ComplexNumber> {
+
     String name;
     NumberFactory nf;
     ComplexNumber startVal;
+
+    TabTraversableTextField valueField;
+    TabTraversableTextField valueField2;
 
     public ComplexNumberPropertyAttributeAdapterUI(String name, NumberFactory numberFactory, ComplexNumber startVal){
         this.name = name;
@@ -25,8 +31,8 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
     public Actor addToTable(Table table) {
         VisTable innerTable = new VisTable(true);
         VisLabel nameLbl = new VisLabel(name);
-        TabTraversableTextField valueField = new TabTraversableTextField(startVal.getReal().toString());
-        TabTraversableTextField valueField2 = new TabTraversableTextField(startVal.getImag().toString());
+        valueField = new TabTraversableTextField(startVal.getReal().toString());
+        valueField2 = new TabTraversableTextField(startVal.getImag().toString());
         registerField(valueField);
         registerField(valueField2);
         valueField.addListener(new ChangeListener() {
@@ -64,4 +70,9 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
 
     }
 
+    @Override
+    public void addListenerToFields(EventListener listener) {
+        valueField.addListener(listener);
+        valueField2.addListener(listener);
+    }
 }

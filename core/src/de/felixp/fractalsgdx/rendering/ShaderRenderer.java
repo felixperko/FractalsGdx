@@ -304,11 +304,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     protected void zoom(Number factor) {
         ParamContainer paramContainer = systemContext.getParamContainer();
-        Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
+        Number zoom = paramContainer.getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class);
 
         zoom.mult(factor);
         paramsChanged(paramContainer);
-        anchor = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        anchor = paramContainer.getParam(CommonFractalParameters.PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
         reset();
     }
 
@@ -420,9 +420,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         panPartOffsetY = requestedDeltaY-deltaY;
 
         ParamContainer paramContainer = systemContext.getParamContainer();
-        NumberFactory nf = paramContainer.getClientParameter("numberFactory").getGeneral(NumberFactory.class);
-        Number zoom = paramContainer.getClientParameter("zoom").getGeneral(Number.class);
-        ComplexNumber midpoint = paramContainer.getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        NumberFactory nf = systemContext.getNumberFactory();
+        Number zoom = paramContainer.getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class);
+        ComplexNumber midpoint = paramContainer.getParam(CommonFractalParameters.PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
         ComplexNumber delta = nf.createComplexNumber(deltaX, -deltaY);
         delta.divNumber(nf.createNumber(getHeight()));
         delta.multNumber(zoom);
@@ -467,7 +467,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             shaderCompilationFailed = true;
             if (changedPrecision){
                 highPrecisionUnsupported = true;
-                systemContext.getParamContainer().addClientParameter(new StaticParamSupplier(ShaderSystemContext.PARAMNAME_PRECISION, lastPrecision));
+                systemContext.getParamContainer().addParam(new StaticParamSupplier(ShaderSystemContext.PARAM_PRECISION, lastPrecision));
                 shaderBuilder.setPrecision(getActivePrecision());
                 compileComputeShader(false);
             }
@@ -476,7 +476,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     protected boolean isNewtonFractalEnabled(){
-        return systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_CALCULATOR).getGeneral(String.class).equals(ShaderSystemContext.TEXT_CALCULATOR_NEWTONFRACTAL);
+        return systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_CALCULATOR).getGeneral(String.class).equals(ShaderSystemContext.TEXT_CALCULATOR_NEWTONFRACTAL);
     }
 
     @Override
@@ -485,7 +485,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             return;
 
         if (isProgressiveRenderingFinished())
-            applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParameters(), systemContext.getNumberFactory());
+            applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParams(), systemContext.getNumberFactory());
 
         handleInput();
 
@@ -606,11 +606,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         ExpressionsParam expressions = (ExpressionsParam) systemContext.getParamValue(CommonFractalParameters.PARAM_EXPRESSIONS, ExpressionsParam.class);
 
-        String currentCondition = (String) systemContext.getParamValue("condition");
+        String currentCondition = (String) systemContext.getParamValue(ShaderSystemContext.PARAM_CONDITION);
         boolean conditionChanged = !currentCondition.equals(lastCondition);
         lastCondition = currentCondition;
 
-        ParamSupplier otSupp = systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_ORBITTRAPS);
+        ParamSupplier otSupp = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_ORBITTRAPS);
         OrbittrapContainer cont = null;
         boolean trapsChanged = false;
         if (otSupp != null){
@@ -623,9 +623,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         boolean changedPrecision = false;
         if (lastParams != null) {
             for (ParamSupplier supp : systemContext.getParamContainer().getParameters()) {
-                if (!lastParams.getClientParameters().containsKey(supp.getName()) || !supp.getClass().isInstance(lastParams.getClientParameter(supp.getName()))){
+                if (!lastParams.getParamMap().containsKey(supp.getUID()) || !supp.getClass().isInstance(lastParams.getParam(supp.getUID()))){
                     recompileShaders = true;
-                    supp.updateChanged(lastParams.getClientParameter(supp.getName()));
+                    supp.updateChanged(lastParams.getParam(supp.getUID()));
                 }
             }
             if (lastPrecision != null && !lastPrecision.equals(getActivePrecision())) { //precision changed
@@ -649,31 +649,10 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         if (update) {
             this.expressionsParam = expressions;
             try {
-
-                ComputeExpressionBuilder computeExpressionBuilder = new ComputeExpressionBuilder(expressions, systemContext.getParameters());
+                ComputeExpressionBuilder computeExpressionBuilder = new ComputeExpressionBuilder(expressions, ((ShaderSystemContext)systemContext).getParametersByUID(), systemContext.getParamConfiguration().getUIDsByName());
                 List<FractalsExpression> expressions2 = computeExpressionBuilder.getFractalsExpressions();
                 if (isNewtonFractalEnabled()){
-                    FractalsExpression firstExpr = expressions2.get(0);
-                    String mainInputVar = expressionsParam.getMainInputVar();
-                    FractalsExpression deriv = firstExpr.getDerivative(mainInputVar);
-                    List<FractalsExpression> newExprParts = new ArrayList<>();
-                    List<Integer> newExprPartLinks = new ArrayList<>();
-                    List<Integer> newExprComplexLinks = new ArrayList<>();
-                    newExprParts.add(new VariableExpression(mainInputVar));
-
-                    List<FractalsExpression> divExprParts = new ArrayList<>();
-                    List<Integer> divExprPartLinks = new ArrayList<>();
-                    List<Integer> divExprComplexLinks = new ArrayList<>();
-                    divExprParts.add(firstExpr);
-                    divExprParts.add(deriv);
-                    divExprPartLinks.add(-1);
-                    divExprComplexLinks.add(ComputeInstruction.INSTR_DIV_COMPLEX);
-                    newExprParts.add(new MultExpression(divExprParts, divExprPartLinks, divExprComplexLinks));
-
-                    newExprPartLinks.add(-1);
-                    newExprComplexLinks.add(ComputeInstruction.INSTR_SUB_COMPLEX);
-                    FractalsExpression newExpr = new ChainExpression(newExprParts, newExprPartLinks, newExprComplexLinks);
-                    expressions2.set(0, newExpr);
+                    expressionAddNewtonMethod(expressions2);
                 }
                 ComputeExpressionDomain expressionDomain = computeExpressionBuilder.getComputeExpressionDomain(false, expressions2);
                 ComputeExpression newExpression = expressionDomain.getMainExpressions().get(0);
@@ -697,19 +676,43 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         paramsChanged = false;
     }
 
+    private void expressionAddNewtonMethod(List<FractalsExpression> expressions) {
+        FractalsExpression firstExpr = expressions.get(0);
+        String mainInputVar = expressionsParam.getMainInputVar();
+        FractalsExpression deriv = firstExpr.getDerivative(mainInputVar);
+        List<FractalsExpression> newExprParts = new ArrayList<>();
+        List<Integer> newExprPartLinks = new ArrayList<>();
+        List<Integer> newExprComplexLinks = new ArrayList<>();
+        newExprParts.add(new VariableExpression(mainInputVar));
+
+        List<FractalsExpression> divExprParts = new ArrayList<>();
+        List<Integer> divExprPartLinks = new ArrayList<>();
+        List<Integer> divExprComplexLinks = new ArrayList<>();
+        divExprParts.add(firstExpr);
+        divExprParts.add(deriv);
+        divExprPartLinks.add(-1);
+        divExprComplexLinks.add(ComputeInstruction.INSTR_DIV_COMPLEX);
+        newExprParts.add(new MultExpression(divExprParts, divExprPartLinks, divExprComplexLinks));
+
+        newExprPartLinks.add(-1);
+        newExprComplexLinks.add(ComputeInstruction.INSTR_SUB_COMPLEX);
+        FractalsExpression newExpr = new ChainExpression(newExprParts, newExprPartLinks, newExprComplexLinks);
+        expressions.set(0, newExpr);
+    }
+
     protected int getParamFloatCount(){
         return getActivePrecision().equals(ShaderSystemContext.TEXT_PRECISION_32) ? 3 : 6;
     }
 
     private String getActivePrecision() {
-        String precisionSetting = systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_PRECISION).getGeneral(String.class);
+        String precisionSetting = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_PRECISION).getGeneral(String.class);
         if (!ShaderSystemContext.TEXT_PRECISION_AUTO.equals(precisionSetting))
             return precisionSetting;
         if (highPrecisionUnsupported)
             return ShaderSystemContext.TEXT_PRECISION_32;
 
         double zoomBorder64bit = 1E-4;
-        double zoom = systemContext.getParamContainer().getClientParameter("zoom").getGeneral(Number.class).toDouble();
+        double zoom = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class).toDouble();
         if (zoom < zoomBorder64bit){
             return ShaderSystemContext.TEXT_PRECISION_64;
         }
@@ -734,16 +737,16 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 //			lastIncrease = t;
 //			iterations++;
 //		}
-        computeShader.setUniformf("iterations", (float)paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_ITERATIONS).getGeneral(Integer.class));
-        computeShader.setUniformf("firstIterations", (float)paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_FIRSTITERATIONS).getGeneral(Number.class).toDouble()/100f);
-        computeShader.setUniformf("limit", (float)paramContainer.getClientParameter("limit").getGeneral(Number.class).toDouble());
-        Integer frameSamples = paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_SAMPLESPERFRAME).getGeneral(Integer.class);
+        computeShader.setUniformf("iterations", (float)paramContainer.getParam(CommonFractalParameters.PARAM_ITERATIONS).getGeneral(Integer.class));
+        computeShader.setUniformf("firstIterations", (float)paramContainer.getParam(ShaderSystemContext.PARAM_FIRSTITERATIONS).getGeneral(Number.class).toDouble()/100f);
+        computeShader.setUniformf("limit", (float)paramContainer.getParam(ShaderSystemContext.PARAM_LIMIT).getGeneral(Number.class).toDouble());
+        Integer frameSamples = paramContainer.getParam(ShaderSystemContext.PARAM_SAMPLESPERFRAME).getGeneral(Integer.class);
         if (multisampleByRepeating || frameSamples < 1)
             frameSamples = 1;
         computeShader.setUniformf("maxSamplesPerFrame", (float) frameSamples);
-        computeShader.setUniformi("colour3Output", (int)paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_STABLE_OUTPUT).getGeneral());
+        computeShader.setUniformi("colour3Output", (int)paramContainer.getParam(ShaderSystemContext.PARAM_STABLE_OUTPUT).getGeneral());
 
-        double scale = paramContainer.getClientParameter("zoom").getGeneral(Number.class).toDouble();
+        double scale = paramContainer.getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class).toDouble();
         ComplexNumber midpoint = systemContext.getMidpoint();
 
         List<ParamSupplier> paramList = expression.getParameterList();
@@ -816,7 +819,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
                 }
             }
             else
-                throw new IllegalArgumentException("Unsupported ParamSupplier "+supp.getName()+": "+supp.getClass().getName());
+                throw new IllegalArgumentException("Unsupported ParamSupplier for "+supp.getUID()+": "+supp.getClass().getName());
         }
         computeShader.setUniform1fv("params", params, 0, params.length);
 
@@ -831,19 +834,19 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         computeShader.setUniformf("centerFp64Low", centerFp64LowR, centerFp64LowI);
         computeShader.setUniformf("smoothstepScaling", (float)expression.getSmoothstepConstant());
         computeShader.setUniformf("smoothstepShift", (float)0);
-        computeShader.setUniformf("maxBorderSamples", paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_MAXBORDERSAMPLES).getGeneral(Integer.class));
-        Integer maxSampleCount = paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_SUPERSAMPLING).getGeneral(Integer.class);
+        computeShader.setUniformf("maxBorderSamples", paramContainer.getParam(ShaderSystemContext.PARAM_MAXBORDERSAMPLES).getGeneral(Integer.class));
+        Integer maxSampleCount = paramContainer.getParam(ShaderSystemContext.PARAM_SUPERSAMPLING).getGeneral(Integer.class);
         computeShader.setUniformi("maxSampleCount", maxSampleCount);
         computeShader.setUniformi("sampleCount", updateAndGetSampleCountLimit(maxSampleCount));
-        computeShader.setUniformf("gridFrequency", (float)paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_GRID_PERIOD).getGeneral(Number.class).toDouble());
-        computeShader.setUniformf("moduloFrequency", (float)paramContainer.getClientParameter(ShaderSystemContext.PARAMNAME_MODULO_PERIOD).getGeneral(Number.class).toDouble());
+        computeShader.setUniformf("gridFrequency", (float)paramContainer.getParam(ShaderSystemContext.PARAM_GRID_PERIOD).getGeneral(Number.class).toDouble());
+        computeShader.setUniformf("moduloFrequency", (float)paramContainer.getParam(ShaderSystemContext.PARAM_MODULO_PERIOD).getGeneral(Number.class).toDouble());
 
         shaderBuilder.setUniforms(computeShader);
     }
 
     private int updateAndGetSampleCountLimit(Integer maxSampleCount) {
         double fps = 1.0/Gdx.graphics.getDeltaTime();
-        int targetFps = systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_TARGET_FRAMERATE).getGeneral(Integer.class);
+        int targetFps = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_TARGET_FRAMERATE).getGeneral(Integer.class);
         if (targetFps <= 0){ //disabled
             maxSamplingDifference = maxSampleCount;
             return maxSampleCount;
@@ -1062,9 +1065,9 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         long t1 = System.nanoTime();
 
-        setResolutionScale((double)systemContext.getParamValue(ShaderSystemContext.PARAMNAME_RESOLUTIONSCALE, Double.class));
+        setResolutionScale((double)systemContext.getParamValue(ShaderSystemContext.PARAM_RESOLUTIONSCALE, Double.class));
         float resolutionScaleF = getResolutionScale(true);
-        this.samplesPerFrame = (float)(int)systemContext.getParamValue(ShaderSystemContext.PARAMNAME_SAMPLESPERFRAME);
+        this.samplesPerFrame = (float)(int)systemContext.getParamValue(ShaderSystemContext.PARAM_SAMPLESPERFRAME);
 
         updateMousePos();
 
@@ -1097,8 +1100,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         long t2 = System.nanoTime();
 
-        Integer supersampling = systemContext.getParamContainer().getClientParameter(
-                ShaderSystemContext.PARAMNAME_SUPERSAMPLING).getGeneral(Integer.class);
+        Integer supersampling = systemContext.getParamContainer().getParam(
+                ShaderSystemContext.PARAM_SUPERSAMPLING).getGeneral(Integer.class);
 
         FrameBuffer activeDataFbo = getActiveDataFbo();
         Array<Texture> newDataTextures = activeDataFbo.getTextureAttachments();
@@ -1115,7 +1118,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             renderedPart = true;
 
             int frameSamples = !multisampleByRepeating ? 1 :
-                    (Integer)systemContext.getParamValue(ShaderSystemContext.PARAMNAME_SAMPLESPERFRAME);
+                    (Integer)systemContext.getParamValue(ShaderSystemContext.PARAM_SAMPLESPERFRAME);
 
 //            projectionMatrix.setToOrtho2D(0, 0, (float) (getScaledWidth()/2), (float) (getScaledHeight()/2));
 //            batch.setProjectionMatrix(projectionMatrix);
@@ -1459,12 +1462,12 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
         long t5 = System.nanoTime();
 
-        ParamContainer clientParams = ((MainStage)getStage()).getClientParameters();
-        boolean drawPath =      clientParams.getClientParameter(MainStage.PARAMS_DRAW_PATH).getGeneral(Boolean.class);
-        boolean drawAxis =      clientParams.getClientParameter(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
-        boolean drawMidpoint =  clientParams.getClientParameter(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
-        boolean drawOrigin =    clientParams.getClientParameter(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
-        boolean tracesEnabled = clientParams.getClientParameter(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
+        ParamContainer clientParams = ((MainStage)getStage()).getClientParams();
+        boolean drawPath =      clientParams.getParam(MainStage.PARAMS_DRAW_PATH).getGeneral(Boolean.class);
+        boolean drawAxis =      clientParams.getParam(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
+        boolean drawMidpoint =  clientParams.getParam(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
+        boolean drawOrigin =    clientParams.getParam(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
+        boolean tracesEnabled = clientParams.getParam(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
         boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
         boolean pathVisible = drawPath && inFocus && rendererContext.getSelectedParamInterpolation() != null;
 
@@ -1566,7 +1569,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     private void updateProgressiveRendering(){
-        float newSampleCount = (Integer) systemContext.getParamValue(ShaderSystemContext.PARAMNAME_SAMPLESPERFRAME, Integer.class);
+        float newSampleCount = (Integer) systemContext.getParamValue(ShaderSystemContext.PARAM_SAMPLESPERFRAME, Integer.class);
         newSampleCount /= selectCycleLength;
         progressiveRenderingMissingFrames = progressiveRenderingMissingFrames - newSampleCount;
         if (progressiveRenderingMissingFrames < 0)
@@ -1574,15 +1577,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     }
 
     private void resetProgressiveRendering(){
-        int samples = (Integer) systemContext.getParamValue(ShaderSystemContext.PARAMNAME_SUPERSAMPLING, Integer.class);
+        int samples = (Integer) systemContext.getParamValue(ShaderSystemContext.PARAM_SUPERSAMPLING, Integer.class);
         progressiveRenderingMissingFrames = Math.max(samples, getProgressiveRenderingMinFrames());
     }
 
     protected int getProgressiveRenderingMinFrames() {
-        ParamSupplier suppFirstIt = systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_FIRSTITERATIONS);
+        ParamSupplier suppFirstIt = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_FIRSTITERATIONS);
         Number number = suppFirstIt == null ? null : suppFirstIt.getGeneral(Number.class);
-        ParamSupplier suppMultisample = systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_SUPERSAMPLING);
-        int samplesPerFrame = (int) systemContext.getParamContainer().getClientParameter(ShaderSystemContext.PARAMNAME_SAMPLESPERFRAME).getGeneral();
+        ParamSupplier suppMultisample = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_SUPERSAMPLING);
+        int samplesPerFrame = (int) systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_SAMPLESPERFRAME).getGeneral();
         return (number != null && number.toDouble() == 100.0) || (suppMultisample != null && suppMultisample.getGeneral(Integer.class) == 1) ? 0 : progressiveRenderingMinFramesIfFloodfill;
     }
 
@@ -1809,15 +1812,15 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     protected void drawShapes(Batch batch) {
 
-        ParamContainer clientParams = ((MainStage)getStage()).getClientParameters();
-        boolean drawPath =              clientParams.getClientParameter(MainStage.PARAMS_DRAW_PATH).getGeneral(Boolean.class);
-        boolean drawAxis =              clientParams.getClientParameter(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
-        boolean drawMidpoint =          clientParams.getClientParameter(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
-        boolean drawOrigin =            clientParams.getClientParameter(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
-        float lineWidth = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_WIDTH).getGeneral(Number.class).toDouble();
-        float pointSize = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Number.class).toDouble();
-        boolean orbitEnabled =         clientParams.getClientParameter(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
-        int orbitIterations =                clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TRACES).getGeneral(Integer.class);
+        ParamContainer clientParams = ((MainStage)getStage()).getClientParams();
+        boolean drawPath =              clientParams.getParam(MainStage.PARAMS_DRAW_PATH).getGeneral(Boolean.class);
+        boolean drawAxis =              clientParams.getParam(MainStage.PARAMS_DRAW_AXIS).getGeneral(Boolean.class);
+        boolean drawMidpoint =          clientParams.getParam(MainStage.PARAMS_DRAW_MIDPOINT).getGeneral(Boolean.class);
+        boolean drawOrigin =            clientParams.getParam(MainStage.PARAMS_DRAW_ZERO).getGeneral(Boolean.class);
+        float lineWidth = (float)(double)clientParams.getParam(MainStage.PARAMS_TRACES_LINE_WIDTH).getGeneral(Number.class).toDouble();
+        float pointSize = (float)(double)clientParams.getParam(MainStage.PARAMS_TRACES_POINT_SIZE).getGeneral(Number.class).toDouble();
+        boolean orbitEnabled =         clientParams.getParam(MainStage.PARAMS_DRAW_ORBIT).getGeneral(Boolean.class);
+        int orbitIterations =                clientParams.getParam(MainStage.PARAMS_ORBIT_TRACES).getGeneral(Integer.class);
         boolean inFocus = ((MainStage) getStage()).getFocusedRenderer() == this;
         boolean tracesVisible = orbitEnabled && inFocus && orbitIterations > 0 && (lineWidth > 0 || pointSize > 0);
         boolean disabled = !drawMidpoint && !drawPath && !drawAxis && !tracesVisible;
@@ -1887,25 +1890,25 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     private void updateOrbitArrays() {
 
-        ParamContainer clientParams = ((MainStage)getStage()).getClientParameters();
-        int traceCount = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TRACES).getGeneral(Integer.class);
+        ParamContainer clientParams = ((MainStage)getStage()).getClientParams();
+        int traceCount = clientParams.getParam(MainStage.PARAMS_ORBIT_TRACES).getGeneral(Integer.class);
 
         //determine coordinates
         ComplexNumber coords = null;
-        String posVarName = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TARGET).getGeneral(String.class);
+        String posVarName = clientParams.getParam(MainStage.PARAMS_ORBIT_TARGET).getGeneral(String.class);
         if (posVarName.equals("path")) {
-            coords = clientParams.getClientParameter(MainStage.PARAMS_TRACES_VALUE).getGeneral(ComplexNumber.class);
+            coords = clientParams.getParam(MainStage.PARAMS_TRACES_VALUE).getGeneral(ComplexNumber.class);
 //            timePassed += Gdx.graphics.getDeltaTime();
         }
         else {
-            ParamSupplier posVar = systemContext.getParamContainer().getClientParameter(posVarName);
+            ParamSupplier posVar = systemContext.getParamContainer().getParam(posVarName);
             boolean useMousePos = posVarName.equals("mouse") || posVar == null || !(posVar instanceof StaticParamSupplier) || (((StaticParamSupplier) posVar).getGeneral() instanceof ComplexNumber);
             if (useMousePos)
                 coords = getComplexMapping(mouseX, mouseY);
         }
 
 
-        boolean tracePerInstruction = clientParams.getClientParameter(MainStage.PARAMS_ORBIT_TRACE_PER_INSTRUCTION).getGeneral(Boolean.class);
+        boolean tracePerInstruction = clientParams.getParam(MainStage.PARAMS_ORBIT_TRACE_PER_INSTRUCTION).getGeneral(Boolean.class);
         //calculate sample on cpu and save traces
         double[][] traces = sampleCoordsOnCpu(traceCount, tracePerInstruction, coords);
         if (traces.length == 3) {
@@ -1934,7 +1937,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         traceChunk.setCurrentTask(new TraceTask(systemContext));
 //        BreadthFirstLayer layer = new BreadthFirstLayer().with_samples(1).with_rendering(false);
         boolean layerSet = false;
-        for (Layer layer : ((LayerConfiguration)systemContext.getParamValue(ShaderSystemContext.PARAMNAME_LAYER_CONFIG)).getLayers()){
+        for (Layer layer : ((LayerConfiguration)systemContext.getParamValue(ShaderSystemContext.PARAM_LAYER_CONFIG)).getLayers()){
             if (layer instanceof BreadthFirstLayer && !(layer instanceof BreadthFirstUpsampleLayer)){
                 traceChunk.getCurrentTask().getStateInfo().setLayer(layer);
                 layerSet = true;
@@ -1956,8 +1959,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     private void drawOrbit(Batch batch, ParamContainer clientParams, float lineWidth, float pointSize) {
 
         //draw traces
-        float lineTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_LINE_TRANSPARENCY).getGeneral(Number.class).toDouble();
-        float pointTransparency = (float)(double)clientParams.getClientParameter(MainStage.PARAMS_TRACES_POINT_TRANSPARENCY).getGeneral(Number.class).toDouble();
+        float lineTransparency = (float)(double)clientParams.getParam(MainStage.PARAMS_TRACES_LINE_TRANSPARENCY).getGeneral(Number.class).toDouble();
+        float pointTransparency = (float)(double)clientParams.getParam(MainStage.PARAMS_TRACES_POINT_TRANSPARENCY).getGeneral(Number.class).toDouble();
 
         int nextIteration = 0;
 
@@ -2103,8 +2106,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     @Override
     public float getScreenX(Number real) {
-        Number zoom = (Number) systemContext.getParamValue("zoom");
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+        Number zoom = (Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM);
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue(CommonFractalParameters.PARAM_MIDPOINT));
 
         NumberFactory nf = systemContext.getNumberFactory();
         Number res = real.copy();
@@ -2120,8 +2123,8 @@ public class ShaderRenderer extends AbstractFractalRenderer {
 
     @Override
     public float getScreenY(Number imag) {
-        Number zoom = (Number) systemContext.getParamValue("zoom");
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+        Number zoom = (Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM);
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue(CommonFractalParameters.PARAM_MIDPOINT));
 
         NumberFactory nf = systemContext.getNumberFactory();
         Number res0 = imag.copy();
@@ -2145,11 +2148,11 @@ public class ShaderRenderer extends AbstractFractalRenderer {
     @Override
     public Number getReal(float screenX) {
 
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue(CommonFractalParameters.PARAM_MIDPOINT));
         screenX -= getX()+getWidth()/2;
 
         NumberFactory nf = systemContext.getNumberFactory();
-        Number zoomNumber = (Number) systemContext.getParamValue("zoom");
+        Number zoomNumber = (Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM);
         Number resultNumber = nf.createNumber(screenX);
         Number heightNumber = nf.createNumber(getHeight());
         resultNumber.div(heightNumber);
@@ -2157,19 +2160,19 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         resultNumber.add(midpoint.getReal());
         return resultNumber;
 
-//        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+//        double zoom = ((Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM)).toDouble();
 //        double midpointReal = midpoint.realDouble();
 //        return (screenX-getX()-getWidth()/2)*(zoom/getHeight())+midpointReal;
     }
 
     @Override
     public Number getImag(float screenY) {
-        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue("midpoint"));
+        ComplexNumber midpoint = ((ComplexNumber)systemContext.getParamValue(CommonFractalParameters.PARAM_MIDPOINT));
         screenY -= ((Gdx.graphics.getHeight()-getHeight()-getY()));
         screenY -= getHeight()/2;
 
         NumberFactory nf = systemContext.getNumberFactory();
-        Number zoomNumber = (Number) systemContext.getParamValue("zoom");
+        Number zoomNumber = (Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM);
         Number resultNumber = nf.createNumber(screenY);
         Number heightNumber = nf.createNumber(getHeight());
         resultNumber.div(heightNumber);
@@ -2177,7 +2180,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         resultNumber.add(midpoint.getImag());
         return resultNumber;
 
-//        double zoom = ((Number) systemContext.getParamValue("zoom")).toDouble();
+//        double zoom = ((Number) systemContext.getParamValue(ShaderSystemContext.PARAM_ZOOM)).toDouble();
 //        double midpointImag = midpoint.imagDouble();
 //        return ((screenY-(Gdx.graphics.getHeight()-getHeight()-getY()))-getHeight()/2)*(zoom/getHeight())+midpointImag;
     }
@@ -2234,7 +2237,7 @@ public class ShaderRenderer extends AbstractFractalRenderer {
         setRefresh();
         paramsChanged();
         resetProgressiveRendering();
-        ComplexNumber midpoint = getSystemContext().getParamContainer().getClientParameter("midpoint").getGeneral(ComplexNumber.class);
+        ComplexNumber midpoint = getSystemContext().getParamContainer().getParam(CommonFractalParameters.PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
         xPos = midpoint.realDouble();
         yPos = midpoint.imagDouble();
         pannedDeltaX = 0f;

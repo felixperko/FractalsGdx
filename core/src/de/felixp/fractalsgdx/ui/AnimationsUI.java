@@ -39,6 +39,7 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -102,7 +103,7 @@ public class AnimationsUI {
 //        VisSelectBox<String> paramSelect = new VisSelectBox<>();
 //        Map<String, String> paramSelectValues = new LinkedHashMap<>();
 //        paramSelectValues.put("(empty)", null);
-//        for (ParamSupplier supp : paramContainer.getClientParameters().values()) {
+//        for (ParamSupplier supp : paramContainer.getParamMap().values()) {
 //            String paramName = supp.getName();
 //            paramSelectValues.put(paramName, paramName);
 //        }
@@ -145,7 +146,7 @@ public class AnimationsUI {
                 if (!updatingSliders) {
                     animation.setProgress(progressSlider.getValue());
                     SystemContext systemContext = selectedRenderer.getSystemContext();
-                    selectedRenderer.applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParameters(), systemContext.getNumberFactory());
+                    selectedRenderer.applyParameterAnimations(systemContext.getParamContainer(), ((MainStage)FractalsGdxMain.stage).getClientParams(), systemContext.getNumberFactory());
                     selectedRenderer.reset();
                 }
             }
@@ -234,7 +235,7 @@ public class AnimationsUI {
 //        VisSelectBox<String> paramSelect = new VisSelectBox<>();
 //        Map<String, String> paramSelectValues = new LinkedHashMap<>();
 ////        paramSelectValues.put("(empty)", null);
-//        for (ParamSupplier supp : paramContainer.getClientParameters().values()) {
+//        for (ParamSupplier supp : paramContainer.getParamMap().values()) {
 //            String paramName = supp.getName();
 //            paramSelectValues.put(paramName, paramName);
 //        }
@@ -277,7 +278,7 @@ public class AnimationsUI {
 //        table.add("Param:");
 //        table.add(paramSelect);
 
-        table.add(" - "+interpolation.getParamContainerKey()+"."+interpolation.getParamName());
+        table.add(" - "+interpolation.getDisplayString(true));
         table.add(editButton);
 
         outerTable.add(table).left().row();
@@ -320,7 +321,7 @@ public class AnimationsUI {
         if(addEditInterpolationWindow != null && addEditInterpolationWindow.getParent() != null)
             addEditInterpolationWindow.remove();
 
-        VisWindow window = new VisWindow(createNew ? "Add interpolation to "+animation.getName() : "Edit interpolation of "+animation.getName()+": "+interpolation.getParamContainerKey()+"."+interpolation.getParamName());
+        VisWindow window = new VisWindow(createNew ? "Add interpolation to "+animation.getName() : "Edit interpolation of "+animation.getName()+": "+interpolation.getDisplayString(true));
         addEditInterpolationWindow = window;
         VisTable table = new VisTable(true);
         VisTable interpolationValuesTable = new VisTable(true);
@@ -423,7 +424,7 @@ public class AnimationsUI {
             deleteButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    animation.removeInterpolation(finalInterpolation.getParamName(), finalInterpolation.getAttributeName());
+                    animation.removeInterpolation(finalInterpolation.getParamUid(), finalInterpolation.getAttributeName());
                     closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
                 }
             });
@@ -441,9 +442,11 @@ public class AnimationsUI {
             okButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    String[] names = extractParamAttributeNames(paramSelect.getSelected());
+                    String[] uids = extractParamAttributeUIDs(paramSelect.getSelected());
 //                    ParamInterpolation interpolation = createParamInterpolationAsSelected(paramName);
-                    currentInterpolation.setParam(names[0], selectedParamType, selectedContainer, names[1]);
+                    ParamConfiguration config = getParamConfig(selectedContainer, selectedRenderer, stage);
+                    String paramName = config.getName(uids[0]);
+                    currentInterpolation.setParam(uids[0], paramName, selectedParamType, selectedContainer, uids[1], uids[1]);
                     ParamInterpolation interpolation = currentInterpolation;
                     ParamInterpolation inheritValueInterpolation = inheritControlPointSelect.getSelected().getValue();
                     if (inheritValueInterpolation != null) {
@@ -476,7 +479,7 @@ public class AnimationsUI {
                 }
             }
             updateSelectableParams(paramSelect, selectedContainer, stage, selectedRenderer, selectedParamType);
-            paramSelect.setSelected(currentInterpolation.getParamName());
+            paramSelect.setSelected(currentInterpolation.getParamUid());
             ParamInterpolation controlPointParent = currentInterpolation.getControlPointParent();
             if (controlPointParent != null && controlPointParent != currentInterpolation) {
                 for (Map.Entry<String, ParamInterpolation> e : inheritControlPointOptions.entrySet()) {
@@ -490,9 +493,13 @@ public class AnimationsUI {
             okButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
-                    String[] names = extractParamAttributeNames(paramSelect.getSelected());
                     currentInterpolation.setInterpolationFunction(selectedInterpolationFunctionClass);
-                    currentInterpolation.setParam(names[0], selectedParamType, selectedContainer, names[1]);
+
+                    String[] uids = extractParamAttributeUIDs(paramSelect.getSelected());
+                    ParamConfiguration config = getParamConfig(selectedContainer, selectedRenderer, stage);
+                    String paramName = config.getName(uids[0]);
+                    currentInterpolation.setParam(uids[0], paramName, selectedParamType, selectedContainer, uids[1], uids[1]);
+
                     boolean applied = applyInterpolationFields(currentInterpolation, defValueFields, numberFactory);
                     if (applied)
                         closeWindowAndReopenAnimationsWindow(window, animationsWindow, stage);
@@ -538,21 +545,32 @@ public class AnimationsUI {
         stage.addActor(window);
     }
 
+    private static ParamConfiguration getParamConfig(String selectedContainer, FractalRenderer selectedRenderer, MainStage stage) {
+        if (PARAM_CONTAINERKEY_SERVER.equals(selectedContainer)){
+            return selectedRenderer.getSystemContext().getParamConfiguration();
+        }
+        if (PARAM_CONTAINERKEY_CLIENT.equals(selectedContainer)){
+            return stage.getClientParamConfiguration();
+        }
+        return null;
+    }
+
     private static Map<String, ParamInterpolation> updateInheritSelectOptions(ParamAnimation animation, VisSelectBox<Map.Entry<String, ParamInterpolation>> inheritControlPointSelect) {
         Map<String, ParamInterpolation> inheritControlPointOptions = new LinkedHashMap<>();
         inheritControlPointOptions.put("no inheritance", null);
         for (ParamInterpolation interpolation2 : animation.getInterpolations().values()){
             if (interpolation2.getParamType().equals(selectedParamType))
-                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+"."+interpolation2.getParamName(), interpolation2);
+                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getDisplayString(true), interpolation2);
             if (selectedParamType.equals(PARAM_TYPE_NUMBER) && interpolation2.getParamType().equals(PARAM_TYPE_COMPLEXNUMBER)){
                 //TODO implement inherit part of complex number
-                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+".re("+interpolation2.getParamName()+")", interpolation2);
-                inheritControlPointOptions.put(animation.getName()+": "+interpolation2.getParamContainerKey()+".im("+interpolation2.getParamName()+")", interpolation2);
+                inheritControlPointOptions.put(animation.getName()+": re("+interpolation2.getDisplayString(true)+")", interpolation2);
+                inheritControlPointOptions.put(animation.getName()+": im("+interpolation2.getDisplayString(true)+")", interpolation2);
             }
         }
-        inheritControlPointSelect.setItems(new Array<Map.Entry<String, ParamInterpolation>>(
-                inheritControlPointOptions.entrySet().toArray(new Map.Entry[inheritControlPointOptions.size()]))
-        );
+        Array<Map.Entry<String, ParamInterpolation>> items = new Array<>();
+        for (Map.Entry<String, ParamInterpolation> item : inheritControlPointOptions.entrySet())
+            items.add(item);
+        inheritControlPointSelect.setItems(items);
         return inheritControlPointOptions;
     }
 
@@ -699,11 +717,11 @@ public class AnimationsUI {
     }
 
     protected static ParamInterpolation createParamInterpolationAsSelected(String selected) {
-        String[] names = extractParamAttributeNames(selected);
-        return createParamInterpolation(names[0], selectedParamType, selectedContainer, names[1], selectedInterpolationFunctionClass);
+        String[] uids = extractParamAttributeUIDs(selected);
+        return createParamInterpolation(uids[0], selectedParamType, selectedContainer, uids[1], selectedInterpolationFunctionClass);
     }
 
-    private static String[] extractParamAttributeNames(String selectedLabelName){
+    private static String[] extractParamAttributeUIDs(String selectedLabelName){
         String selectedOption = paramOptions.get(selectedLabelName);
         String paramName = selectedOption;
         String attributeName = null;
@@ -715,14 +733,14 @@ public class AnimationsUI {
         return new String[]{paramName, attributeName};
     }
 
-    protected static ParamInterpolation createParamInterpolation(String paramName, String paramType, String container, String attributeName, Class<? extends InterpolationFunction> interpolationFunctionClass) {
+    protected static ParamInterpolation createParamInterpolation(String paramUid, String paramType, String container, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass) {
         boolean isNumber = selectedParamType.equals(PARAM_TYPE_NUMBER);
         boolean isComplexNumber = selectedParamType.equals(PARAM_TYPE_COMPLEXNUMBER);
         ParamInterpolation interpolation = null;
         if (isComplexNumber)
-            interpolation = new ComplexNumberParamInterpolation(paramName, paramType, container, attributeName, interpolationFunctionClass);
+            interpolation = new ComplexNumberParamInterpolation(paramUid, paramType, container, attributeUid, interpolationFunctionClass);
         else if (isNumber)
-            interpolation = new NumberParamInterpolation(paramName, paramType, container, attributeName, interpolationFunctionClass);
+            interpolation = new NumberParamInterpolation(paramUid, paramType, container, attributeUid, interpolationFunctionClass);
         interpolation.setAutomaticTimings(isComplexNumber);
         return interpolation;
     }
@@ -758,11 +776,14 @@ public class AnimationsUI {
 
     private static Map<String, String> updateSelectableParams(VisSelectBox paramSelect, String containerKey, MainStage stage, FractalRenderer selectedRenderer, String selectedParamType){
         ParamContainer paramContainer;
+        ParamConfiguration paramConfig;
         if (PARAM_CONTAINERKEY_SERVER.equals(containerKey)){
             paramContainer = selectedRenderer.getSystemContext().getParamContainer();
+            paramConfig = selectedRenderer.getSystemContext().getParamConfiguration();
         }
         else if (PARAM_CONTAINERKEY_CLIENT.equals(containerKey)){
-            paramContainer = stage.getClientParameters();
+            paramContainer = stage.getClientParams();
+            paramConfig = stage.getClientParamConfiguration();
         }
         else
             throw new IllegalArgumentException("expected containerKey "+PARAM_CONTAINERKEY_SERVER+"/"+PARAM_CONTAINERKEY_CLIENT+" was: "+containerKey);
@@ -776,17 +797,18 @@ public class AnimationsUI {
 //            checkClasses.add(Double.class);
         }
 
-        Map<String, String> paramOptions = getParamOptions(paramContainer, checkClasses);
+        Map<String, String> paramOptions = getParamOptions(paramContainer, paramConfig, checkClasses, selectedRenderer.getSystemContext());
         paramSelect.setItems(paramOptions.keySet().toArray(new String[paramOptions.size()]));
         paramSelect.setSelectedIndex(0);
         return paramOptions;
     }
 
-    private static Map<String, String> getParamOptions(ParamContainer paramContainer, List<Class<?>> checkClasses) {
+    private static Map<String, String> getParamOptions(ParamContainer paramContainer, ParamConfiguration paramConfig, List<Class<?>> checkClasses, SystemContext systemContext) {
         Map<String, String> paramOptions = new LinkedHashMap<>();
 //        paramOptions.put("(empty)", null);
-        for (String paramSupplierName : paramContainer.getClientParameters().keySet()){
-            ParamSupplier supplier = paramContainer.getClientParameter(paramSupplierName);
+        for (String uid : paramContainer.getParamMap().keySet()){
+            ParamSupplier supplier = paramContainer.getParam(uid);
+            String paramSupplierName = paramConfig.getName(uid);
             if (!(supplier instanceof StaticParamSupplier))
                 continue;
             boolean valid = checkClasses.isEmpty();
@@ -798,14 +820,14 @@ public class AnimationsUI {
                 }
             }
             if (valid) {
-                paramOptions.put(paramSupplierName, paramSupplierName);
+                paramOptions.put(paramSupplierName, uid);
             }
             if (supplier.getGeneral() instanceof ParamAttributeHolder){
                 ParamAttributeHolder attributeHolder = (ParamAttributeHolder)supplier.getGeneral();
                 for (ParamAttribute attr : attributeHolder.getParamAttributeContainer().getAttributes().values()){
                     for (Class<?> cls : checkClasses){
                         if (cls.isAssignableFrom(attr.getAttributeClass())){
-                            paramOptions.put(paramSupplierName+"."+attr.getQualifiedName(), paramSupplierName+" ATTR="+attr.getQualifiedName());
+                            paramOptions.put(paramSupplierName+"."+attr.getQualifiedName(), uid+" ATTR="+attr.getQualifiedName());
                             break;
                         }
                     }

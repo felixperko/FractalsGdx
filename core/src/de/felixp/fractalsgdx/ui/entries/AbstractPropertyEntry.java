@@ -13,7 +13,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
+import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
+import com.kotcrab.vis.ui.widget.VisWindow;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +30,19 @@ import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.ParamControlState;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
+import de.felixp.fractalsgdx.ui.propertyattribute.AbstractPropertyAttributeAdapterUI;
+import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
+import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
+import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
+import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
+import de.felixperko.fractals.system.parameters.attributes.ComplexNumberParamAttribute;
+import de.felixperko.fractals.system.parameters.attributes.NumberParamAttribute;
+import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateDiscreteParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamSupplier;
@@ -50,6 +63,7 @@ public abstract class AbstractPropertyEntry {
     Tree.Node node;
     ParamContainer paramContainer;
 
+    String propertyUID;
     String propertyName;
 
     ParamDefinition parameterDefinition;
@@ -83,6 +97,7 @@ public abstract class AbstractPropertyEntry {
 
     public AbstractPropertyEntry(Tree.Node node, ParamContainer paramContainer, ParamDefinition parameterDefinition, boolean submitValue){
         this.parameterDefinition = parameterDefinition;
+        this.propertyUID = parameterDefinition.getUID();
         this.propertyName = parameterDefinition.getName();
         this.node = node;
         this.paramContainer = paramContainer;
@@ -90,7 +105,7 @@ public abstract class AbstractPropertyEntry {
         this.getState().setControlView(VIEW_LIST);
 
         this.possibleSupplierClasses = parameterDefinition.getPossibleClasses();
-        ParamSupplier supp = paramContainer.getClientParameter(parameterDefinition.getName());
+        ParamSupplier supp = paramContainer.getParam(parameterDefinition.getUID());
         if (supp == null)
             this.selectedSupplierClass = possibleSupplierClasses.get(0);
         else if (possibleSupplierClasses.contains(supp.getClass()))
@@ -115,7 +130,7 @@ public abstract class AbstractPropertyEntry {
         if (view != null) {
             view.addToTable(table);
             if (paramContainer != null) {
-                ParamSupplier supp = paramContainer.getClientParameter(getPropertyName());
+                ParamSupplier supp = paramContainer.getParam(getPropertyUID());
                 Gdx.app.postRunnable(() -> {
                     if (supp instanceof StaticParamSupplier)
                         setValue(supp.getGeneral());
@@ -138,7 +153,7 @@ public abstract class AbstractPropertyEntry {
 
     public ParamControlState getState(){
         if (parentPropertyList != null)
-            return parentPropertyList.getParamControlState(getPropertyName());
+            return parentPropertyList.getParamControlState(getPropertyUID());
         if (paramControlState == null)
             paramControlState = new ParamControlState();
         return paramControlState;
@@ -150,6 +165,10 @@ public abstract class AbstractPropertyEntry {
 
     public void setParamContainer(ParamContainer paramContainer) {
         this.paramContainer = paramContainer;
+    }
+
+    public String getPropertyUID() {
+        return propertyUID;
     }
 
     public String getPropertyName() {
@@ -164,9 +183,9 @@ public abstract class AbstractPropertyEntry {
         try {
             ParamSupplier supplier = getSupplier();
             if (supplier != null)
-                container.getClientParameters().put(getPropertyName(), supplier);
+                container.getParamMap().put(getPropertyUID(), supplier);
         } catch (Exception e){
-            LOG.error("couldn't get supplier for name: "+getPropertyName());
+            LOG.error("couldn't get supplier for uid: "+getPropertyUID()+" name: "+getPropertyName());
             throw e;
         }
     }
@@ -182,9 +201,12 @@ public abstract class AbstractPropertyEntry {
     }
 
     public void setCurrentControlView(String prefListView, boolean forceResetIfChanged) {
-        if (forceResetIfChanged && !prefListView.equals(getState().getControlView()))
-            setForceReset(true);
-        this.getState().setControlView(prefListView);
+        boolean changed = !prefListView.equals(getState().getControlView());
+        if (changed) {
+            if (forceResetIfChanged)
+                setForceReset(true);
+            this.getState().setControlView(prefListView);
+        }
     }
 
     public boolean isForceReset(boolean resetForceReset){
@@ -242,20 +264,89 @@ public abstract class AbstractPropertyEntry {
                     MenuItem setValueItem = new MenuItem("Set...");
                     PopupMenu subMenu = new PopupMenu();
 
-                    MenuItem setDefaultValueItem = new MenuItem(getDefaultObjectName());
+                    MenuItem setDefaultValueItem = new MenuItem("Set "+getDefaultObjectName());
                     setDefaultValueItem.addListener(new ChangeListener() {
                         @Override
                         public void changed(ChangeEvent event, Actor actor) {
                             setValue(defaultObject);
-                            getParamContainer().addClientParameter(getSupplier());
+                            getParamContainer().addParam(getSupplier());
                             submit();
+                            menu.remove();
                         }
                     });
 
-                    subMenu.addItem(setDefaultValueItem);
+//                    subMenu.addItem(setDefaultValueItem);
+//                    setValueItem.setSubMenu(subMenu);
 
-                    setValueItem.setSubMenu(subMenu);
+                    setValueItem.addListener(new ChangeListener() {
+                        @Override
+                        public void changed(ChangeEvent event, Actor actor) {
+
+                            ParamSupplier supp = AbstractPropertyEntry.this.getSupplier();
+                            if (!(supp instanceof StaticParamSupplier))
+                                return;
+                            Object val = supp.getGeneral();
+                            if (!(val instanceof Number || val instanceof ComplexNumber))
+                                return;
+
+                            VisWindow setValueWindow = new VisWindow("Set value for "+getPropertyName());
+
+                            VisTable svTable = new VisTable(true);
+
+                            ParamAttribute attr = null;
+                            if (val instanceof Number){
+                                attr = new NumberParamAttribute("", "value") {
+                                    @Override
+                                    public Number getValue() {
+                                        return (Number)val;
+                                    }
+
+                                    @Override
+                                    public void applyValue(Object o) {
+                                        AbstractPropertyEntry.this.setValue(o);
+                                    }
+                                };
+                            }
+                            else {
+                                attr = new ComplexNumberParamAttribute("", "value") {
+                                    @Override
+                                    public ComplexNumber getValue() {
+                                        return (ComplexNumber)val;
+                                    }
+
+                                    @Override
+                                    public void applyValue(Object o) {
+                                        AbstractPropertyEntry.this.setValue(o);
+                                    }
+                                };
+                            }
+                            NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
+                            PropertyAttributeAdapterUI adapterUI = AbstractPropertyAttributeAdapterUI.getAdapterUI(attr, nf);
+                            adapterUI.addToTable(svTable);
+                            adapterUI.addListenerToFields(new InputListener(){
+                                @Override
+                                public boolean keyDown(InputEvent event, int keycode) {
+                                    if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
+                                        submit();
+                                        setValueWindow.remove();
+                                        return true;
+                                    }
+                                    return false;
+                                }
+                            });
+
+                            setValueWindow.add(svTable);
+
+                            setValueWindow.addCloseButton();
+                            FractalsGdxMain.mainStage.addActor(setValueWindow);
+                            setValueWindow.pack();
+                            setValueWindow.centerWindow();
+                        }
+                    });
+
                     menu.addItem(setValueItem);
+                    menu.addItem(setDefaultValueItem);
+                    menu.addSeparator();
                 }
 
                 String controlView = getState().getControlView();
@@ -479,7 +570,7 @@ public abstract class AbstractPropertyEntry {
     public void setParentPropertyList(CollapsiblePropertyList parentPropertyList) {
         this.parentPropertyList = parentPropertyList;
         if (this.paramControlState != null){
-            this.parentPropertyList.getParamControlState(propertyName).copyValuesIfNull(this.paramControlState);
+            this.parentPropertyList.getParamControlState(propertyUID).copyValuesIfNull(this.paramControlState);
             this.paramControlState = null;
         }
     }

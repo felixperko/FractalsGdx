@@ -43,7 +43,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
                     checkBox = new VisCheckBox("");
                 }
 
-                ParamSupplier supplier = paramContainer.getClientParameter(propertyName);
+                ParamSupplier supplier = paramContainer.getParam(propertyUID);
                 if (supplier != null)
                     checkBox.setChecked(supplier.getGeneral(Boolean.class));
 
@@ -67,7 +67,7 @@ public class BooleanPropertyEntry extends AbstractPropertyEntry {
 
     @Override
     public ParamSupplier getSupplier() {
-        return new StaticParamSupplier(propertyName, checkBox == null ? false : checkBox.isChecked());
+        return new StaticParamSupplier(propertyUID, checkBox == null ? false : checkBox.isChecked());
     }
 
     @Override

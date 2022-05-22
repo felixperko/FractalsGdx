@@ -11,6 +11,7 @@ import de.felixperko.fractals.system.numbers.NumberFactory;
 
 public interface ParamInterpolation<T> {
 
+    String getParamUid();
     String getParamName();
     /**
      * the attribute name if interpolation is for a ParamAttribute, null if interpolation is for a param object.
@@ -20,7 +21,8 @@ public interface ParamInterpolation<T> {
     String getParamContainerKey();
     String getParamType();
     ParamInterpolation getControlPointParent();
-    void setParam(String paramName, String paramType, String paramContainer, String attributeName);
+    String getDisplayString(boolean includeContainerKey);
+    void setParam(String paramUid, String paramName, String paramType, String paramContainer, String attrUid, String attributeName);
 
     InterpolationFunction setInterpolationFunction(Class<? extends InterpolationFunction> interpolationFunctionClass);
     InterpolationFunction getInterpolationFunction();
@@ -60,4 +62,5 @@ public interface ParamInterpolation<T> {
     void dispose();
 
     List<VisTextField> addValueFieldsToTable(VisTable table, Object controlPoint, int index);
+
 }

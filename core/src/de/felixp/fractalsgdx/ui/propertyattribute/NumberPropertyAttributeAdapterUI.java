@@ -1,6 +1,7 @@
 package de.felixp.fractalsgdx.ui.propertyattribute;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.kotcrab.vis.ui.widget.VisLabel;
@@ -21,6 +22,9 @@ public class NumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeA
 
     boolean updatingValue = false;
 
+    TabTraversableTextField valueField;
+    VisSlider slider;
+
     public NumberPropertyAttributeAdapterUI(String name, NumberFactory numberFactory, Number startVal, Number minValue, Number maxValue){
         this.name = name;
         this.nf = numberFactory;
@@ -36,9 +40,9 @@ public class NumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeA
 
         VisLabel nameLbl = new VisLabel(name);
 
-        VisSlider slider = new VisSlider(0f, 1f, 0.01f, false);
+        slider = new VisSlider(0f, 1f, 0.01f, false);
 
-        TabTraversableTextField valueField = new TabTraversableTextField(startVal.toString());
+        valueField = new TabTraversableTextField(startVal.toString());
         registerField(valueField);
         valueField.addListener(new ChangeListener() {
             @Override
@@ -152,5 +156,11 @@ public class NumberPropertyAttributeAdapterUI extends AbstractPropertyAttributeA
     @Override
     public void valueChanged(Number newVal, Number min, Number max) {
 
+    }
+
+    @Override
+    public void addListenerToFields(EventListener listener) {
+        slider.addListener(listener);
+        valueField.addListener(listener);
     }
 }

@@ -104,7 +104,7 @@ class BreadthFirstUpsampleLayerPropertyEntry extends AbstractPropertyEntry {
             e.printStackTrace();
             return null;
         }
-        int chunkSize = paramContainer.getClientParameter("chunkFactory").getGeneral(ArrayChunkFactory.class).getChunkSize();
+        int chunkSize = paramContainer.getParam("chunkFactory").getGeneral(ArrayChunkFactory.class).getChunkSize();
         return new StaticParamSupplier("layer_"+id, new BreadthFirstUpsampleLayer(upsample, chunkSize).with_priority_shift(priority_shift).with_priority_multiplier(priority_multiplier).with_culling(culling));
     }
 

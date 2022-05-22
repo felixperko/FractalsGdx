@@ -147,9 +147,9 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 //    }
 
     @Override
-    public void changeInterpolationParamName(ParamInterpolation interpolation, String newParamName, String newAttributeName, String paramType, String paramContainer) {
-        removeInterpolation(interpolation.getParamName(), interpolation.getAttributeName());
-        interpolation.setParam(newParamName, paramType, paramContainer, newAttributeName);
+    public void changeInterpolationParamName(ParamInterpolation interpolation, String newParamUid, String newParamName, String newAttrUid, String newAttrName, String paramType, String paramContainer) {
+        removeInterpolation(interpolation.getParamUid(), interpolation.getAttributeName());
+        interpolation.setParam(newParamUid, newParamName, paramType, paramContainer, newParamUid, newAttrName);
         setInterpolation(interpolation);
     }
 
@@ -191,7 +191,7 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
 
     @Override
     public void setInterpolation(ParamInterpolation interpolation) {
-        interpolations.put(getKey(interpolation.getParamName(), interpolation.getAttributeName()), interpolation);
+        interpolations.put(getKey(interpolation.getParamUid(), interpolation.getAttributeName()), interpolation);
     }
 
     @Override
