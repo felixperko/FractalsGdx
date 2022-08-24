@@ -12,17 +12,15 @@ TO-DO:
 
 Parameters:
 - rework ParameterDefinition for backwards-compatibility
-  - Identity based on IDs instead of Strings (UUID/shorter alternatives?)
   - Serialization/Deserialization (support custom instructions?)
   - global parameters (e.g. handle calculator menu, min target fps)
-- preserve state when changing calculator
-- serialize into screenshot metadata, open when dropped on renderer window (linux? android?)
+- preserve state (params, ui settings) when changing calculator
+- serialize into screenshot metadata (png only compute params, jpg missing), open when dropped on renderer window (linux? android?)
 - use repository on server for saved param presets? (sanitizing? warning on unknown ParamConfiguration?)
 
 Renderer:
 - better fps control (dynamic upscaling)
 - zoom separately on draw fbo? (how to handle edge detection changes when the calc fbo is stepped?)
-- animated zoom
 - "flashing" for lost focus? (separate darkening shader?; gained focus probably too distracting at low fps, reconsider after better fps control)
 - rename RendererContext to more fitting RendererState?
 
@@ -41,8 +39,8 @@ Expressions:
 - *_(n-2),...
 - precomputed static subexpressions ("1-f") (recalculate once per sample)
 - derivatives (for newton fractals and coloring) (how to handle non-differentiable functions like abs()?)
-- custom/editable instructions (serialize instructions?)
-- sec(), csc(), cot()?
+- custom/editable instructions (serialize custom instructions?)
+- cis() (cos(x)+i*sin(x) or e^(i*x)), sec(), csc(), cot()?
 - factorial()?
 
 UI:
@@ -60,8 +58,11 @@ UI:
     - communicating over different clients for multi-window?
 - proportional ui scaling
 
-- better double precision performance (emulated/perturbation theory)
-- arbitrary precision (like that's ever gonna happen...)
+- series approximation
+- perturbation reference improvements
+    - better reference selection (multiple candidates)
+    - generalize for more functions
+    - arbitrary precision (like that's ever gonna happen...)
 
 
 

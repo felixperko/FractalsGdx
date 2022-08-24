@@ -50,6 +50,7 @@ project(":desktop") {
 
     dependencies {
         implementation project(":core")
+//        implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion" //supports drop
         implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
@@ -57,7 +58,7 @@ project(":desktop") {
 //        implementation "de.tomgrill.gdxdialogs:gdx-dialogs-desktop:1.2.5"
 
         // https://mvnrepository.com/artifact/com.aparapi/aparapi
-        implementation group: 'com.aparapi', name: 'aparapi', version: '1.9.0'
+//        implementation group: 'com.aparapi', name: 'aparapi', version: '1.9.0'
     }
 }
 
@@ -86,10 +87,10 @@ project(":android") {
 
     }
 }
-//
+
 //project(":html") {
-//    //apply plugin: "gwt"
-//    //apply plugin: "war"
+//    apply plugin: "gwt"
+//    apply plugin: "war"
 //    apply plugin: "org.wisepersist.gwt"
 //
 //    dependencies {

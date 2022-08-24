@@ -207,7 +207,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                         String uid = UIDGenerator.fromRandomBytes(6);
                         uid = name;
                         ParamDefinition newDef = new ParamDefinition(uid, name, "Calculator",
-                                CommonFractalParameters.complexnumberType, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class);
+                                CommonFractalParameters.complexnumberType, 1.0, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class);
+                        paramConfig.addDefaultValue(exprParam);
                         paramDefs.add(newDef);
                         generatedDefs.put(uid, newDef);
                         NumberFactory nf = paramContainer.getParam(CommonFractalParameters.PARAM_NUMBERFACTORY).getGeneral(NumberFactory.class);

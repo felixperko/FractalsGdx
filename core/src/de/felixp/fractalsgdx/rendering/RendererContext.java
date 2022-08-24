@@ -42,6 +42,10 @@ public class RendererContext {
 
     ParamContainer paramContainer = null;
 
+    List<ClickedListener> clickedListeners = new ArrayList<>();
+    List<ClickedListener> singleClickedListeners = new ArrayList<>();
+    List<MouseMovedListener> mouseMovedListeners = new ArrayList<>();
+
     List<ScreenshotListener> screenshotListeners = new ArrayList<>();
     List<ScreenshotListener> singleScreenshotListeners = new ArrayList<>();
 
@@ -118,6 +122,30 @@ public class RendererContext {
         return properties;
     }
 
+    public synchronized ClickedListener addClickedListener(ClickedListener clickedListener, boolean singleUse){
+        if (!singleUse)
+            this.clickedListeners.add(clickedListener);
+        else
+            this.singleClickedListeners.add(clickedListener);
+        return clickedListener;
+    }
+
+    public synchronized boolean removeClickedListener(ClickedListener clickedListener){
+        boolean removed = this.clickedListeners.remove(clickedListener);
+        if (!removed)
+            removed = this.singleClickedListeners.remove(clickedListener);
+        return removed;
+    }
+
+    public synchronized MouseMovedListener addMouseMovedListener(MouseMovedListener mouseMovedListener){
+        this.mouseMovedListeners.add(mouseMovedListener);
+        return mouseMovedListener;
+    }
+
+    public synchronized boolean removeMouseMovedListener(MouseMovedListener mouseMovedListener){
+        return this.mouseMovedListeners.remove(mouseMovedListener);
+    }
+
     public synchronized void addScreenshotListener(ScreenshotListener screenshotListener, boolean singleUse){
         if (!singleUse)
             this.screenshotListeners.add(screenshotListener);
@@ -126,7 +154,10 @@ public class RendererContext {
     }
 
     public synchronized boolean removeScreenshotListener(ScreenshotListener screenshotListener){
-        return this.screenshotListeners.remove(screenshotListener);
+        boolean removed = this.screenshotListeners.remove(screenshotListener);
+        if (!removed)
+            removed = this.singleClickedListeners.remove(screenshotListener);
+        return removed;
     }
 
     public void addPanListener(PanListener panListener){
@@ -315,6 +346,14 @@ public class RendererContext {
         singleScreenshotListeners.clear();
     }
 
+    public List<ClickedListener> getClickedListeners(){
+        return clickedListeners;
+    }
+
+    public List<MouseMovedListener> getMouseMovedListeners(){
+        return mouseMovedListeners;
+    }
+
     public List<ScreenshotListener> getScreenshotListeners() {
         return screenshotListeners;
     }
@@ -332,6 +371,10 @@ public class RendererContext {
         for (PanListener panListener : panListeners) {
             panListener.panned(midpoint);
         }
+        syncLinks();
+    }
+
+    public void syncLinks(){
         for (RendererLink link : getSourceLinks()){
             link.syncTargetRenderer();
         }
@@ -375,5 +418,11 @@ public class RendererContext {
 
     public List<RendererLink> getSourceLinks() {
         return new ArrayList<>(sourceLinks);
+    }
+
+    public void clicked(float mouseX, float mouseY, int button, ComplexNumber mappedValue) {
+        clickedListeners.forEach(l -> l.clicked(mouseX, mouseY, button, mappedValue));
+        singleClickedListeners.forEach(l -> l.clicked(mouseX, mouseY, button, mappedValue));
+        singleClickedListeners.clear();
     }
 }

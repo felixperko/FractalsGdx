@@ -59,6 +59,8 @@ public class OrbittrapContainer implements Serializable, ParamAttributeHolder {
                 return true;
             if (!o1.getClass().equals(o2.getClass()))
                 return true;
+            if (!o1.equals(o2))
+                return true;
         }
         return false;
     }

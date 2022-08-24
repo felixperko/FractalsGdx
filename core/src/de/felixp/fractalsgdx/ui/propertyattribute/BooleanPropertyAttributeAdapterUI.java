@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisRadioButton;
 import com.kotcrab.vis.ui.widget.VisTable;
@@ -64,5 +65,10 @@ public class BooleanPropertyAttributeAdapterUI extends AbstractPropertyAttribute
 
     @Override
     public void addListenerToFields(EventListener listener) {
+    }
+
+    @Override
+    public Actor getFirstFocusable() {
+        return null;
     }
 }

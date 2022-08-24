@@ -5,6 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 
@@ -74,5 +75,9 @@ public class ComplexNumberPropertyAttributeAdapterUI extends AbstractPropertyAtt
     public void addListenerToFields(EventListener listener) {
         valueField.addListener(listener);
         valueField2.addListener(listener);
+    }
+
+    public Actor getFirstFocusable(){
+        return valueField;
     }
 }

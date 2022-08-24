@@ -10,10 +10,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.FocusManager;
 import com.kotcrab.vis.ui.Focusable;
 import com.kotcrab.vis.ui.widget.MenuItem;
 import com.kotcrab.vis.ui.widget.PopupMenu;
+import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
@@ -26,12 +29,15 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.ClickedListener;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.MouseMovedListener;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.ParamControlState;
+import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.propertyattribute.AbstractPropertyAttributeAdapterUI;
-import de.felixp.fractalsgdx.ui.propertyattribute.ComplexNumberPropertyAttributeAdapterUI;
 import de.felixp.fractalsgdx.ui.propertyattribute.PropertyAttributeAdapterUI;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
@@ -247,6 +253,15 @@ public abstract class AbstractPropertyEntry {
         return getDefaultObject() == null ? null : getDefaultObject().toString();
     }
 
+    VisWindow setValueWindow;
+    boolean autoClose = true;
+    boolean autoSubmit = false;
+
+    protected void supplierClassChanged() {
+        if (setValueWindow != null)
+            setValueWindow.remove();
+    }
+
     protected void setOptionButtonListener(Button optionButton) {
         optionButton.addListener(new ChangeListener(){
             @Override
@@ -289,7 +304,9 @@ public abstract class AbstractPropertyEntry {
                             if (!(val instanceof Number || val instanceof ComplexNumber))
                                 return;
 
-                            VisWindow setValueWindow = new VisWindow("Set value for "+getPropertyName());
+                            if (setValueWindow != null)
+                                setValueWindow.remove();
+                            setValueWindow = new FractalsWindow("Set value for "+getPropertyName());
 
                             VisTable svTable = new VisTable(true);
 
@@ -317,19 +334,98 @@ public abstract class AbstractPropertyEntry {
                                     @Override
                                     public void applyValue(Object o) {
                                         AbstractPropertyEntry.this.setValue(o);
+                                        if (autoSubmit){
+                                            submit();
+                                        }
                                     }
                                 };
                             }
                             NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
                             PropertyAttributeAdapterUI adapterUI = AbstractPropertyAttributeAdapterUI.getAdapterUI(attr, nf);
+
+                            VisCheckBox autoCloseCheckbox = new VisCheckBox("close on enter", autoClose);
+                            VisCheckBox autoSubmitCheckbox = new VisCheckBox("auto apply", autoSubmit);
+                            autoCloseCheckbox.addListener(new ChangeListener() {
+                                @Override
+                                public void changed(ChangeEvent changeEvent, Actor actor) {
+                                    autoClose = autoCloseCheckbox.isChecked();
+                                }
+                            });
+                            autoSubmitCheckbox.addListener(new ChangeListener() {
+                                @Override
+                                public void changed(ChangeEvent changeEvent, Actor actor) {
+                                    autoSubmit = autoSubmitCheckbox.isChecked();
+                                }
+                            });
+
+                            VisTextButton pickValueButton = new VisTextButton("select on plane...", new ChangeListener() {
+                                @Override
+                                public void changed(ChangeEvent event, Actor actor) {
+                                    FractalRenderer focusedRenderer = FractalsGdxMain.mainStage.getFocusedRenderer();
+                                    final MouseMovedListener movedListener = focusedRenderer.getRendererContext().addMouseMovedListener(new MouseMovedListener() {
+                                        @Override
+                                        public void moved(float screenX, float screenY, ComplexNumber mappedValue) {
+                                            setValue(mappedValue);
+                                            submit();
+                                        }
+                                    });
+                                    focusedRenderer.getRendererContext().addClickedListener(new ClickedListener() {
+                                        @Override
+                                        public void clicked(float mouseX, float mouseY, int button, ComplexNumber mappedValue) {
+                                            focusedRenderer.getRendererContext().removeMouseMovedListener(movedListener);
+                                        }
+                                    }, true);
+                                    setValueWindow.remove();
+                                }
+                            });
+
+                            VisTextButton closeButton = new VisTextButton("cancel", new ChangeListener() {
+                                @Override
+                                public void changed(ChangeEvent changeEvent, Actor actor) {
+                                    setValueWindow.remove();
+                                }
+                            });
+                            VisTextButton applyButton = new VisTextButton("apply", new ChangeListener() {
+                                @Override
+                                public void changed(ChangeEvent changeEvent, Actor actor) {
+                                    submit();
+                                    if (autoClose) {
+                                        setValueWindow.remove();
+                                        parentPropertyList.focusFirstFocusableControl();
+                                    }
+                                }
+                            });
+
+                            adapterUI.setTraversableGroup(new TraversableGroup());
                             adapterUI.addToTable(svTable);
+
+                            VisTable optionsTable = new VisTable(true);
+                            optionsTable.add(autoCloseCheckbox).left();
+                            optionsTable.add(autoSubmitCheckbox).left().row();
+                            svTable.add(optionsTable).left().row();
+
+                            svTable.add(pickValueButton).left().row();
+
+                            VisTable buttonsTable = new VisTable(true);
+                            buttonsTable.add(closeButton);
+                            buttonsTable.add(applyButton);
+                            svTable.add(buttonsTable);
+
                             adapterUI.addListenerToFields(new InputListener(){
                                 @Override
                                 public boolean keyDown(InputEvent event, int keycode) {
                                     if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)){
                                         submit();
-                                        setValueWindow.remove();
+                                        if (autoClose)
+                                            setValueWindow.remove();
                                         return true;
+                                    }
+                                    if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
+                                        setValueWindow.remove();
+                                        FractalsGdxMain.mainStage.escapeHandled();
+                                        FractalRenderer focusedRenderer = FractalsGdxMain.mainStage.getFocusedRenderer();
+                                        if (focusedRenderer instanceof Focusable)
+                                            FocusManager.switchFocus(FractalsGdxMain.mainStage, (Focusable)focusedRenderer);
                                     }
                                     return false;
                                 }
@@ -341,6 +437,13 @@ public abstract class AbstractPropertyEntry {
                             FractalsGdxMain.mainStage.addActor(setValueWindow);
                             setValueWindow.pack();
                             setValueWindow.centerWindow();
+
+                            Actor focusable = adapterUI.getFirstFocusable();
+                            if (focusable != null) {
+                                FractalsGdxMain.mainStage.setKeyboardFocus(focusable);
+                                if (focusable instanceof Focusable)
+                                    ((Focusable) focusable).focusGained();
+                            }
                         }
                     });
 
@@ -422,6 +525,7 @@ public abstract class AbstractPropertyEntry {
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
                                 stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
+                                supplierClassChanged();
 //                            typeStaticItem.setDisabled(true);
 //                            typeVariableItem.setDisabled(false);
                             }
@@ -446,6 +550,7 @@ public abstract class AbstractPropertyEntry {
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
                                 stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
+                                supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
                             }
@@ -469,6 +574,7 @@ public abstract class AbstractPropertyEntry {
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
                                 stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
+                                supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
                             }
@@ -492,6 +598,7 @@ public abstract class AbstractPropertyEntry {
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
                                 stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
+                                supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
                             }

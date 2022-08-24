@@ -7,13 +7,11 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.widget.VisImage;
-import com.kotcrab.vis.ui.widget.VisImageButton;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.color.ColorPicker;
@@ -22,7 +20,7 @@ import com.kotcrab.vis.ui.widget.color.ColorPickerListener;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
+import de.felixp.fractalsgdx.ui.actors.ModalColorPicker;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
@@ -67,7 +65,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
     @Override
     public void openWindow(Stage stage) {
         if (picker == null)
-            picker = new WindowAgnosticColorPicker("");
+            picker = new ModalColorPicker("");
         picker.getPicker().setShowColorPreviews(false);
         stage.addActor(picker.fadeIn());
         picker.setColor(color);

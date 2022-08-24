@@ -44,6 +44,13 @@ float DecodeExpV3( in vec3 pack )
     return value * exp2(exponent+1.0);
 }
 
+float DecodeExpV4( in vec4 pack )
+{
+    float exponent = float(int(pack.b*256.0-128.0));
+    float value  = ((ceil(pack.r*256.0)/256.0+ceil(pack.g*256.0)/(256.0*256.0)+ceil(pack.a*256.0)/(256.0*256.0*256.0)));
+    return value * exp2(exponent+1.0);
+}
+
 //float DecodeExpV3( in vec3 pack )
 //{
 //    int exponent = int( pack.z * 256.0 ) ;
@@ -60,6 +67,7 @@ vec3 hsv2rgb(vec3 c) {
 
 float decode(in vec4 pixel){
     return DecodeExpV3(vec3(pixel)) - resultOffset;
+//    return DecodeExpV4(pixel) - resultOffset;
 }
 
 void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord, int logScalingEnabled){
@@ -137,19 +145,24 @@ void main(void){
         float sobel_edge_v = n[0] + (4.0*n[1]) + (6.0*n[2]) + (4.0*n[3]) + n[4] - (n[20] + (4.0*n[21]) + (6.0*n[22]) + (4.0*n[23]) + n[24]);
         float sobel_edge_h2 = (2.0*n[3]) + (8.0*n[8]) + (12.0*n[13]) + (8.0*n[18]) + (2.0*n[23]) - ((2.0*n[1]) + (8.0*n[6]) + (12.0*n[11]) + (8.0*n[16]) + (2.0*n[21]));
         float sobel_edge_v2 = (2.0*n[5]) + (8.0*n[6]) + (12.0*n[7]) + (8.0*n[8]) + (2.0*n[9]) - ((2.0*n[15]) + (8.0*n[16]) + (12.0*n[17]) + (8.0*n[18]) + (2.0*n[19]));
-        sobel = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2))/(12.0*12.0));
+        sobel = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2))*0.0001)*abs(light_sobel_magnitude);
+
+//        float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+//        float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+//        sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
     }
     float sobel2 = 0.0;
     if (light_sobel_magnitude2 != 0.0 && value1 <= 0.0){
         make_kernel(n2, altColorTexture, v_texCoords.xy, 1);
-        //        float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
-        //        float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
-        //        float sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
         float sobel_edge_h = n2[4] + (4.0*n2[9]) + (6.0*n2[14]) + (4.0*n2[19])+ n2[24] - (n2[0] + (4.0*n2[5]) + (6.0*n2[10]) + (4.0*n2[15]) + n2[20]);
         float sobel_edge_v = n2[0] + (4.0*n2[1]) + (6.0*n2[2]) + (4.0*n2[3]) + n2[4] - (n2[20] + (4.0*n2[21]) + (6.0*n2[22]) + (4.0*n2[23]) + n2[24]);
         float sobel_edge_h2 = (2.0*n2[3]) + (8.0*n2[8]) + (12.0*n2[13]) + (8.0*n2[18]) + (2.0*n2[23]) - ((2.0*n2[1]) + (8.0*n2[6]) + (12.0*n2[11]) + (8.0*n2[16]) + (2.0*n2[21]));
         float sobel_edge_v2 = (2.0*n2[5]) + (8.0*n2[6]) + (12.0*n2[7]) + (8.0*n2[8]) + (2.0*n2[9]) - ((2.0*n2[15]) + (8.0*n2[16]) + (12.0*n2[17]) + (8.0*n2[18]) + (2.0*n2[19]));
         sobel2 = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2)))*0.001/12.0;
+
+//        float sobel_edge_h = n2[2] + (2.0*n2[5]) + n2[8] - (n2[0] + (2.0*n2[3]) + n2[6]);
+//        float sobel_edge_v = n2[0] + (2.0*n2[1]) + n2[2] - (n2[6] + (2.0*n2[7]) + n2[8]);
+//        sobel2 = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v))*0.001;
     }
 
     vec3 add = vec3(0.0, 0.0, 0.0);
@@ -178,6 +191,7 @@ void main(void){
             //to avoid strangely dim single pixels in constrast to isles a few bright pixels in otherwise stable/black regions.
             //        float s = sobel > 0.0 || (n[0] == n[4] && n[1] == n[4] && n[2] == n[4] && n[3] == n[4]
             //            && n[5] == n[4] && n[6] == n[4] && n[7] == n[4] && n[8] == n[4]) ? sobel : min(abs(n[4]-n[0]), 1.0);
+
             s = log(sobel+1.0);
 
             if (light_sobel_period > 0.0){
@@ -193,7 +207,7 @@ void main(void){
         rgb = vec4(hsv2rgb(hsv), 1.0);
 
         if (gl_FragCoord.x >= 2.0 && gl_FragCoord.x < resolution.x-2.0 && gl_FragCoord.y >= 2.0 && gl_FragCoord.y < resolution.y-2.0)
-            brightness += light_sobel_magnitude*s;
+            brightness += s*sign(light_sobel_magnitude);
 
 //        float chance = fract(brightness * 256.0);
 //        if (rand(v_texCoords.xy) < chance)

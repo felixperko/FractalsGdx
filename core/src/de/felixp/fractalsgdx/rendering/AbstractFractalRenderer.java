@@ -17,6 +17,7 @@ import java.util.List;
 
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
+import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
@@ -27,6 +28,17 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     private static int ID_COUNTER = 1;
 
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
+
+        boolean scaleMagnitude2ByDims = true;
+        double magnitude2Factor = 1.0;
+        if (scaleMagnitude2ByDims){
+            magnitude2Factor = Math.max(Gdx.graphics.getWidth()/1920.0, Gdx.graphics.getHeight()/1080.0);
+//            double scaleFactor = Math.sqrt(Math.sqrt(systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class).toDouble()));
+//            if (scaleFactor > 0.0) {
+//                magnitude2Factor /= Math.min(scaleFactor, 100.0);
+//            }
+        }
+
 //        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getParamMap(), systemContext.getNumberFactory());
         shader.setUniformi("usePalette", stage.getClientParam(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
         shader.setUniformi("usePalette2", stage.getClientParam(MainStage.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
@@ -38,7 +50,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());shader.setUniformf("light_ambient", (float)(double)stage.getClientParam(MainStage.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
         shader.setUniformf("light_ambient2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
         shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_magnitude2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude2", (float)(magnitude2Factor*stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble()));
         shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
         shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
         shader.setUniformi("extractChannel", (int)(int)stage.getClientParam(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
@@ -124,6 +136,17 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
             throw new IllegalStateException("Error compiling shaders ("+vertexPath+", "+fragmentPath+"): "+shader.getLog());
         }
         return shader;
+    }
+
+    /**
+     * Override for scroll functionality
+     * @param amountX
+     * @param amountY
+     * @return true if scroll was handled
+     */
+    @Override
+    public boolean scrolled(float amountX, float amountY) {
+        return false;
     }
 
     private void printShaderLines(String lines) {
@@ -325,5 +348,15 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     @Override
     public void setFocused(boolean focused){
         this.isFocused = focused;
+    }
+
+    protected void mousePosChanged(float newMouseX, float newMouseY) {
+        ComplexNumber mapped = getComplexMapping(newMouseX, newMouseY);
+        rendererContext.getMouseMovedListeners().forEach(l -> l.moved(newMouseX, newMouseY, mapped));
+    }
+
+    protected void clicked(float mouseX, float mouseY, int button) {
+        ComplexNumber mapped = getComplexMapping(mouseX, mouseY);
+        rendererContext.clicked(mouseX, mouseY, button, mapped);
     }
 }

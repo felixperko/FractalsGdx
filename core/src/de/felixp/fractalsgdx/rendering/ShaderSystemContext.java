@@ -66,6 +66,7 @@ public class ShaderSystemContext implements SystemContext {
     public static final String PARAM_CONDITION = "7QB43U";
     public static final String PARAM_LIMIT = "DReboF";
     public static final String PARAM_ZOOM = "MlDwyj";
+    public static final String PARAM_MOUSE = "WfF6mM";
 
     public static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
     public static final String PARAMNAME_SUPERSAMPLING = "supersampling";
@@ -88,10 +89,12 @@ public class ShaderSystemContext implements SystemContext {
     public static final String PARAMNAME_C = "c";
     public static final String PARAMNAME_ZOOM = "zoom";
     public static final String PARAMNAME_MIDPOINT = "midpoint";
+    public static final String PARAMNAME_MOUSE = "mousepos";
 
     public static final String TEXT_PRECISION_AUTO = "auto";
     public static final String TEXT_PRECISION_32 = "32 bit";
     public static final String TEXT_PRECISION_64 = "64 bit (double)";
+    public static final String TEXT_PRECISION_64_REFERENCE = "64 bit (reference)";
     public static final String TEXT_PRECISION_64_EMULATED = "64 bit (float-float)";
 //    public static final String TEXT_PRECISION_64_FAST = "64 bit (fast)";
 
@@ -113,6 +116,9 @@ public class ShaderSystemContext implements SystemContext {
 
     public static final int SAMPLES_DEFAULT = 50;
     public static final int SAMPLES_DEFAULT_ANDROID = 10;
+    public static final String TYPEID_LAYERCONFIG = "g1SGW0";
+    public static final String TYPEID_ORBITTRAPS = "hwBOTO";
+    public static ParamValueType TYPE_ORBITTRAPS;
 
     ParamConfiguration paramConfig;
 
@@ -131,7 +137,7 @@ public class ShaderSystemContext implements SystemContext {
 
         setSamples(getDefaultSamples());
 
-        paramConfig = new ParamConfiguration();
+        paramConfig = new ParamConfiguration("WJTMy2", 1.0);
 
         List<ParamDefinition> defs = new ArrayList<>();
         List<ParamSupplier> defaultValues = new ArrayList<>();
@@ -143,14 +149,15 @@ public class ShaderSystemContext implements SystemContext {
         paramConfig.addValueType(CommonFractalParameters.doubleType);
         paramConfig.addValueType(CommonFractalParameters.integerType);
         paramConfig.addValueType(CommonFractalParameters.listType);
-        ParamValueType layerconfigurationType = new ParamValueType("LayerConfiguration",
+        ParamValueType layerconfigurationType = new ParamValueType(TYPEID_LAYERCONFIG,"LayerConfiguration",
                 new ParamValueField("layers", CommonFractalParameters.listType),
                 new ParamValueField("simStep", CommonFractalParameters.doubleType, 0.05),
                 new ParamValueField("simCount", CommonFractalParameters.integerType, 20),
                 new ParamValueField("seed", CommonFractalParameters.integerType, 42));
         paramConfig.addValueType(layerconfigurationType);
-        ParamValueType orbittrapContainerType = new ParamValueType(PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
-        paramConfig.addValueType(orbittrapContainerType);
+        paramConfig.addValueType(CommonFractalParameters.expressionsType);
+        TYPE_ORBITTRAPS = new ParamValueType(TYPEID_ORBITTRAPS, PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
+        paramConfig.addValueType(TYPE_ORBITTRAPS);
 
         List<Class<? extends ParamSupplier>> supplierClasses = new ArrayList<>();
         supplierClasses.add(StaticParamSupplier.class);
@@ -161,51 +168,82 @@ public class ShaderSystemContext implements SystemContext {
         nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
         String cat_calc = "Calculator";
-        defs.add(new ParamDefinition(PARAM_CALCULATOR, PARAMNAME_CALCULATOR, cat_calc, StaticParamSupplier.class, CommonFractalParameters.selectionType));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_NUMBERFACTORY, "nf", cat_calc, StaticParamSupplier.class, CommonFractalParameters.numberfactoryType));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_EXPRESSIONS, CommonFractalParameters.PARAMNAME_EXPRESSIONS, cat_calc, StaticParamSupplier.class, CommonFractalParameters.expressionsType));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ITERATIONS, PARAMNAME_ITERATIONS, cat_calc, StaticParamSupplier.class, CommonFractalParameters.integerType).withHints("ui-element:slider min=1 max=10000"));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_C, PARAMNAME_C, cat_calc, supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element[default]:slider min=-2 max=2"));
-        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ZSTART, CommonFractalParameters.PARAMNAME_ZSTART, cat_calc, supplierClasses, CommonFractalParameters.complexnumberType).withHints("ui-element[default]:slider min=-1 max=1"));
+        defs.add(new ParamDefinition(PARAM_CALCULATOR, PARAMNAME_CALCULATOR, cat_calc, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_NUMBERFACTORY, "nf", cat_calc, StaticParamSupplier.class,
+                CommonFractalParameters.numberfactoryType, 1.0));
+
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_EXPRESSIONS, CommonFractalParameters.PARAMNAME_EXPRESSIONS, cat_calc, StaticParamSupplier.class,
+                CommonFractalParameters.expressionsType, 1.0));
+        ExpressionsParam defaultExpressionsParam = new ExpressionsParam("z^2+c", "z");
+        defaultExpressionsParam.putExpression("c", "c");
+        defaultValues.add(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, defaultExpressionsParam));
+
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ITERATIONS, PARAMNAME_ITERATIONS, cat_calc, StaticParamSupplier.class,
+                CommonFractalParameters.integerType, 1.0).withHints("ui-element:slider min=1 max=10000"));
+        defaultValues.add(new StaticParamSupplier(CommonFractalParameters.PARAM_ITERATIONS, 1000));
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_C, PARAMNAME_C, cat_calc, supplierClasses,
+                CommonFractalParameters.complexnumberType, 1.0).withHints("ui-element[default]:slider min=-2 max=2"));
+        defaultValues.add(new StaticParamSupplier(CommonFractalParameters.PARAM_C, nf.ccn(0.0,0.0)));
+        defs.add(new ParamDefinition(CommonFractalParameters.PARAM_ZSTART, CommonFractalParameters.PARAMNAME_ZSTART, cat_calc, supplierClasses,
+                CommonFractalParameters.complexnumberType, 1.0).withHints("ui-element[default]:slider min=-1 max=1"));
+        defaultValues.add(new StaticParamSupplier(CommonFractalParameters.PARAM_ZSTART, nf.ccn(0.0, 0.0)));
 
         String cat_quality = "Quality/Performance";
-        ParamDefinition def_supersampling = new ParamDefinition(PARAM_SUPERSAMPLING, PARAMNAME_SUPERSAMPLING, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType).withHints("ui-element:slider min=1 max=200");
+        ParamDefinition def_supersampling = new ParamDefinition(PARAM_SUPERSAMPLING, PARAMNAME_SUPERSAMPLING, cat_quality, StaticParamSupplier.class,
+                CommonFractalParameters.integerType, 1.0).withHints("ui-element:slider min=1 max=200");
         def_supersampling.setResetRendererOnChange(false);
         defs.add(def_supersampling);
         defaultValues.add(new StaticParamSupplier(PARAM_SUPERSAMPLING, 1));
-        defs.add(new ParamDefinition(PARAM_MAXBORDERSAMPLES, PARAMNAME_MAXBORDERSAMPLES, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType));
+        defs.add(new ParamDefinition(PARAM_MAXBORDERSAMPLES, PARAMNAME_MAXBORDERSAMPLES, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_MAXBORDERSAMPLES, 1));
-        defs.add(new ParamDefinition(PARAM_RESOLUTIONSCALE, PARAMNAME_RESOLUTIONSCALE, cat_quality, StaticParamSupplier.class, CommonFractalParameters.doubleType).withHints("ui-element:slider min=0.0 max=2"));
+        defs.add(new ParamDefinition(PARAM_RESOLUTIONSCALE, PARAMNAME_RESOLUTIONSCALE, cat_quality, StaticParamSupplier.class, CommonFractalParameters.doubleType, 1.0).withHints("ui-element:slider min=0.0 max=2"));
         defaultValues.add(new StaticParamSupplier(PARAM_RESOLUTIONSCALE, 1.0));
-        defs.add(new ParamDefinition(PARAM_TARGET_FRAMERATE, PARAMNAME_TARGET_FRAMERATE, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType));
-        defaultValues.add(new StaticParamSupplier(PARAM_TARGET_FRAMERATE, 30));
-        defs.add(new ParamDefinition(PARAM_FIRSTITERATIONS, PARAMNAME_FIRSTITERATIONS, cat_quality, StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=100"));
+        defs.add(new ParamDefinition(PARAM_TARGET_FRAMERATE, PARAMNAME_TARGET_FRAMERATE, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_TARGET_FRAMERATE, 60));
+        defs.add(new ParamDefinition(PARAM_FIRSTITERATIONS, PARAMNAME_FIRSTITERATIONS, cat_quality, StaticParamSupplier.class, CommonFractalParameters.numberType, 1.0).withHints("ui-element:slider min=1 max=100"));
         defaultValues.add(new StaticParamSupplier(PARAM_FIRSTITERATIONS, nf.createNumber("100.0")));
-        defs.add(new ParamDefinition(PARAM_SAMPLESPERFRAME, PARAMNAME_SAMPLESPERFRAME, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType));
+        defs.add(new ParamDefinition(PARAM_SAMPLESPERFRAME, PARAMNAME_SAMPLESPERFRAME, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_SAMPLESPERFRAME, 1));
 
         String cat_advanced = "Advanced";
-        defs.add(new ParamDefinition(PARAM_CONDITION, PARAMNAME_CONDITION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType));
-        defs.add(new ParamDefinition(PARAM_LIMIT, PARAMNAME_LIMIT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=256"));
-        defs.add(new ParamDefinition(PARAM_UNSTABLE_OUTPUT, PARAMNAME_UNSTABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType));
+        defs.add(new ParamDefinition(PARAM_CONDITION, PARAMNAME_CONDITION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defs.add(new ParamDefinition(PARAM_LIMIT, PARAMNAME_LIMIT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType, 1.0)
+                .withHints("ui-element:slider min=1 max=256"));
+        defaultValues.add(new StaticParamSupplier(PARAM_LIMIT, nf.cn(32.0)));
+        defs.add(new ParamDefinition(PARAM_UNSTABLE_OUTPUT, PARAMNAME_UNSTABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_UNSTABLE_OUTPUT, 0));
-        defs.add(new ParamDefinition(PARAM_STABLE_OUTPUT, PARAMNAME_STABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType));
-        defs.add(new ParamDefinition(PARAM_PRECISION, PARAMNAME_PRECISION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType));
-        defs.add(new ParamDefinition(PARAM_ORBITTRAPS, PARAMNAME_ORBITTRAPS, cat_advanced, StaticParamSupplier.class, orbittrapContainerType));
-        defs.add(new ParamDefinition(PARAM_PRIORITY, PARAMNAME_PRIORITY, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType));
+        defs.add(new ParamDefinition(PARAM_STABLE_OUTPUT, PARAMNAME_STABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defs.add(new ParamDefinition(PARAM_PRECISION, PARAMNAME_PRECISION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defs.add(new ParamDefinition(PARAM_ORBITTRAPS, PARAMNAME_ORBITTRAPS, cat_advanced, StaticParamSupplier.class, TYPE_ORBITTRAPS, 1.0));
+        defs.add(new ParamDefinition(PARAM_PRIORITY, PARAMNAME_PRIORITY, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_PRIORITY, nf.createNumber(10.0)));
 
         String cat_mapping = "Mapping";
-        defs.add(new ParamDefinition(PARAM_ZOOM, PARAMNAME_ZOOM, cat_mapping, StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=0.0001 max=10"));
-        ParamDefinition midpointDef = new ParamDefinition(CommonFractalParameters.PARAM_MIDPOINT, PARAMNAME_MIDPOINT, cat_mapping, StaticParamSupplier.class, CommonFractalParameters.complexnumberType);
+        defs.add(new ParamDefinition(PARAM_ZOOM, PARAMNAME_ZOOM, cat_mapping, StaticParamSupplier.class,
+                CommonFractalParameters.numberType, 1.0).withHints("ui-element:slider min=0.0001 max=10"));
+        defaultValues.add(new StaticParamSupplier(PARAM_ZOOM, nf.cn(3.0)));
+        ParamDefinition midpointDef = new ParamDefinition(CommonFractalParameters.PARAM_MIDPOINT, PARAMNAME_MIDPOINT, cat_mapping, StaticParamSupplier.class,
+                CommonFractalParameters.complexnumberType, 1.0);
         midpointDef.setResetRendererOnChange(false);
+        defaultValues.add(new StaticParamSupplier(CommonFractalParameters.PARAM_MIDPOINT, nf.ccn(0.0, 0.0)));
         defs.add(midpointDef);
-        defs.add(new ParamDefinition(PARAM_GRID_PERIOD, PARAMNAME_GRID_PERIOD, cat_mapping, StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=1 max=1000"));
-        defs.add(new ParamDefinition(PARAM_MODULO_PERIOD, PARAMNAME_MODULO_PERIOD, cat_mapping, StaticParamSupplier.class, CommonFractalParameters.numberType).withHints("ui-element:slider min=0.001 max=3"));
+        ParamDefinition mouseDef = new ParamDefinition(PARAM_MOUSE, PARAMNAME_MOUSE, cat_mapping, StaticParamSupplier.class,
+                CommonFractalParameters.complexnumberType, 1.0);
+        mouseDef.setResetRendererOnChange(false);
+        mouseDef.setVisible(false);
+        defs.add(mouseDef);
+        defaultValues.add(new StaticParamSupplier(PARAM_MOUSE, nf.ccn(0,0)));
+        defs.add(new ParamDefinition(PARAM_GRID_PERIOD, PARAMNAME_GRID_PERIOD, cat_mapping, StaticParamSupplier.class,
+                CommonFractalParameters.numberType, 1.0).withHints("ui-element:slider min=1 max=1000"));
+        defaultValues.add(new StaticParamSupplier(PARAM_GRID_PERIOD, nf.cn(100.0)));
+        defs.add(new ParamDefinition(PARAM_MODULO_PERIOD, PARAMNAME_MODULO_PERIOD, cat_mapping, StaticParamSupplier.class,
+                CommonFractalParameters.numberType, 1.0).withHints("ui-element:slider min=0.001 max=3"));
+        defaultValues.add(new StaticParamSupplier(PARAM_MODULO_PERIOD, nf.cn(2.0)));
 
 //        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
 //        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
-        defs.add(new ParamDefinition(PARAM_LAYER_CONFIG, PARAMNAME_LAYER_CONFIG, cat_mapping, StaticParamSupplier.class, layerconfigurationType));
+        defs.add(new ParamDefinition(PARAM_LAYER_CONFIG, PARAMNAME_LAYER_CONFIG, cat_mapping, StaticParamSupplier.class,
+                layerconfigurationType, 1.0));
 
         paramConfig.addParameterDefinitions(defs);
         paramConfig.addDefaultValues(defaultValues);
@@ -221,6 +259,7 @@ public class ShaderSystemContext implements SystemContext {
         precisionSelection.addOption(TEXT_PRECISION_AUTO, TEXT_PRECISION_AUTO, "");
         precisionSelection.addOption(TEXT_PRECISION_32, TEXT_PRECISION_32, "");
 //        precisionSelection.addOption(TEXT_PRECISION_64_EMULATED, TEXT_PRECISION_64_EMULATED, "");
+        precisionSelection.addOption(TEXT_PRECISION_64_REFERENCE, TEXT_PRECISION_64_REFERENCE, "");
         precisionSelection.addOption(TEXT_PRECISION_64, TEXT_PRECISION_64, "");
         paramConfig.addSelection(precisionSelection);
 

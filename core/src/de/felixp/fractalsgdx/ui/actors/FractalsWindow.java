@@ -7,7 +7,7 @@ import de.felixp.fractalsgdx.ui.MainStage;
 /**
  * VisWindow with additional functionality:
  * - recenter if stage is resized
- * - set focus to active renderer if the window is removed
+ * - set focus to active renderer when window is removed
  */
 public class FractalsWindow extends VisWindow {
 

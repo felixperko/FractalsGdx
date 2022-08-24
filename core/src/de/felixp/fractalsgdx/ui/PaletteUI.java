@@ -35,7 +35,7 @@ import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.PalettePoint;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.actors.TabTraversableTextField;
-import de.felixp.fractalsgdx.ui.actors.WindowAgnosticColorPicker;
+import de.felixp.fractalsgdx.ui.actors.ModalColorPicker;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 import static de.felixp.fractalsgdx.rendering.palette.GradientPalette.*;
@@ -435,7 +435,7 @@ public class PaletteUI {
                 @Override
                 public void changed(ChangeEvent event, Actor actor) {
                     if (picker == null){
-                        picker = new WindowAgnosticColorPicker("");
+                        picker = new ModalColorPicker("");
                         picker.getPicker().setShowColorPreviews(false);
                     }
                     controlTable.getStage().addActor(picker.fadeIn());

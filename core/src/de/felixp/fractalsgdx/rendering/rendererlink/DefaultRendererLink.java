@@ -52,7 +52,7 @@ public class DefaultRendererLink implements RendererLink {
     public void resetRenderer(FractalRenderer renderer) {
         renderer.reset();
         if (renderer instanceof ShaderRenderer) {
-            ((ShaderRenderer) renderer).paramsChanged();
+//            ((ShaderRenderer) renderer).paramsChanged();
         } else if (renderer instanceof RemoteRenderer) {
             ClientSystem clientSystem = ((RemoteRenderer) renderer).getSystemInterface().getClientSystem();
             clientSystem.incrementJobId();
@@ -90,7 +90,7 @@ public class DefaultRendererLink implements RendererLink {
     }
 
     @Override
-    public void switchRenderers() {
+    public synchronized void switchRenderers() {
         sourceRenderer.getRendererContext().removeLinkSource(this, false);
         targetRenderer.getRendererContext().removeLinkTarget(this, false);
 

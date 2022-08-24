@@ -49,6 +49,8 @@ import static de.felixperko.fractals.system.calculator.ComputeInstruction.*;
 
 public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
 
+    static boolean reopenExpressionsWindow = false;
+
     static Pattern functionNameWhitespacesPattern = Pattern.compile("[a-z]+\\s?[a-z]+\\s?\\(");
     static Pattern variablePattern = Pattern.compile("([A-Za-z]+[0-9]?((_(n|\\(n(-[1-9][0-9]?)\\))?)?|(\\(.+\\))?)?)");
     static Pattern variableAndConstantPattern = Pattern.compile("(-?[0-9]+(\\.[0-9]?)?)|([A-Za-z]+[0-9]?((\\(.+\\))?|(_(n|\\(n(-[1-9][0-9]?)\\))?)?))");
@@ -93,6 +95,15 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             text = expressionsParam.getMainExpression();
         }
         showMenu = true;
+    }
+
+    @Override
+    protected void generateViews() {
+        super.generateViews();
+        if (reopenExpressionsWindow) {
+            reopenExpressionsWindow = false;
+            openExpressionsWindow();
+        }
     }
 
     public List<String> updateAutocompleteOptions(String extracted){
@@ -367,6 +378,8 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         });
     }
 
+    FractalsWindow exprWindow;
+
     protected void openExpressionsWindow() {
 
         windowExpressionFields.clear();
@@ -374,7 +387,15 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         TraversableGroup traversableGroup = new TraversableGroup();
 
         MainStage stage = ((MainStage) FractalsGdxMain.stage);
-        FractalsWindow exprWindow = new FractalsWindow("Expressions");
+
+        if (exprWindow != null)
+            exprWindow.remove();
+        exprWindow = new FractalsWindow("Expressions"){
+            @Override
+            public boolean remove() {
+                return super.remove();
+            }
+        };
         VisTable contentTable = new VisTable(true);
 
         Map<String, TabTraversableTextField> fieldMap = new HashMap<>();
@@ -385,6 +406,11 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             VisLabel exprLabel = new VisLabel(inputVarName +"_(n+1) = ");
             TabTraversableTextField exprField = new TabTraversableTextField(e.getValue());
             traversableGroup.addField(exprField);
+
+            final String serializedExpr = serializeExpression(e.getValue());
+            VisLabel serializedLabel = new VisLabel(serializedExpr);
+            VisLabel serializedDerivLabel = new VisLabel(serializeExpressionDeriv(e.getValue(), e.getKey()));
+
             exprField.setPrefWidth(300);
             exprField.addValidator(validator);
             exprField.addListener(new InputListener(){
@@ -395,7 +421,7 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                         FractalsGdxMain.stage.setKeyboardFocus(exprField);
                         return true;
                     }
-                    if (keycode == Input.Keys.ESCAPE) {
+                    else if (keycode == Input.Keys.ESCAPE) {
                         ((MainStage)FractalsGdxMain.stage).escapeHandled();
                         exprWindow.remove();
                     }
@@ -413,13 +439,22 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
                         updateExpressionWindowContent(contentTable, fieldMap, exprTable, exprWindow);
                         FractalsGdxMain.stage.setKeyboardFocus(exprField);
                     }
+                    serializedLabel.setText(serializeExpression(exprField.getText()));
+                    serializedDerivLabel.setText(serializeExpressionDeriv(exprField.getText(), e.getKey()));
                     return super.keyTyped(event, character);
                 }
             });
             windowExpressionFields.put(inputVarName, exprField);
 
+            VisTable parsedTable = new VisTable(true);
+            parsedTable.add(serializedLabel);
+            parsedTable.add("d"+e.getKey()+" =");
+            parsedTable.add(serializedDerivLabel);
+
             exprTable.add(exprLabel);
             exprTable.add(exprField).row();
+            exprTable.add().left();
+            exprTable.add(parsedTable).left().row();
             fieldMap.put(inputVarName, exprField);
         }
 
@@ -432,12 +467,38 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         exprWindow.centerWindow();
     }
 
+    private String serializeExpression(String expressionText) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            FractalsExpression expr = FractalsExpressionParser.parse(expressionText);
+            if (expr != null)
+                expr.serialize(sb, false);
+        } catch (IllegalArgumentException e) {
+            sb.append("ERROR: "+e.getMessage());
+        }
+        return sb.toString();
+    }
+
+    private String serializeExpressionDeriv(String expressionText, String derivVar) {
+        StringBuilder sb = new StringBuilder();
+        try {
+            FractalsExpression expr = FractalsExpressionParser.parse(expressionText).getDerivative(derivVar);
+            if (expr != null)
+                expr.serialize(sb, false);
+        } catch (IllegalArgumentException e) {
+            sb.append("ERROR: "+e.getMessage());
+        }
+        return sb.toString();
+    }
+
     public boolean submitIfValidAndUpdateWindow(Map<String, TabTraversableTextField> fieldMap,
                 VisTable contentTable, VisTable expressionsTable, FractalsWindow expressionsWindow) {
         readFields();
         boolean submitted = submitIfValid(fieldMap);
         if (submitted) {
-            updateExpressionWindowContent(contentTable, fieldMap, expressionsTable, expressionsWindow);
+            expressionsWindow.remove();
+            reopenExpressionsWindow = true;
+//            updateExpressionWindowContent(contentTable, fieldMap, expressionsTable, expressionsWindow);
         }
         return submitted;
     }
@@ -474,8 +535,8 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
         Map<Integer, String> copySlotVariables = new HashMap<>();
 
         int counter = 0;
-        for (ParamSupplier supp : firstExpression.getParameterList()){
-            String varName = getPropertyName();
+        for (Map.Entry<String, ParamSupplier> e : firstExpression.getParamsByName().entrySet()){
+            String varName = e.getKey();
             if (varName.endsWith("_0"))
                 varName = varName.substring(0, varName.length()-2);
             boolean isIt = varName.equals("n");

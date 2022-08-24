@@ -5,6 +5,9 @@ import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+//import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
+//import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+//import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,13 +39,29 @@ public class DesktopLauncher {
 
 		Map<String, String> settings = readSettingsFile();
 
-		LwjglApplicationConfiguration config = initConfig(settings);
-
-		parseCommandLineArguments(arg, config);
-
 		FractalsGdxMain main = new FractalsGdxMain();
 		main.applyCommandLineArguments(arg);
-		new LwjglApplication(main, config);
+
+		boolean fileDropTest = false;
+
+		if (fileDropTest) {
+//			Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
+//			config.useOpenGL3(true, 3, 2);
+//
+//			config.setWindowListener(new Lwjgl3WindowAdapter() {
+//				@Override
+//				public void filesDropped(String[] files) {
+//					System.out.println("file(s) dropped " + files[0]);
+//				}
+//			});
+//
+//			new Lwjgl3Application(main, config);
+		}
+		else  {
+			LwjglApplicationConfiguration config = initConfig(settings);
+			parseCommandLineArguments(arg, config);
+			new LwjglApplication(main, config);
+		}
 	}
 
 	public static LwjglApplicationConfiguration initConfig(Map<String, String> settings) {

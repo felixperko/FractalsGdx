@@ -6,8 +6,9 @@ import com.kotcrab.vis.ui.widget.color.ColorPicker;
 /**
  * Doesn't restrict inputs to its own window.
  */
-public class WindowAgnosticColorPicker extends ColorPicker {
-    public WindowAgnosticColorPicker(String title) {
+public class ModalColorPicker extends ColorPicker {
+
+    public ModalColorPicker(String title) {
         super(title);
         getPicker().setShowColorPreviews(true);
     }

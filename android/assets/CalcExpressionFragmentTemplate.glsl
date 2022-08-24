@@ -17,6 +17,7 @@ layout(binding = 0) uniform sampler2D currTexture;
 layout(binding = 1) uniform sampler2D escapeTimeTexture;
 layout(binding = 2) uniform sampler2D samplesTexture;
 layout(binding = 3) uniform sampler2D missingSamplesTexture;
+layout(binding = 4) uniform sampler2D referenceTexture;
 
 uniform vec2 bufferOffset;
 uniform int discardBuffer;
@@ -44,6 +45,8 @@ uniform float maxSamplesPerFrame;
 uniform float gridFrequency;
 uniform float moduloFrequency;
 
+uniform vec2 cRef;
+
 uniform int upscaleFactor;
 uniform vec2 upscaleShift;
 
@@ -64,8 +67,21 @@ const float movedLimit = 16.0;
 
 const float splitFactor = pow(2.0, 16.0)+1.0;
 
+const float REF_TEX_WIDTH = 1024.0;
+
 uniform float burningship;
 uniform float juliaset;
+
+float DecodeFloatSignedV3( in vec3 pack )
+{
+    float exponent = float(int(ceil(pack.z*256.0-128.0)));
+    float g = ceil(pack.g*256.0);
+    float sign = g / 128.0;
+    float value = ((ceil(pack.r*256.0)/256.0+(mod(g, 128.0)*2.0)/(256.0*256.0))+1.0) * exp2(exponent+1.0);
+    if (sign >= 1.0)
+        return -value;
+    return value;
+}
 
 vec3 EncodeExpV3( in float value )
 {
@@ -81,8 +97,25 @@ vec3 EncodeExpV3( in float value )
     return vec3(r-0.5/256.0, g-0.5/256.0, b);
 }
 
+vec4 EncodeExpV4( in float value )
+{
+    int exponent  = int( ceil(log( abs( value ) )/log2) );
+    //normalize to 0 ... 1
+    float normalizedValue = value / exp2( float( exponent ) );
+    //8 upper bits in r
+    float r = floor(normalizedValue*256.0)/256.0;
+    //8 lower bits in g
+    float g = floor((normalizedValue-r)*256.0*256.0)/256.0;
+    float a = floor(((normalizedValue-r)*256.0-g)*256.0*256.0)/256.0;
+//    float a = 1.0;
+    //offset exponent in b
+    float b = (float(exponent)+128.0) / 256.0;
+    return vec4(r-0.5/256.0, g-0.5/256.0, b, a-0.5/256.0);
+}
+
 vec4 encode(in float value){
     return vec4(EncodeExpV3(value + resultOffset), 1.0);
+//    return EncodeExpV4(value + resultOffset);
 }
 
 float DecodeExpV3( in vec3 pack )
@@ -92,8 +125,16 @@ float DecodeExpV3( in vec3 pack )
     return value * exp2(exponent+1.0);
 }
 
+float DecodeExpV4( in vec4 pack )
+{
+    float exponent = float(int(pack.b*256.0-128.0));
+    float value  = ((ceil(pack.r*256.0)/256.0+ceil(pack.g*256.0)/(256.0*256.0)));
+    return value * exp2(exponent+1.0);
+}
+
 float decode(in vec4 pixel){
     return DecodeExpV3(vec3(pixel)) - resultOffset;
+//    return DecodeExpV4(pixel)-resultOffset;
 }
 
 void make_kernel(inout float n[12], sampler2D tex, vec2 coord){
@@ -384,12 +425,12 @@ void main()
                 float resXSq = float(local_0*local_0);
                 float resYSq = float(local_1*local_1);
 
-                if (colour3Output == 0)
-                    moved += min(resXSq+resYSq, movedLimit);
-                if (colour3Output == 1){
-                    avgR += float(local_0)*100.0;
-                    avgI += float(local_1)*100.0;
-                }
+//                if (colour3Output == 0)
+//                    moved += min(resXSq+resYSq, movedLimit);
+//                if (colour3Output == 1){
+//                    avgR += float(local_0)*100.0;
+//                    avgI += float(local_1)*100.0;
+//                }
 
                 if (
 true//<CONDITION>

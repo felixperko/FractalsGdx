@@ -9,6 +9,10 @@ sourceCompatibility = '1.8'
 
 dependencies {
     implementation files ('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
+
+    // https://mvnrepository.com/artifact/com.siemens.ct.exi/exificient
+    implementation group: 'com.siemens.ct.exi', name: 'exificient', version: '1.0.4'
+
 //    implementation ':Fractals2:FractalsCompute'
 
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api

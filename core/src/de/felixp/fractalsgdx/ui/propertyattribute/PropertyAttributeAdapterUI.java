@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.EventListener;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.kotcrab.vis.ui.Focusable;
 
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 
@@ -16,6 +17,8 @@ public interface PropertyAttributeAdapterUI<T> {
      * @return
      */
     Actor addToTable(Table table);
+
+    Actor getFirstFocusable();
 
     void valueChanged(T newVal, T min, T max);
 

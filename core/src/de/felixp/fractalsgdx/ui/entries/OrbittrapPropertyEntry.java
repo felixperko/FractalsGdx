@@ -88,13 +88,16 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
 
     }
 
+    @Override
+    public void setValue(Object newValue) {
+        clearAdapters();
+        super.setValue(newValue);
+    }
+
     List<PropertyAttributeAdapterUI> contentTableAttributeAdapters = new ArrayList<>();
 
     public void populateContentTable(VisWindow window, OrbittrapContainer cont, NumberFactory nf, VisTable contentTable, TraversableGroup traversableGroup) {
-        for (PropertyAttributeAdapterUI adapter : contentTableAttributeAdapters){
-            adapter.unregisterFields();
-        }
-        contentTableAttributeAdapters.clear();
+        clearAdapters();
         contentTable.clear();
         int counter = 1;
         for (Orbittrap trap : cont.getOrbittraps()){
@@ -103,6 +106,13 @@ public class OrbittrapPropertyEntry extends WindowPropertyEntry {
         }
         window.pack();
         window.centerWindow();
+    }
+
+    private void clearAdapters() {
+        for (PropertyAttributeAdapterUI adapter : contentTableAttributeAdapters){
+            adapter.unregisterFields();
+        }
+        contentTableAttributeAdapters.clear();
     }
 
     public void addOrbittrapUI(VisWindow window, Table contentTable, NumberFactory nf, int counter, Orbittrap trap, boolean addControls, TraversableGroup traversableGroup){

@@ -99,7 +99,7 @@ class ListPropertyEntry extends AbstractPropertyEntry {
 
     private void addNewElement(ParamValueType type){
         int index = menu.getRows();
-        ParamDefinition parameterDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), "list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type); //TODO ParameterDefinition again, see other TODO
+        ParamDefinition parameterDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), "list_"+type.getName()+index, "PLACEHOLDER", StaticParamSupplier.class, type, 1.0); //TODO ParameterDefinition again, see other TODO
         parameterDefinition.setConfiguration(parameterDefinition.getConfiguration());
         paramContainer.addParam(new StaticParamSupplier(parameterDefinition.getUID(), new BreadthFirstLayer()));
 

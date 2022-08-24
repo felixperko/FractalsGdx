@@ -144,12 +144,12 @@ void main()
                 }
             }
             if (outputMode == 1){ //average
-                outputVal /= 4.0;
+                outputVal *= 0.25;
 //                if (inputDataType == 1){
 //                    extraColor = vec4(0.0, 0.0, min(1.0,filteredProportion), 1.0);
 //                }
             }
-            outputVal2 /= 4.0;
+            outputVal2 * 0.25;
 //            outputColor = encodeInt(outputVal);
         }
     }

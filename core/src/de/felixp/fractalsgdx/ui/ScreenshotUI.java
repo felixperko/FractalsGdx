@@ -24,6 +24,7 @@ import com.kotcrab.vis.ui.widget.file.FileChooser;
 import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -47,6 +48,9 @@ import de.felixp.fractalsgdx.animation.ParamAnimation;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.ScreenshotListener;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
+import de.felixp.fractalsgdx.util.FractalsIOUtil;
+import de.felixperko.fractals.system.systems.infra.SystemContext;
+import de.felixperko.fractals.util.io.IIOMetadataUpdater;
 
 public class ScreenshotUI {
 
@@ -368,7 +372,7 @@ public class ScreenshotUI {
         renderer.addScreenshotListener(new ScreenshotListener() {
             @Override
             public void madeScreenshot(byte[] data) {
-                saveImage(data, getSingleScreenshotPath(), extensionSelect.getSelected(), null);
+                saveImage(data, getSingleScreenshotPath(), extensionSelect.getSelected(), null, renderer);
             }
         }, true);
         renderer.setSingleScreenshotScheduled(true);
@@ -407,7 +411,7 @@ public class ScreenshotUI {
                     }
                 }
                 executor.submit(() -> {
-                    saveImage(data, screenshotPath, extensionSelect.getSelected(), null);
+                    saveImage(data, screenshotPath, extensionSelect.getSelected(), null, renderer);
                     return null;
                 });
             }
@@ -487,7 +491,7 @@ public class ScreenshotUI {
 
     //Util
 
-    public static void saveImage(byte[] pixels, String path, String extension, PixmapIO.PNG pixmapIO){
+    public static void saveImage(byte[] pixels, String path, String extension, PixmapIO.PNG pixmapIO, FractalRenderer renderer){
         System.out.println("saving screenshot to "+path);
 //        Pixmap pixmap = Pixmap.createFromFrameBuffer(0,0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
@@ -500,10 +504,22 @@ public class ScreenshotUI {
 
         try {
             if (extension.equalsIgnoreCase("png")) {
-                if (pixmapIO != null) //buffers etc. reused
-                    pixmapIO.write(fileHandle, pixmap);
-                else
-                    PixmapIO.writePNG(fileHandle, pixmap);
+
+                //write with metadata
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                if (pixmapIO == null)
+                    pixmapIO = new PixmapIO.PNG();
+                pixmapIO.write(baos, pixmap);
+                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+                SystemContext systemContext = renderer.getSystemContext();
+                String text = FractalsIOUtil.serializeParamContainer(systemContext.getParamContainer(), systemContext.getParamConfiguration());
+                IIOMetadataUpdater.writeFileWithMetadata(bais, fileHandle.file(), "paramContainer", text);
+
+//                if (pixmapIO != null) //buffers etc. reused
+//                    pixmapIO.write(fileHandle, pixmap);
+//                else
+//                    PixmapIO.writePNG(fileHandle, pixmap);
+
             }
             else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg")) {
                 fileHandle.parent().mkdirs();

@@ -45,12 +45,13 @@ public class PropertyEntryFactory {
 
         List<AbstractPropertyEntry> subEntries = new ArrayList<>();
 
-        loop:
-        for (ParamValueType type : paramDef.getPossibleValueTypes()) {
+//        loop:
+//        for (ParamValueType type : paramDef.getPossibleValueTypes()) {
+        ParamValueType type = paramDef.getValueType();
 
             for (ParamValueField field : type.getSubTypes()){
                 ParamValueType subType = field.getType();
-                ParamDefinition subDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), field.getName(), "PLACEHOLDER", StaticParamSupplier.class);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
+                ParamDefinition subDefinition = new ParamDefinition(UIDGenerator.fromRandomBytes(6), field.getName(), "PLACEHOLDER", StaticParamSupplier.class, type, 1.0);//TODO Why is a new ParameterDefinition created anyways? if necessary -> is category needed?
                 subDefinition.setConfiguration(paramDef.getConfiguration());
                 AbstractPropertyEntry entry = createEntry(subType, paramContainer, subDefinition);
                 if (entry != null) {
@@ -58,7 +59,8 @@ public class PropertyEntryFactory {
                     subEntries.add(entry);
                 } else {
                     LOG.debug("Can't find sub-property class for parameter definition '"+subDefinition.getName()+"'");
-                    continue loop;
+//                    continue loop;
+                    return null;
                 }
             }
 
@@ -67,11 +69,12 @@ public class PropertyEntryFactory {
                 entry.addSubEntries(subEntries);
                 return entry;
             } else {
-                continue loop;
+//                continue loop;
+                return null;
             }
-        }
-        LOG.debug("Can't find property class for parameter definition '"+paramDef.getName()+"'");
-        return null;
+//        }
+//        LOG.debug("Can't find property class for parameter definition '"+paramDef.getName()+"'");
+//        return null;
     }
 
     private AbstractPropertyEntry createEntry(ParamValueType type, ParamContainer paramCont, ParamDefinition paramDef){

@@ -2,6 +2,7 @@ package de.felixp.fractalsgdx.ui.propertyattribute;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.EventListener;
+import com.kotcrab.vis.ui.Focusable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,4 +68,6 @@ public abstract class AbstractPropertyAttributeAdapterUI<T> implements PropertyA
     }
 
     public abstract void addListenerToFields(EventListener listener);
+
+    public abstract Actor getFirstFocusable();
 }

@@ -1,5 +1,8 @@
 package de.felixp.fractalsgdx.rendering.rendererlink;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +38,7 @@ public class JuliasetRendererLink extends DefaultRendererLink{
     boolean switching = false;
 
     @Override
-    public void switchRenderers() {
+    public synchronized void switchRenderers() {
 
         if (switching)
             return;
@@ -60,6 +63,10 @@ public class JuliasetRendererLink extends DefaultRendererLink{
 
         getTargetParamContainer().addParam(new CoordinateBasicShiftParamSupplier(PARAM_ZSTART));
         getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_C, preservedSourceMidpoint.copy()));
+//        if (!syncMouse)
+//            getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_C, preservedSourceMidpoint.copy()));
+//        else
+//            getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_C, getSourceParamContainer().getParam(ShaderSystemContext.PARAM_MOUSE).getGeneral(ComplexNumber.class)));
         getTargetParamContainer().addParam(new StaticParamSupplier(PARAM_MIDPOINT, preservedTargetMidpoint.copy()));
         getTargetParamContainer().addParam(new StaticParamSupplier(ShaderSystemContext.PARAM_ZOOM, preservedTargetZoom.copy()));
 
@@ -117,9 +124,11 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         ParamContainer targetContainer = getTargetParamContainer();
 
         ComplexNumber sourceMidpoint = sourceContainer.getParam(PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
+        ComplexNumber sourceMouse = getSourceParamContainer().getParam(ShaderSystemContext.PARAM_MOUSE).getGeneral(ComplexNumber.class);
+        ComplexNumber newC = isSyncMouse() ? sourceMouse : sourceMidpoint;
         ParamSupplier targetCSupp = targetContainer.getParam(PARAM_C);
-        if (!(targetCSupp instanceof StaticParamSupplier) || !sourceMidpoint.equals(targetCSupp.getGeneral(ComplexNumber.class))) {
-            targetContainer.addParam(new StaticParamSupplier(PARAM_C, sourceMidpoint.copy()));
+        if (!(targetCSupp instanceof StaticParamSupplier) || !newC.equals(targetCSupp.getGeneral(ComplexNumber.class))) {
+            targetContainer.addParam(new StaticParamSupplier(PARAM_C, newC.copy()));
             changed = true;
         }
         if (!(targetContainer.getParam(CommonFractalParameters.PARAM_ZSTART) instanceof CoordinateBasicShiftParamSupplier)){
@@ -128,6 +137,10 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         }
 
         return changed;
+    }
+
+    public boolean isSyncMouse(){
+        return Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
     }
 
     @Override

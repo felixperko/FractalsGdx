@@ -70,6 +70,10 @@ public class ShaderBuilder {
         return ShaderSystemContext.TEXT_PRECISION_64_EMULATED.equals(precision);
     }
 
+    protected boolean isPerturbedPrecision(){
+        return ShaderSystemContext.TEXT_PRECISION_64_REFERENCE.equals(precision);
+    }
+
     protected void setPrecision(String precision){
         this.precision = precision;
     }
@@ -165,8 +169,23 @@ public class ShaderBuilder {
     }
 
     private String getInitString() {
+
         initLocalVariables();
         StringBuilder stringBuilder = new StringBuilder();
+
+        if (isPerturbedPrecision()) {
+//            stringBuilder.append("float refR = 0.0;\n");
+//            stringBuilder.append("float refI = 0.0;\n");
+            stringBuilder.append("//perturbed\n");
+            stringBuilder.append("float refR = cRef.x;\n");
+            stringBuilder.append("float refI = cRef.y;\n");
+        }
+//        else {
+//            sb.append("float refR = 0.0;\n");
+//            sb.append("float refI = 0.0;\n");
+//        }
+
+
 //        List<ComputeInstruction> instructions = firstExpression.getInstructions();
 //        List<ParamSupplier> params = firstExpression.getParameterList();
 //        for (String localVar : localVariables)
@@ -301,6 +320,14 @@ public class ShaderBuilder {
                     "type "+localVariables[copySlot+1]+" = 0.0;");
         }
 
+//        if (isPerturbedPrecision()){
+//            stringBuilder.append("//perturbed -> c = delta\n");
+////            stringBuilder.append("local_4 -= DecodeFloatSignedV3(texelFetch(referenceTexture, ivec2(1, 0), 0).rgb);\n");
+////            stringBuilder.append("local_5 -= DecodeFloatSignedV3(texelFetch(referenceTexture, ivec2(1, 1), 0).rgb);\n");
+//            stringBuilder.append("local_4 -= cRef.x;\n");
+//            stringBuilder.append("local_5 -= cRef.y;\n");
+//        }
+
         System.out.println("Shader initVariables(): ");
         System.out.println(stringBuilder.toString());
         return stringBuilder.toString();
@@ -339,6 +366,21 @@ public class ShaderBuilder {
 
         StringBuilder sb = new StringBuilder();
 
+        if (isPerturbedPrecision()) {
+            //right now specific for mandelbrot
+            //f(x)_(n+1) = f(x)_n^2 + c
+            //delta(x,y)_0 = f(x)_0 - f(y)_0
+            //delta(x,y)_(n+1) = delta(y)_n^2 + delta(y)_0  +  2*f(x)_n * delta(x,y)_n
+            //http://www.science.eclipse.co.uk/sft_maths.pdf
+            sb.append("//perturbed\n");
+            sb.append("refR = 2.0*DecodeFloatSignedV3(texelFetch(referenceTexture, ivec2(int(mod(i, REF_TEX_WIDTH)), int(i / REF_TEX_WIDTH)*2  ), 0).rgb);\n");
+            sb.append("refI = 2.0*DecodeFloatSignedV3(texelFetch(referenceTexture, ivec2(int(mod(i, REF_TEX_WIDTH)), int(i / REF_TEX_WIDTH)*2+1), 0).rgb);\n");
+            sb.append("float refTemp = refR*local_0 - refI*local_1;\n");
+            sb.append("refI = (refR*local_1) + (refI*local_0);\n");
+            sb.append("refR = refTemp;\n");
+            sb.append("\n");
+        }
+
         if (iterationsVarIndexReal >= 0){
             Map<String, String> placeholders = new HashMap<>();
             placeholders.put("varReal", localVariables[iterationsVarIndexReal]);
@@ -356,6 +398,12 @@ public class ShaderBuilder {
         }
 
         writeOrbitTrapConditions(sb);
+
+        if (isPerturbedPrecision()) {
+            sb.append("//perturbed\n");
+            sb.append("local_0 += refR;\n");
+            sb.append("local_1 += refI;\n");
+        }
 
         System.out.println("Shader iterate(): ");
         System.out.println(sb.toString());

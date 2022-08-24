@@ -27,8 +27,13 @@ import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
 import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
+import com.kotcrab.vis.ui.widget.file.FileChooser;
+import com.kotcrab.vis.ui.widget.file.FileChooserAdapter;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -45,12 +50,14 @@ import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapsXMLDeserializer;
 import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.ImagePalette;
 import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
 import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
+import de.felixp.fractalsgdx.util.FractalsIOUtil;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
@@ -66,6 +73,13 @@ import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
+import de.felixperko.fractals.util.io.IIOMetadataUpdater;
+import de.felixperko.io.ParamContainerDeserializer;
+import de.felixperko.io.ParamSupplierTypeRegistry;
+import de.felixperko.io.ParamXMLDeserializerRegistry;
+import de.felixperko.io.deserializers.ComplexNumberXMLDeserializer;
+import de.felixperko.io.deserializers.ExpressionsXMLDeserializer;
+import de.felixperko.io.deserializers.NumberXMLDeserializer;
 
 public class MainStage extends Stage {
 
@@ -101,7 +115,6 @@ public class MainStage extends Stage {
         super(viewport, batch);
     }
 
-
     public void create(){
 
         createKeybindings();
@@ -123,13 +136,14 @@ public class MainStage extends Stage {
                 throw new IllegalStateException("Preferences "+POSITIONS_PREFS_NAME+" contain non-String objects.");
             String name = e.getKey();
 
-            ParamContainer paramContainer = null;
-            try {
-                paramContainer = ParamContainer.deserializeObjectBase64((String)e.getValue());
-            } catch (IOException | ClassNotFoundException e1) {
-                e1.printStackTrace();
-            }
-            locations.put(name, paramContainer);
+//            ParamContainer paramContainer = FractalsIOUtil.deserializeParamContainer(((String) e.getValue()).getBytes());
+//            try {
+//                paramContainer = ParamContainer.deserializeObjectBase64((String)e.getValue());
+//            } catch (IOException | ClassNotFoundException e1) {
+//                e1.printStackTrace();
+//            }
+
+//            locations.put(name, paramContainer);
         }
 
         VisTable ui = new VisTable();
@@ -214,6 +228,17 @@ public class MainStage extends Stage {
 
         juliasetLink = new JuliasetRendererLink(renderer, renderer2);
         juliasetLink.syncTargetRenderer();
+    }
+
+    @Override
+    public boolean scrolled(float amountX, float amountY) {
+        FractalRenderer renderer = getFocusedRenderer();
+        if (renderer != null && getKeyboardFocus() == renderer) {
+            boolean handled = renderer.scrolled(amountX, amountY);
+            if (handled)
+                return true;
+        }
+        return super.scrolled(amountX, amountY);
     }
 
     public void pressedSwitchRenderers(){
@@ -457,7 +482,7 @@ public class MainStage extends Stage {
     public final static String PARAMNAME_COLOR_MULT = "color period";
     public final static String PARAMNAME_COLOR_SATURATION = "saturation";
     public final static String PARAMNAME_SOBEL_GLOW_LIMIT = "edge brightness";
-    public final static String PARAMNAME_SOBEL_GLOW_FACTOR = "glow period";
+    public final static String PARAMNAME_SOBEL_GLOW_FACTOR = "dim period";
     public final static String PARAMNAME_AMBIENT_LIGHT = "ambient light";
 
     public final static String PARAMNAME_FALLBACK_COLOR_ADD = "color offset 2";
@@ -532,6 +557,8 @@ public class MainStage extends Stage {
     public final static String PARAMS_TRACES_START_COLOR = "";
     public final static String PARAMS_TRACES_END_COLOR = "";
 
+    public final static String TYPEID_COLOR = "BlsZQD";
+
     public final static NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
     protected void initRightParamContainer() {
@@ -540,26 +567,26 @@ public class MainStage extends Stage {
 
     protected ParamConfiguration initRightParamConfiguration() {
         
-        ParamConfiguration config = new ParamConfiguration();
+        ParamConfiguration config = new ParamConfiguration("AxW_QG", 1.0);
 
-        ParamValueType integerType = new ParamValueType("integer");
+        ParamValueType integerType = CommonFractalParameters.integerType;
         config.addValueType(integerType);
-        ParamValueType doubleType = new ParamValueType("double");
+        ParamValueType doubleType = CommonFractalParameters.doubleType;
         config.addValueType(doubleType);
-        ParamValueType booleanType = new ParamValueType("boolean");
+        ParamValueType booleanType = CommonFractalParameters.booleanType;
         config.addValueType(booleanType);
-        ParamValueType selectionType = new ParamValueType("selection");
+        ParamValueType selectionType = CommonFractalParameters.selectionType;
         config.addValueType(selectionType);
-        ParamValueType stringType = new ParamValueType("string");
+        ParamValueType stringType = CommonFractalParameters.stringType;
         config.addValueType(stringType);
-        ParamValueType complexNumberType = new ParamValueType("complexnumber");
+        ParamValueType complexNumberType = CommonFractalParameters.complexnumberType;
         config.addValueType(complexNumberType);
-        ParamValueType numberType = new ParamValueType("number");
+        ParamValueType numberType = CommonFractalParameters.numberType;
         config.addValueType(numberType);
-        ParamValueType colorType = new ParamValueType("color");
-        config.addValueType(colorType);
-        ParamValueType numberFactoryType = new ParamValueType("numberfactory");
+        ParamValueType numberFactoryType = CommonFractalParameters.numberfactoryType;
         config.addValueType(numberFactoryType);
+        ParamValueType colorType = new ParamValueType(TYPEID_COLOR, "color");
+        config.addValueType(colorType);
 
 
         List<ParamSupplier> params = new ArrayList<>();
@@ -603,43 +630,43 @@ public class MainStage extends Stage {
         Map<String, ParamSupplier> paramMap = new HashMap<>();
         params.stream().map(e -> paramMap.put(e.getUID(), e));
         
-        config.addParameterDefinition(new ParamDefinition(PARAMS_NUMBERFACTORY, PARAMNAME_NUMBERFACTORY, "Calculator", StaticParamSupplier.class, numberFactoryType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_NUMBERFACTORY, PARAMNAME_NUMBERFACTORY, "Calculator", StaticParamSupplier.class, numberFactoryType, 1.0),
                 paramMap.get(PARAMS_NUMBERFACTORY));
 
         String cat_coloring_reached = "Coloring (condition reached)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, PARAMNAME_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, PARAMNAME_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0.02 max=10"), paramMap.get(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, PARAMNAME_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, PARAMNAME_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, PARAMNAME_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, PARAMNAME_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
 //        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring (reached)", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, PARAMNAME_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, PARAMNAME_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, PARAMNAME_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, PARAMNAME_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=-1 max=5"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, PARAMNAME_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, PARAMNAME_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
 
         String cat_coloring_fallback = "Coloring (fallback)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, PARAMNAME_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, PARAMNAME_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0.01 max=2"), paramMap.get(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, PARAMNAME_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, PARAMNAME_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, PARAMNAME_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, PARAMNAME_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
 //        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, PARAMNAME_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, PARAMNAME_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=-10 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=2"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
 
         String cat_coloring_palettes = "Palettes";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, PARAMNAME_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, PARAMNAME_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
                 paramMap.get(PARAMS_PALETTE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, PARAMNAME_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, PARAMNAME_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
                 paramMap.get(PARAMS_PALETTE2));
 
         Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
@@ -653,7 +680,7 @@ public class MainStage extends Stage {
         config.addSelection(paletteSelection);
         config.addSelection(paletteSelection2);
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, PARAMNAME_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, PARAMNAME_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
                 paramMap.get(PARAMS_EXTRACT_CHANNEL));
         Selection<Integer> extractChannelSelection = new Selection<Integer>(PARAMS_EXTRACT_CHANNEL);
         extractChannelSelection.addOption("disabled", 0, "No channel remapping");
@@ -661,42 +688,42 @@ public class MainStage extends Stage {
         extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
         extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");
         config.addSelection(extractChannelSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, PARAMNAME_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, PARAMNAME_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType, 1.0),
                 paramMap.get(PARAMS_MAPPING_COLOR));
 
         String cat_shape_drawing = "Shape drawing";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, PARAMNAME_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, PARAMNAME_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
                 paramMap.get(PARAMS_DRAW_AXIS));
 
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, PARAMNAME_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, PARAMNAME_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0)
                 , paramMap.get(PARAMS_DRAW_ORBIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, PARAMNAME_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, PARAMNAME_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
                 paramMap.get(PARAMS_DRAW_PATH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, PARAMNAME_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, PARAMNAME_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
                 paramMap.get(PARAMS_DRAW_MIDPOINT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, PARAMNAME_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType),
+        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, PARAMNAME_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
                 paramMap.get(PARAMS_DRAW_ZERO));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, PARAMNAME_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, PARAMNAME_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType, 1.0)
                 , paramMap.get(PARAMS_ORBIT_TARGET));
         Selection<String> traceTargetSelection = new Selection<String>(PARAMS_ORBIT_TARGET);
         traceTargetSelection.addOption("mouse", "mouse", "The trace target is set to the current mouse position");
         traceTargetSelection.addOption("path", "path", "The trace target is set to the animation named 'path'");
         config.addSelection(traceTargetSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, PARAMNAME_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, PARAMNAME_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType, 1.0)
                 , paramMap.get(PARAMS_ORBIT_TRACES));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0)
                 , paramMap.get(PARAMS_ORBIT_TRACE_PER_INSTRUCTION));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, PARAMNAME_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, PARAMNAME_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType, 1.0)
                         .withVisible(false), paramMap.get(PARAMS_TRACES_VALUE));
 
         String cat_shape_settings = "Shape settings";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, PARAMNAME_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, PARAMNAME_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=3"), paramMap.get(PARAMS_TRACES_LINE_WIDTH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, PARAMNAME_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, PARAMNAME_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_TRACES_POINT_SIZE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, PARAMNAME_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, PARAMNAME_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_LINE_TRANSPARENCY));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, PARAMNAME_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType)
+        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, PARAMNAME_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
                 .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_POINT_TRANSPARENCY));
 
         //no client param resets the renderer
@@ -864,7 +891,8 @@ public class MainStage extends Stage {
 
         VisTextButton cancelBtn = new VisTextButton("cancel");
         VisTextButton saveBtn = new VisTextButton("save current");
-        VisTextButton jumptoBtn = new VisTextButton("jump to");
+        VisTextButton jumptoBtn = new VisTextButton("jump to preset");
+        VisTextButton importFileBtn = new VisTextButton("read file...");
 
         cancelBtn.addListener(new ChangeListener() {
             @Override
@@ -907,40 +935,92 @@ public class MainStage extends Stage {
         });
 
         String paramText = "";
-        try {
+//        try {
             ParamContainer paramContainer = paramUI.serverParamsSideMenu.getParamContainer();
             if (paramContainer != null) {
                 ParamContainer newContainer = new ParamContainer(paramContainer, true);
                 paramUI.serverParamsSideMenu.propertyEntryList.forEach(pe -> pe.applyClientValue(newContainer));
-                paramText = newContainer.serializeJson(true).replaceAll("\r\n", "\n");
+//                paramText = newContainer.serializeJson(true).replaceAll("\r\n", "\n");
+                paramText = FractalsIOUtil.serializeParamContainer(newContainer, focusedRenderer.getSystemContext().getParamConfiguration());
             }
-        } catch (IOException e){
-            e.printStackTrace();
-        }
+//        }
+//        catch (IOException e){
+//            e.printStackTrace();
+//        }
 
         ScrollableTextArea parameterTextArea = new ScrollableTextArea(paramText);
         ScrollPane scrollPane = parameterTextArea.createCompatibleScrollPane();
 
+        importFileBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                String defaultPath = System.getProperty("user.home");
+                if (fileChooserDirPath == null)
+                    fileChooserDirPath = defaultPath;
+
+                FileChooser fileChooser = initImportFileChooser(fileChooserDirPath);
+
+                fileChooser.setListener(new FileChooserAdapter() {
+                    @Override
+                    public void selected (Array<FileHandle> files) {
+                        fileChooserFilePath = files.first().file().getAbsolutePath();
+                        FileHandle file = Gdx.files.external(fileChooserFilePath);
+                        try {
+                            System.out.println("reading metadata for file: "+file.path());
+                            String text = IIOMetadataUpdater.readMetadata(new File(file.path()), "paramContainer");
+                            parameterTextArea.setText(text);
+//                            importWindow.remove();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+//                        fileTextField.focusLost();
+                FractalsGdxMain.mainStage.addActor(fileChooser.fadeIn());
+                fileChooser.setSize(Gdx.graphics.getWidth()*0.7f, Gdx.graphics.getHeight()*0.7f);
+                fileChooser.centerWindow();
+
+
+
+//                openImportFileWindow(parameterTextArea);
+            }
+        });
 
         VisTextButton applyBtn = new VisTextButton("Apply", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                try {
-                    ParamContainer paramContainer = ParamContainer.deserializeJson(parameterTextArea.getText());
+//                try {
+//                    ParamContainer paramContainer = ParamContainer.deserializeJson(parameterTextArea.getText());
+                    ParamContainer newParamContainer = FractalsIOUtil.deserializeParamContainer(parameterTextArea.getText().getBytes(StandardCharsets.UTF_8), focusedRenderer.getSystemContext().getParamConfiguration(), paramContainer);
+
+                    if (newParamContainer == null){
+                        System.err.println("MainStage: created ParamContainer was null!");
+                    }
+                    else {
+                        submitServer(focusedRenderer, newParamContainer);
+                    }
                     focusedRenderer.reset();
-                    submitServer(focusedRenderer, paramContainer);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//                }
+//                catch (IOException e) {
+//                    e.printStackTrace();
+//                }
             }
         });
 
-        window.add(cancelBtn).pad(2);
-        window.add(saveBtn).pad(2);
-        window.add(jumptoBtn).pad(2);
-        window.row();
-        window.add(scrollPane).colspan(3).width(Gdx.graphics.getWidth()*.5f).height(Gdx.graphics.getHeight()*.5f).row();
-        window.add(applyBtn);
+        VisTable topButtonTable = new VisTable(true);
+        topButtonTable.add(saveBtn);
+        topButtonTable.add(jumptoBtn);
+        window.add(topButtonTable).pad(2).row();
+
+        window.add(scrollPane).width(Gdx.graphics.getWidth()*.5f).height(Gdx.graphics.getHeight()*.5f).row();
+
+        VisTable buttonTable = new VisTable(true);
+        buttonTable.add(cancelBtn);
+        buttonTable.add(importFileBtn);
+        buttonTable.add(applyBtn);
+        window.add(buttonTable).pad(2);
+
         addActor(window);
         window.pack();
         ((VisWindow) window).centerWindow();
@@ -948,7 +1028,88 @@ public class MainStage extends Stage {
         parameterTextArea.setText(paramText);
     }
 
+    static FileChooser fileChooser;
+    static String fileChooserFilePath = null;
+    static String fileChooserDirPath = null;
 
+
+    private FileChooser initImportFileChooser(String path){
+        FileChooser.setDefaultPrefsName("de.felixp.fractalsgdx.ui.filechooser");
+        if (fileChooser != null)
+            fileChooser.remove();
+        else
+            fileChooser = new FileChooser("Import file", FileChooser.Mode.OPEN);
+//        fileChooser.setDirectory(path);
+        Class<FileChooser> fileChooserClass = FileChooser.class;
+        for (Field field : fileChooserClass.getDeclaredFields()){
+            if (field.getName().equals("confirmButton")){
+                field.setAccessible(true);
+                try {
+                    VisTextButton confirmButton = (VisTextButton) field.get(fileChooser);
+                    confirmButton.setText("Import file");
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                field.setAccessible(false);
+                break;
+            }
+        }
+        fileChooser.setSelectionMode(FileChooser.SelectionMode.FILES);
+        return fileChooser;
+    }
+
+    @Deprecated
+    private void openImportFileWindow(ScrollableTextArea parameterTextArea){
+
+        MainStage stage = FractalsGdxMain.mainStage;
+        FractalsWindow importWindow = new FractalsWindow("Import file");
+
+        VisTextField fileTextField = new VisTextField("...");
+
+        initImportFileChooser(fileChooserFilePath);
+
+        fileChooser.setListener(new FileChooserAdapter() {
+            @Override
+            public void selected (Array<FileHandle> files) {
+                fileChooserFilePath = files.first().file().getAbsolutePath();
+                fileChooserDirPath = files.first().file().getParentFile().getAbsolutePath();
+                fileTextField.setText(fileChooserFilePath);
+            }
+        });
+
+        fileTextField.addListener(new ClickListener(){
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                fileTextField.focusLost();
+                stage.addActor(fileChooser.fadeIn());
+                fileChooser.setSize(Gdx.graphics.getWidth()*0.7f, Gdx.graphics.getHeight()*0.7f);
+                fileChooser.centerWindow();
+            }
+        });
+
+        VisTextButton importButton = new VisTextButton("import");
+        importButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                FileHandle file = Gdx.files.external(fileTextField.getText());
+                try {
+                    System.out.println("reading metadata for file: "+file.path());
+                    String text = IIOMetadataUpdater.readMetadata(new File(file.path()), "paramContainer");
+                    parameterTextArea.setText(text);
+                    importWindow.remove();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        importWindow.add(fileTextField).row();
+        importWindow.add(importButton);
+
+//        VisTextField
+        importWindow.pack();
+        stage.addActor(importWindow);
+    }
 
     private void updateParamSelectBox(VisSelectBox selection) {
         Array array = new Array();
@@ -995,12 +1156,13 @@ public class MainStage extends Stage {
                 container.getParamMap().remove("view");
                 locations.put(nameFld.getText(), container);
 
-                try {
-                    positions_prefs.putString(nameFld.getText(), container.serializeObjectBase64());
+//                try {
+//                    positions_prefs.putString(nameFld.getText(), container.serializeObjectBase64());
+                    positions_prefs.putString(nameFld.getText(), FractalsIOUtil.serializeParamContainer(container, focusedRenderer.getSystemContext().getParamConfiguration()));
                     positions_prefs.flush();
-                } catch (IOException e) {
-                    throw new IllegalStateException("couldn't serialize locations");
-                }
+//                } catch (IOException e) {
+//                    throw new IllegalStateException("couldn't serialize locations");
+//                }
                 updateParamSelectBox(selection);
                 window.remove();
             }

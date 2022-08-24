@@ -88,4 +88,6 @@ public interface FractalRenderer {
     void setTimeBudget(double newTimeBudgetS);
 
     int getPixelCount();
+
+    boolean scrolled(float amountX, float amountY);
 }
