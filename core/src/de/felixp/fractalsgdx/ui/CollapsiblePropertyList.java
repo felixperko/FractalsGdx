@@ -26,12 +26,14 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.FractalRenderer;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.expressions.ComputeExpressionDomain;
+import de.felixperko.expressions.ExpExpression;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
@@ -42,7 +44,6 @@ import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
-import de.felixperko.fractals.util.UIDGenerator;
 
 public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
@@ -61,6 +62,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     List<ChangeListener> allListeners = new ArrayList<>();
 
     ParamContainer paramContainer;
+    ParamConfiguration paramConfig;
 
     TraversableGroup traversableGroup = new TraversableGroup();
 
@@ -92,7 +94,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
         //need to reset property table?
         //first --> reset
-        boolean reset = this.paramContainer == null;
+        boolean reset = this.paramContainer == null || paramConfig != this.paramConfig;
         focusParamName = null;
 
         if (lastSelections != null){
@@ -194,7 +196,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                     ParamDefinition def = paramConfig.getParamDefinitionByUID(exprParam.getUID());
                     String name = def != null ? def.getName() : exprParam.getUID();
 //                    String name = def.getName();
-                    if (expressionDomain.getExplicitValues().containsKey(name))
+                    if (expressionDomain.getExplicitValues().containsKey(name) || name.equals(ExpExpression.tempOptimizationSymbolName))
                         continue;
                     boolean predefined = false;
                     for (ParamDefinition paramDefinition : paramDefs) {
@@ -204,17 +206,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                         }
                     }
                     if (!predefined) {
-                        String uid = UIDGenerator.fromRandomBytes(6);
-                        uid = name;
-                        ParamDefinition newDef = new ParamDefinition(uid, name, "Calculator",
-                                CommonFractalParameters.complexnumberType, 1.0, StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class);
-                        paramConfig.addDefaultValue(exprParam);
+                        Class[] classes = new Class[]{StaticParamSupplier.class, CoordinateBasicShiftParamSupplier.class};
+                        ParamDefinition newDef = paramConfig.createTempParam(name, name, "Calculator", CommonFractalParameters.complexnumberType, exprParam, paramContainer, classes);
                         paramDefs.add(newDef);
-                        generatedDefs.put(uid, newDef);
-                        NumberFactory nf = paramContainer.getParam(CommonFractalParameters.PARAM_NUMBERFACTORY).getGeneral(NumberFactory.class);
-                        StaticParamSupplier defaultVal = new StaticParamSupplier(uid, nf.ccn(1, 0));
-                        paramConfig.addParameterDefinition(newDef, defaultVal);
-                        paramContainer.addParam(exprParam);
+                        generatedDefs.put(name, newDef);
                         if (getPropertyEntryByUID(exprParam.getUID()) == null) {
                             if (focusParamName == null)
                                 focusParamName = name;
@@ -237,7 +232,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 submitButton.remove();
         }
 
-        this.paramContainer = paramContainer;
+        this.paramContainer = new ParamContainer(paramContainer, true);
+        this.paramConfig = paramConfig;
 
 //        if (!reset)
 //            return;
@@ -288,8 +284,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 if (entry.getPropertyUID().equals(paramDef.getUID())){
                     //entry already exists -> update value
                     entryExists = true;
-                    ParamSupplier supplier = paramContainer.getParam(entry.getPropertyUID());
-                    entry.setParamContainer(paramContainer);
+                    ParamSupplier supplier = this.paramContainer.getParam(entry.getPropertyUID());
+                    entry.setParamContainer(this.paramContainer);
                     if (supplier instanceof StaticParamSupplier)
                         entry.setValue(supplier.getGeneral());
                     break;
@@ -297,7 +293,7 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             }
             //entry doesn't exist -> create new entry
             if (!entryExists) {
-                AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(paramDef, paramContainer);
+                AbstractPropertyEntry entry = propertyEntryFactory.getPropertyEntry(paramDef, this.paramContainer);
                 if (entry != null) {
                     entry.init();
                     addEntry(entry);
@@ -449,18 +445,23 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     }
 
     public void addSubmitListener(ChangeListener submitListener){
-        this.submitButton.addListener(submitListener);
+        if (submitButton == null)
+            submitButton = new VisTextButton("Submit");
+        submitButton.addListener(submitListener);
     }
 
     public void removeSubmitListener(ChangeListener submitListener){
-        this.submitButton.removeListener(submitListener);
+        submitButton.removeListener(submitListener);
     }
 
     public void addEntry(AbstractPropertyEntry entry){
         propertyEntryList.add(entry);
-        String storedControlViewName = getParamControlState(entry.getPropertyUID()).getControlView();
-        if (storedControlViewName != null)
-            entry.setCurrentControlView(storedControlViewName, false);
+        ParamControlState paramControlState = getParamControlState(entry.getPropertyUID());
+        if (paramControlState != null) {
+            String storedControlViewName = paramControlState.getControlView();
+            if (storedControlViewName != null)
+                entry.setCurrentControlView(storedControlViewName, false);
+        }
         entry.setParentPropertyList(this);
         entry.setParamContainer(paramContainer);
         getPropertyCategoryList(entry).add(entry);
@@ -520,6 +521,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
             if (!e.getValue().isExpanded())
                 continue;
             Table table = tablePerCategory.get(e.getKey());
+            if (table == null)
+                continue;
             for (Actor actor : table.getChildren()){
                 if (actor instanceof VisTextField){
                     ((MainStage)FractalsGdxMain.stage).getFocusedRenderer().setFocused(false);
@@ -560,7 +563,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     }
 
     public ParamControlState getParamControlState(String paramUID){
-        String containerName = "Renderer"+((MainStage)FractalsGdxMain.stage).getFocusedRenderer().getId();
+        FractalRenderer focusedRenderer = ((MainStage) FractalsGdxMain.stage).getFocusedRenderer();
+        if (focusedRenderer == null)
+            return null;
+        String containerName = "Renderer"+ focusedRenderer.getId();
         return getParamControlState(containerName, paramUID);
     }
 

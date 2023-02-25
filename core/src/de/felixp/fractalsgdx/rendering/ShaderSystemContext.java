@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.params.ComputeParamsCommon;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.MainStage;
@@ -46,9 +47,12 @@ import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
 import de.felixperko.fractals.system.task.Layer;
 
-public class ShaderSystemContext implements SystemContext {
+public class ShaderSystemContext extends AbstractSystemContext {
+
+    public static final String UID_PARAMCONFIG = "WJTMy2";
 
     public static final String PARAM_LAYER_CONFIG = "u2EpDL";
+    public static final String PARAM_FLIPIMAG = "LIB4FH";
     public static final String PARAM_SUPERSAMPLING = "KVZXq5";
     public static final String PARAM_MAXBORDERSAMPLES = "l0q4Zw";
     public static final String PARAM_ORBITTRAPS = "F19y7E";
@@ -60,7 +64,6 @@ public class ShaderSystemContext implements SystemContext {
     public static final String PARAM_UNSTABLE_OUTPUT = "ByPJDe";
     public static final String PARAM_STABLE_OUTPUT = "RkXg81";
     public static final String PARAM_TARGET_FRAMERATE = "db2FEt";
-    public static final String PARAM_CALCULATOR = "DVm4Oz";
     public static final String PARAM_PRIORITY = "yIHzft";
     public static final String PARAM_PRECISION = "wOLGBM";
     public static final String PARAM_CONDITION = "7QB43U";
@@ -68,64 +71,75 @@ public class ShaderSystemContext implements SystemContext {
     public static final String PARAM_ZOOM = "MlDwyj";
     public static final String PARAM_MOUSE = "WfF6mM";
 
-    public static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
-    public static final String PARAMNAME_SUPERSAMPLING = "supersampling";
-    public static final String PARAMNAME_MAXBORDERSAMPLES = "fallback samples";
+    private static final String PARAMNAME_LAYER_CONFIG = "layerConfiguration";
+    private static final String PARAMNAME_FLIPIMAG = "flip i axis";
+    private static final String PARAMNAME_SUPERSAMPLING = "supersampling";
+    private static final String PARAMNAME_MAXBORDERSAMPLES = "fallback samples";
     public static final String PARAMNAME_ORBITTRAPS = "orbit traps";
-    public static final String PARAMNAME_SAMPLESPERFRAME = "samples per frame";
-    public static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";
-    public static final String PARAMNAME_FIRSTITERATIONS = "first sample %";
-    public static final String PARAMNAME_GRID_PERIOD = "grid size";
-    public static final String PARAMNAME_MODULO_PERIOD = "cell range";
-    public static final String PARAMNAME_CONDITION = "condition";
-    public static final String PARAMNAME_LIMIT = "limit";
-    public static final String PARAMNAME_UNSTABLE_OUTPUT = "output (condition)";
-    public static final String PARAMNAME_STABLE_OUTPUT = "output (fallback)";
-    public static final String PARAMNAME_TARGET_FRAMERATE = "min target fps";
-    public static final String PARAMNAME_CALCULATOR = "calculator";
-    public static final String PARAMNAME_PRIORITY = "renderer priority";
-    public static final String PARAMNAME_PRECISION = "precision";
-    public static final String PARAMNAME_ITERATIONS = "iterations";
-    public static final String PARAMNAME_C = "c";
-    public static final String PARAMNAME_ZOOM = "zoom";
-    public static final String PARAMNAME_MIDPOINT = "midpoint";
-    public static final String PARAMNAME_MOUSE = "mousepos";
+    private static final String PARAMNAME_SAMPLESPERFRAME = "samples per frame";
+    private static final String PARAMNAME_RESOLUTIONSCALE = "resolution scale";
+    private static final String PARAMNAME_FIRSTITERATIONS = "first sample %";
+    private static final String PARAMNAME_GRID_PERIOD = "grid size";
+    private static final String PARAMNAME_MODULO_PERIOD = "cell range";
+    private static final String PARAMNAME_CONDITION = "condition";
+    private static final String PARAMNAME_LIMIT = "limit";
+    private static final String PARAMNAME_UNSTABLE_OUTPUT = "output (condition)";
+    private static final String PARAMNAME_STABLE_OUTPUT = "output (fallback)";
+    private static final String PARAMNAME_TARGET_FRAMERATE = "min target fps";
+    private static final String PARAMNAME_PRIORITY = "renderer priority";
+    private static final String PARAMNAME_PRECISION = "precision";
+    private static final String PARAMNAME_ITERATIONS = "iterations";
+    private static final String PARAMNAME_C = "c";
+    private static final String PARAMNAME_ZOOM = "zoom";
+    private static final String PARAMNAME_MIDPOINT = "midpoint";
+    private static final String PARAMNAME_MOUSE = "mousepos";
 
-    public static final String TEXT_PRECISION_AUTO = "auto";
-    public static final String TEXT_PRECISION_32 = "32 bit";
-    public static final String TEXT_PRECISION_64 = "64 bit (double)";
-    public static final String TEXT_PRECISION_64_REFERENCE = "64 bit (reference)";
-    public static final String TEXT_PRECISION_64_EMULATED = "64 bit (float-float)";
+    public static final String UID_PRECISION_AUTO = "AUTO";
+    public static final String UID_PRECISION_32 = "32F";
+    public static final String UID_PRECISION_64 = "64F";
+    public static final String UID_PRECISION_64_REFERENCE = "64F-REF";
+    public static final String UID_PRECISION_64_EMULATED = "64F-EMULATED";
+
+    private static final String TEXT_PRECISION_AUTO = "auto";
+    private static final String TEXT_PRECISION_32 = "32 bit";
+    private static final String TEXT_PRECISION_64 = "64 bit (double)";
+    private static final String TEXT_PRECISION_64_REFERENCE = "64 bit (reference)";
+    private static final String TEXT_PRECISION_64_EMULATED = "64 bit (float-float)";
 //    public static final String TEXT_PRECISION_64_FAST = "64 bit (fast)";
 
-    public static final String TEXT_CALCULATOR_ESCAPETIME = "iteration fractal";
-    public static final String TEXT_CALCULATOR_NEWTONFRACTAL = "newton fractal";
-    public static final String TEXT_CALCULATOR_GRAPH_REAL = "graph (real)";
-    public static final String TEXT_CALCULATOR_GRAPH_COMPLEX = "graph (complex)";
 
-    public static final String TEXT_COND_ABS = "|z| > limit";
-    public static final String TEXT_COND_ABS_R = "|re(z)| > limit";
-    public static final String TEXT_COND_ABS_I = "|im(z)| > limit";
-    public static final String TEXT_COND_ABS_MULT_RI = "|re(z)*im(z)| > limit";
-    public static final String TEXT_COND_MULT_RI = "re(z)*im(z) > limit";
 
-    public static final String TEXT_UNSTABLE_OUTPUT_ITERATIONS = "smoothed iterations";
-    public static final String TEXT_STABLE_OUTPUT_NONE = "none";
-    public static final String TEXT_STABLE_OUTPUT_MOVED = "moved distance";
-    public static final String TEXT_STABLE_OUTPUT_ANGLE = "average angle";
+    public static final String UID_COND_ABS = "|Z|-GT-LIM";
+    public static final String UID_COND_ABS_R = "|Z_R|-GT-LIM";
+    public static final String UID_COND_ABS_I = "|Z_I|-GT-LIM";
+    public static final String UID_COND_ABS_MULT_RI = "|Z_R*Z_I|-GT-LIM";
+    public static final String UID_COND_MULT_RI = "Z_R*Z_I-GT-LIM";
+
+    private static final String TEXT_COND_ABS = "|z| > limit";
+    private static final String TEXT_COND_ABS_R = "|re(z)| > limit";
+    private static final String TEXT_COND_ABS_I = "|im(z)| > limit";
+    private static final String TEXT_COND_ABS_MULT_RI = "|re(z)*im(z)| > limit";
+    private static final String TEXT_COND_MULT_RI = "re(z)*im(z) > limit";
+
+    public static final String UID_UNSTABLE_OUTPUT_ITERATIONS = "ITER";
+    public static final String UID_STABLE_OUTPUT_NONE = "NONE";
+    public static final String UID_STABLE_OUTPUT_MOVED = "MOVED_DIST";
+    public static final String UID_STABLE_OUTPUT_ANGLE = "AVG_ANGLE";
+
+    private static final String TEXT_UNSTABLE_OUTPUT_ITERATIONS = "smoothed iterations";
+    private static final String TEXT_STABLE_OUTPUT_NONE = "none";
+    private static final String TEXT_STABLE_OUTPUT_MOVED = "moved distance";
+    private static final String TEXT_STABLE_OUTPUT_ANGLE = "average angle";
 
     public static final int SAMPLES_DEFAULT = 50;
     public static final int SAMPLES_DEFAULT_ANDROID = 10;
-    public static final String TYPEID_LAYERCONFIG = "g1SGW0";
+    
+    public static final String TYPEID_LAYERCONFIG = "NZ8XbQ";
     public static final String TYPEID_ORBITTRAPS = "hwBOTO";
-    public static ParamValueType TYPE_ORBITTRAPS;
+    public static ParamValueType TYPE_ORBITTRAPS = new ParamValueType(TYPEID_ORBITTRAPS, PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
 
-    ParamConfiguration paramConfig;
 
     LayerConfiguration layerConfig;
-
-    ParamContainer paramContainer;
-    NumberFactory nf;
 
     ShaderRenderer renderer;
 
@@ -137,7 +151,7 @@ public class ShaderSystemContext implements SystemContext {
 
         setSamples(getDefaultSamples());
 
-        paramConfig = new ParamConfiguration("WJTMy2", 1.0);
+        paramConfig = new ParamConfiguration(UID_PARAMCONFIG, 1.0);
 
         List<ParamDefinition> defs = new ArrayList<>();
         List<ParamSupplier> defaultValues = new ArrayList<>();
@@ -149,6 +163,7 @@ public class ShaderSystemContext implements SystemContext {
         paramConfig.addValueType(CommonFractalParameters.doubleType);
         paramConfig.addValueType(CommonFractalParameters.integerType);
         paramConfig.addValueType(CommonFractalParameters.listType);
+        paramConfig.addValueType(CommonFractalParameters.booleanType);
         ParamValueType layerconfigurationType = new ParamValueType(TYPEID_LAYERCONFIG,"LayerConfiguration",
                 new ParamValueField("layers", CommonFractalParameters.listType),
                 new ParamValueField("simStep", CommonFractalParameters.doubleType, 0.05),
@@ -156,7 +171,6 @@ public class ShaderSystemContext implements SystemContext {
                 new ParamValueField("seed", CommonFractalParameters.integerType, 42));
         paramConfig.addValueType(layerconfigurationType);
         paramConfig.addValueType(CommonFractalParameters.expressionsType);
-        TYPE_ORBITTRAPS = new ParamValueType(TYPEID_ORBITTRAPS, PARAMNAME_ORBITTRAPS, new ParamValueField[0]);
         paramConfig.addValueType(TYPE_ORBITTRAPS);
 
         List<Class<? extends ParamSupplier>> supplierClasses = new ArrayList<>();
@@ -168,7 +182,8 @@ public class ShaderSystemContext implements SystemContext {
         nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
 
         String cat_calc = "Calculator";
-        defs.add(new ParamDefinition(PARAM_CALCULATOR, PARAMNAME_CALCULATOR, cat_calc, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defs.add(ComputeParamsCommon.getCalculatorDef());
+        defaultValues.add(ComputeParamsCommon.getCalculatorDefaultValue());
         defs.add(new ParamDefinition(CommonFractalParameters.PARAM_NUMBERFACTORY, "nf", cat_calc, StaticParamSupplier.class,
                 CommonFractalParameters.numberfactoryType, 1.0));
 
@@ -193,7 +208,7 @@ public class ShaderSystemContext implements SystemContext {
                 CommonFractalParameters.integerType, 1.0).withHints("ui-element:slider min=1 max=200");
         def_supersampling.setResetRendererOnChange(false);
         defs.add(def_supersampling);
-        defaultValues.add(new StaticParamSupplier(PARAM_SUPERSAMPLING, 1));
+        defaultValues.add(new StaticParamSupplier(PARAM_SUPERSAMPLING, 50));
         defs.add(new ParamDefinition(PARAM_MAXBORDERSAMPLES, PARAMNAME_MAXBORDERSAMPLES, cat_quality, StaticParamSupplier.class, CommonFractalParameters.integerType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_MAXBORDERSAMPLES, 1));
         defs.add(new ParamDefinition(PARAM_RESOLUTIONSCALE, PARAMNAME_RESOLUTIONSCALE, cat_quality, StaticParamSupplier.class, CommonFractalParameters.doubleType, 1.0).withHints("ui-element:slider min=0.0 max=2"));
@@ -207,14 +222,18 @@ public class ShaderSystemContext implements SystemContext {
 
         String cat_advanced = "Advanced";
         defs.add(new ParamDefinition(PARAM_CONDITION, PARAMNAME_CONDITION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_CONDITION, UID_COND_ABS));
         defs.add(new ParamDefinition(PARAM_LIMIT, PARAMNAME_LIMIT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType, 1.0)
                 .withHints("ui-element:slider min=1 max=256"));
         defaultValues.add(new StaticParamSupplier(PARAM_LIMIT, nf.cn(32.0)));
         defs.add(new ParamDefinition(PARAM_UNSTABLE_OUTPUT, PARAMNAME_UNSTABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
-        defaultValues.add(new StaticParamSupplier(PARAM_UNSTABLE_OUTPUT, 0));
+        defaultValues.add(new StaticParamSupplier(PARAM_UNSTABLE_OUTPUT, UID_UNSTABLE_OUTPUT_ITERATIONS));
         defs.add(new ParamDefinition(PARAM_STABLE_OUTPUT, PARAMNAME_STABLE_OUTPUT, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_STABLE_OUTPUT, UID_STABLE_OUTPUT_MOVED));
         defs.add(new ParamDefinition(PARAM_PRECISION, PARAMNAME_PRECISION, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.selectionType, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_PRECISION, UID_PRECISION_AUTO));
         defs.add(new ParamDefinition(PARAM_ORBITTRAPS, PARAMNAME_ORBITTRAPS, cat_advanced, StaticParamSupplier.class, TYPE_ORBITTRAPS, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_ORBITTRAPS, new OrbittrapContainer(new ArrayList<>())));
         defs.add(new ParamDefinition(PARAM_PRIORITY, PARAMNAME_PRIORITY, cat_advanced, StaticParamSupplier.class, CommonFractalParameters.numberType, 1.0));
         defaultValues.add(new StaticParamSupplier(PARAM_PRIORITY, nf.createNumber(10.0)));
 
@@ -239,6 +258,8 @@ public class ShaderSystemContext implements SystemContext {
         defs.add(new ParamDefinition(PARAM_MODULO_PERIOD, PARAMNAME_MODULO_PERIOD, cat_mapping, StaticParamSupplier.class,
                 CommonFractalParameters.numberType, 1.0).withHints("ui-element:slider min=0.001 max=3"));
         defaultValues.add(new StaticParamSupplier(PARAM_MODULO_PERIOD, nf.cn(2.0)));
+        defs.add(new ParamDefinition(PARAM_FLIPIMAG, PARAMNAME_FLIPIMAG, cat_mapping, StaticParamSupplier.class, CommonFractalParameters.booleanType, 1.0));
+        defaultValues.add(new StaticParamSupplier(PARAM_FLIPIMAG, true));
 
 //        defs.add(new ParamDefinition("width", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
 //        defs.add(new ParamDefinition("height", "Calculator", StaticParamSupplier.class, CommonFractalParameters.integerType));
@@ -248,37 +269,33 @@ public class ShaderSystemContext implements SystemContext {
         paramConfig.addParameterDefinitions(defs);
         paramConfig.addDefaultValues(defaultValues);
 
-        Selection<String> calculatorSelection = new Selection<String>(PARAM_CALCULATOR);
-        calculatorSelection.addOption(TEXT_CALCULATOR_ESCAPETIME, TEXT_CALCULATOR_ESCAPETIME, "");
-        calculatorSelection.addOption(TEXT_CALCULATOR_NEWTONFRACTAL, TEXT_CALCULATOR_NEWTONFRACTAL, "");
-//        calculatorSelection.addOption(TEXT_CALCULATOR_GRAPH_REAL, TEXT_CALCULATOR_GRAPH_REAL, "");
-//        calculatorSelection.addOption(TEXT_CALCULATOR_GRAPH_COMPLEX, TEXT_CALCULATOR_GRAPH_COMPLEX, "");
+        Selection<String> calculatorSelection = ComputeParamsCommon.getCalculatorSelection();
         paramConfig.addSelection(calculatorSelection);
 
         Selection<String> precisionSelection = new Selection<String>(PARAM_PRECISION);
-        precisionSelection.addOption(TEXT_PRECISION_AUTO, TEXT_PRECISION_AUTO, "");
-        precisionSelection.addOption(TEXT_PRECISION_32, TEXT_PRECISION_32, "");
-//        precisionSelection.addOption(TEXT_PRECISION_64_EMULATED, TEXT_PRECISION_64_EMULATED, "");
-        precisionSelection.addOption(TEXT_PRECISION_64_REFERENCE, TEXT_PRECISION_64_REFERENCE, "");
-        precisionSelection.addOption(TEXT_PRECISION_64, TEXT_PRECISION_64, "");
+        precisionSelection.addOption(TEXT_PRECISION_AUTO, UID_PRECISION_AUTO, "");
+        precisionSelection.addOption(TEXT_PRECISION_32, UID_PRECISION_32, "");
+//        precisionSelection.addOption(TEXT_PRECISION_64_EMULATED, UID_PRECISION_64_EMULATED, "");
+        precisionSelection.addOption(TEXT_PRECISION_64_REFERENCE, UID_PRECISION_64_REFERENCE, "");
+        precisionSelection.addOption(TEXT_PRECISION_64, UID_PRECISION_64, "");
         paramConfig.addSelection(precisionSelection);
 
         Selection<String> conditionSelection = new Selection<String>(PARAM_CONDITION);
-        conditionSelection.addOption(TEXT_COND_ABS, TEXT_COND_ABS, "");
-        conditionSelection.addOption(TEXT_COND_ABS_R, TEXT_COND_ABS_R, "");
-        conditionSelection.addOption(TEXT_COND_ABS_I, TEXT_COND_ABS_I, "");
-        conditionSelection.addOption(TEXT_COND_ABS_MULT_RI, TEXT_COND_ABS_MULT_RI, "");
-        conditionSelection.addOption(TEXT_COND_MULT_RI, TEXT_COND_MULT_RI, "");
+        conditionSelection.addOption(TEXT_COND_ABS, UID_COND_ABS, "");
+        conditionSelection.addOption(TEXT_COND_ABS_R, UID_COND_ABS_R, "");
+        conditionSelection.addOption(TEXT_COND_ABS_I, UID_COND_ABS_I, "");
+        conditionSelection.addOption(TEXT_COND_ABS_MULT_RI, UID_COND_ABS_MULT_RI, "");
+        conditionSelection.addOption(TEXT_COND_MULT_RI, UID_COND_MULT_RI, "");
         paramConfig.addSelection(conditionSelection);
 
-        Selection<Integer> unstableOutputSelection = new Selection<Integer>(PARAM_UNSTABLE_OUTPUT);
-        unstableOutputSelection.addOption(TEXT_UNSTABLE_OUTPUT_ITERATIONS, 0, "");
+        Selection<String> unstableOutputSelection = new Selection<String>(PARAM_UNSTABLE_OUTPUT);
+        unstableOutputSelection.addOption(TEXT_UNSTABLE_OUTPUT_ITERATIONS, UID_UNSTABLE_OUTPUT_ITERATIONS, "");
         paramConfig.addSelection(unstableOutputSelection);
 
-        Selection<Integer> stableOutputSelection = new Selection<Integer>(PARAM_STABLE_OUTPUT);
-        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_NONE, -1, "");
-        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_MOVED, 0, "");
-        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_ANGLE, 1, "");
+        Selection<String> stableOutputSelection = new Selection<String>(PARAM_STABLE_OUTPUT);
+        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_NONE, UID_STABLE_OUTPUT_NONE, "");
+        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_MOVED, UID_STABLE_OUTPUT_MOVED, "");
+        stableOutputSelection.addOption(TEXT_STABLE_OUTPUT_ANGLE, UID_STABLE_OUTPUT_ANGLE, "");
         paramConfig.addSelection(stableOutputSelection);
 
         paramContainer = new ParamContainer(paramConfig);
@@ -294,12 +311,12 @@ public class ShaderSystemContext implements SystemContext {
         ExpressionsParam expressions = new ExpressionsParam("z^2+c", "z");
         expressions.putExpression(PARAMNAME_C, ""+PARAMNAME_C);
         paramContainer.addParam(new StaticParamSupplier(CommonFractalParameters.PARAM_EXPRESSIONS, expressions));
-        paramContainer.addParam(new StaticParamSupplier(PARAM_PRECISION, TEXT_PRECISION_AUTO));
-        paramContainer.addParam(new StaticParamSupplier(PARAM_CONDITION, TEXT_COND_ABS));
+        paramContainer.addParam(new StaticParamSupplier(PARAM_PRECISION, UID_PRECISION_AUTO));
+        paramContainer.addParam(new StaticParamSupplier(PARAM_CONDITION, UID_COND_ABS));
         paramContainer.addParam(new StaticParamSupplier(PARAM_LIMIT, nf.createNumber(32.0)));
-        paramContainer.addParam(new StaticParamSupplier(PARAM_CALCULATOR, TEXT_CALCULATOR_ESCAPETIME));
-        paramContainer.addParam(new StaticParamSupplier(PARAM_STABLE_OUTPUT, 0));
-        paramContainer.addParam(new StaticParamSupplier(PARAM_UNSTABLE_OUTPUT, 0));
+//        paramContainer.addParam(new StaticParamSupplier(PARAM_CALCULATOR, UID_CALCULATOR_ESCAPETIME));
+        paramContainer.addParam(new StaticParamSupplier(PARAM_STABLE_OUTPUT, UID_STABLE_OUTPUT_MOVED));
+        paramContainer.addParam(new StaticParamSupplier(PARAM_UNSTABLE_OUTPUT, UID_UNSTABLE_OUTPUT_ITERATIONS));
         paramContainer.addParam(new StaticParamSupplier(PARAM_FIRSTITERATIONS, nf.createNumber("100.0")));
         paramContainer.addParam(new StaticParamSupplier(PARAM_SUPERSAMPLING, samples));
         paramContainer.addParam(new StaticParamSupplier(PARAM_SAMPLESPERFRAME, 1));
@@ -352,15 +369,11 @@ public class ShaderSystemContext implements SystemContext {
 
     @Override
     public boolean setParameters(ParamContainer paramContainer) {
+        boolean changed = super.setParameters(paramContainer);
         if (this.paramContainer != null){
-            boolean changed = paramContainer.updateChangedFlag(this.paramContainer.getParamMap());
             updateLayerConfig(paramContainer, PARAMNAME_LAYER_CONFIG, this.paramContainer.getParamMap(), paramContainer.getParamMap());
-            paramContainer.setParamConfiguration(paramConfig);
-            boolean sameInstance = this.paramContainer == paramContainer;
-            this.paramContainer = paramContainer;
             if (changed)
                 renderer.paramsChanged();
-//            paramContainer.setParameters(paramContainer.getParameters(), true);
         }
         return false;
     }
@@ -383,78 +396,6 @@ public class ShaderSystemContext implements SystemContext {
     }
 
     @Override
-    public Layer getLayer(int i) {
-        return layerConfig.getLayer(i);
-    }
-
-    @Override
-    public NumberFactory getNumberFactory() {
-        return paramContainer.getParam(CommonFractalParameters.PARAM_NUMBERFACTORY).getGeneral(NumberFactory.class);
-    }
-
-    @Override
-    public void taskStateUpdated(TaskStateInfo taskStateInfo, TaskState taskState) {
-
-    }
-
-    @Override
-    public void setServerConnection(ServerConnection serverConnection) {
-
-    }
-
-    @Override
-    public FractalsCalculator createCalculator(DeviceType deviceType) {
-        return null;
-    }
-
-    @Override
-    public AbstractArrayChunk createChunk(int i, int i1) {
-        return null;
-    }
-
-    @Override
-    public ParamContainer getParamContainer() {
-        return paramContainer;
-    }
-
-    @Override
-    public Map<String, ParamSupplier> getParameters() {
-        return paramContainer.getParamMap();
-    }
-
-    @Override
-    public Map<String, ParamSupplier> getParametersByName() {
-        Map<String, ParamSupplier> paramsByUid = getParametersByUID();
-        Map<String, ParamSupplier> paramsByName = new HashMap<>();
-        for (String uid : paramsByUid.keySet()){
-            ParamSupplier supp = paramsByUid.get(uid);
-            String name = paramConfig.getName(uid);
-            paramsByName.put(name, supp);
-        }
-        return paramsByName;
-    }
-
-    @Override
-    public Map<String, ParamSupplier> getParametersByUID() {
-        return paramContainer.getParamMap();
-    }
-
-    @Override
-    public Object getParamValue(String s) {
-        return paramContainer.getParam(s).getGeneral();
-    }
-
-    @Override
-    public ViewContainer getViewContainer() {
-        return null;
-    }
-
-    @Override
-    public LayerConfiguration getLayerConfiguration() {
-        return layerConfig;
-    }
-
-    @Override
     public Number getPixelzoom() {
         Number zoom = ((Number)getParamValue(ShaderSystemContext.PARAM_ZOOM)).copy();
         Number height = nf.createNumber(renderer.getHeight());
@@ -463,60 +404,13 @@ public class ShaderSystemContext implements SystemContext {
     }
 
     @Override
-    public int getChunkSize() {
-        return 0;
+    public Layer getLayer(int i) {
+        return layerConfig.getLayer(i);
     }
 
     @Override
-    public void incrementViewId() {
-
-    }
-
-    @Override
-    public void setMidpoint(ComplexNumber midpoint) {
-        StaticParamSupplier supplier = new StaticParamSupplier(CommonFractalParameters.PARAM_MIDPOINT, midpoint);
-        supplier.updateChanged(paramContainer.getParam(CommonFractalParameters.PARAM_MIDPOINT));
-        paramContainer.addParam(supplier);
-    }
-
-    @Override
-    public ComplexNumber getMidpoint() {
-        return paramContainer.getParam(CommonFractalParameters.PARAM_MIDPOINT).getGeneral(ComplexNumber.class);
-    }
-
-    @Override
-    public int getViewId() {
-        return 0;
-    }
-
-    @Override
-    public void setViewId(Integer integer) {
-
-    }
-
-    @Override
-    public SystemStateInfo getSystemStateInfo() {
-        return null;
-    }
-
-    @Override
-    public ParamConfiguration getParamConfiguration() {
-        return paramConfig;
-    }
-
-    @Override
-    public void setParamConfiguration(ParamConfiguration paramConfiguration) {
-        this.paramConfig = paramConfiguration;
-    }
-
-    @Override
-    public Object getParamValue(String s, Class aClass, ComplexNumber complexNumber, int i, int i1) {
-        return paramContainer.getParam(s).get(this, complexNumber, i, i1);
-    }
-
-    @Override
-    public Object getParamValue(String s, Class aClass) {
-        return paramContainer.getParam(s).getGeneral(aClass);
+    public LayerConfiguration getLayerConfiguration() {
+        return layerConfig;
     }
 
     public int getSamples() {
@@ -526,4 +420,5 @@ public class ShaderSystemContext implements SystemContext {
     public void setSamples(int samples) {
         this.samples = samples;
     }
+
 }

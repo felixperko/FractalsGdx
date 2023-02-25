@@ -20,8 +20,8 @@ public class ComplexNumberParamInterpolation extends AbstractParamInterpolation<
 
     InterpolationFunction interpolationFunction2;
 
-    public ComplexNumberParamInterpolation(String paramUid, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass) {
-        super(paramUid, paramType, paramContainerKey, attributeUid, interpolationFunctionClass);
+    public ComplexNumberParamInterpolation(String paramUid, String paramName, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass) {
+        super(paramUid, paramName, paramType, paramContainerKey, attributeUid, interpolationFunctionClass);
         this.interpolationFunction2 = initInterpolationFunction(interpolationFunctionClass);
         this.interpolationFunction2.setImag(true);
     }

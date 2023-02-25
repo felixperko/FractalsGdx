@@ -30,6 +30,8 @@ uniform int colour3Output;
 
 uniform vec2 center;
 //uniform vec2 centerFp64Low;
+uniform float flipFactor;
+
 in vec2 pos;
 
 uniform vec2 resolution;
@@ -425,12 +427,12 @@ void main()
                 float resXSq = float(local_0*local_0);
                 float resYSq = float(local_1*local_1);
 
-//                if (colour3Output == 0)
-//                    moved += min(resXSq+resYSq, movedLimit);
-//                if (colour3Output == 1){
-//                    avgR += float(local_0)*100.0;
-//                    avgI += float(local_1)*100.0;
-//                }
+                if (colour3Output == 0)
+                    moved += min(resXSq+resYSq, movedLimit);
+                if (colour3Output == 1){
+                    avgR += float(local_0)*100.0;
+                    avgI += float(local_1)*100.0;
+                }
 
                 if (
 true//<CONDITION>

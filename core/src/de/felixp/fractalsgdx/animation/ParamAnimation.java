@@ -4,6 +4,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.animation.AnimationListener;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 
 public interface ParamAnimation {
@@ -47,6 +48,8 @@ public interface ParamAnimation {
     Map<String, ParamInterpolation> getInterpolations();
     void setInterpolation(ParamInterpolation interpolation);
     ParamInterpolation removeInterpolation(String paramName, String attributeName);
+
+    void addKeyframe(ParamContainer paramContainer);
 
     void changeInterpolationParamName(ParamInterpolation interpolation, String newParamUid, String newParamName, String paramType, String paramContainer, String newAttrUid, String newAttrName);
 

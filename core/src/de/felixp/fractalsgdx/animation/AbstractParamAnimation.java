@@ -1,11 +1,13 @@
 package de.felixp.fractalsgdx.animation;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
+import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.util.NumberUtil;
 
 abstract class AbstractParamAnimation<T> implements ParamAnimation {
@@ -13,6 +15,8 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
     private Map<String, ParamInterpolation> interpolations = new LinkedHashMap<>();
 
     private List<AnimationListener> animationListeners = new CopyOnWriteArrayList<>();
+
+    private List<KeyFrame> keyFrames = new ArrayList<>();
 
     private String name;
 
@@ -136,7 +140,19 @@ abstract class AbstractParamAnimation<T> implements ParamAnimation {
         }
     }
 
-//    @Override
+    @Override
+    public void addKeyframe(ParamContainer paramContainer) {
+        keyFrames.add(new KeyFrame(paramContainer));
+        if (keyFrames.size() >= 2){
+            KeyFrame beginKeyFrame = keyFrames.get(keyFrames.size()-2);
+            KeyFrame endKeyFrame = keyFrames.get(keyFrames.size()-1);
+            List<ParamInterpolation> interpolations = endKeyFrame.getInterpolationsBetween(beginKeyFrame);
+            for (ParamInterpolation interp : interpolations)
+                setInterpolation(interp);
+        }
+    }
+
+    //    @Override
 //    public String getParameterName() {
 //        return parameterName;
 //    }

@@ -19,6 +19,7 @@ Parameters:
 - use repository on server for saved param presets? (sanitizing? warning on unknown ParamConfiguration?)
 
 Renderer:
+- high dynamic range sobel: calculate brightness at 3 (?) exposures and average (?)
 - better fps control (dynamic upscaling)
 - zoom separately on draw fbo? (how to handle edge detection changes when the calc fbo is stepped?)
 - "flashing" for lost focus? (separate darkening shader?; gained focus probably too distracting at low fps, reconsider after better fps control)

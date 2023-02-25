@@ -15,6 +15,7 @@ public interface FractalRenderer {
     RendererContext getRendererContext();
 
     void initRenderer();
+    void disposeRenderer();
 
     void draw(Batch batch, float parentAlpha);
 
@@ -55,7 +56,7 @@ public interface FractalRenderer {
 
     void removePanListener(PanListener panListener);
 
-    void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory);
+    boolean[] applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory);
 
     void setRelativeX(float x);
 

@@ -27,6 +27,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -58,6 +59,7 @@ public class ScreenshotUI {
     final static String EXTENSION_JPG = ".jpg";
     public static final String IMAGE_SELECT_OUTPUT = "Output preview";
     public static final String IMAGE_SELECT_ORIGINAL = "Original image";
+    public static final String METADATA_KEY = "params";
 
     static FractalsWindow window;
 
@@ -340,10 +342,12 @@ public class ScreenshotUI {
         if (imageRenderer == null)
             return;
 
-        if (outputButton.isChecked() && compressedScreenshotPixmap != null)
+        if (outputButton.isChecked() && compressedScreenshotPixmap != null) {
             imageRenderer.setPixmap(compressedScreenshotPixmap);
-        else if (originalButton.isChecked())
+        }
+        else if (originalButton.isChecked()) {
             imageRenderer.setPixmap(originalScreenshotPixmap);
+        }
 //        String value = imageSelect.getSelected();
 //        if (value.equalsIgnoreCase(IMAGE_SELECT_ORIGINAL))
 //            imageRenderer.setPixmap(originalScreenshotPixmap);
@@ -494,26 +498,46 @@ public class ScreenshotUI {
     public static void saveImage(byte[] pixels, String path, String extension, PixmapIO.PNG pixmapIO, FractalRenderer renderer){
         System.out.println("saving screenshot to "+path);
 //        Pixmap pixmap = Pixmap.createFromFrameBuffer(0,0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
-        BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
         FileHandle fileHandle = Gdx.files.absolute(path);
 
         extension = extension.trim();
         if (extension.startsWith("."))
             extension = extension.substring(1);
 
+        SystemContext systemContext = renderer.getSystemContext();
+        String paramMetadataText = FractalsIOUtil.serializeParamContainers(systemContext.getParamContainer(), systemContext.getParamConfiguration(),
+                FractalsGdxMain.mainStage.getClientParams(), FractalsGdxMain.mainStage.getClientParamConfiguration());
         try {
             if (extension.equalsIgnoreCase("png")) {
+
+                //flip
+                byte[] imgBytesFlipped = new byte[pixels.length];
+                for (int y = 0 ; y < Gdx.graphics.getBackBufferHeight() ; y++){
+                    for (int x = 0 ; x < Gdx.graphics.getBackBufferWidth() ; x++){
+                        for (int channel = 0 ; channel < 4 ; channel++) {
+                            imgBytesFlipped[channel + x*4 + Gdx.graphics.getBackBufferWidth()*4 * y] =
+                                    pixels[channel + x*4 + Gdx.graphics.getBackBufferWidth()*4 * (Gdx.graphics.getBackBufferHeight() - 1 - y)];
+                        }
+                    }
+                }
+                Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
+                BufferUtils.copy(imgBytesFlipped, 0, pixmap.getPixels(), pixels.length);
 
                 //write with metadata
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 if (pixmapIO == null)
                     pixmapIO = new PixmapIO.PNG();
+//                pixmapIO.setFlipY(true); //doesn't work?
                 pixmapIO.write(baos, pixmap);
+
+//                for (int i = 0 ; i < imgBytes.length ; i++){
+//                    int x = i % pixmap.getWidth();
+//                    int y = i / pixmap.getWidth();
+//                    imgBytesFlipped[(pixmap.getHeight()-1-y)*pixmap.getWidth()+x] = imgBytes[i];
+//                }
                 ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-                SystemContext systemContext = renderer.getSystemContext();
-                String text = FractalsIOUtil.serializeParamContainer(systemContext.getParamContainer(), systemContext.getParamConfiguration());
-                IIOMetadataUpdater.writeFileWithMetadata(bais, fileHandle.file(), "paramContainer", text);
+                IIOMetadataUpdater.writeFileWithMetadata(bais, fileHandle.file(), METADATA_KEY, paramMetadataText);
+//                pixmap.dispose();
 
 //                if (pixmapIO != null) //buffers etc. reused
 //                    pixmapIO.write(fileHandle, pixmap);
@@ -523,7 +547,17 @@ public class ScreenshotUI {
             }
             else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg")) {
                 fileHandle.parent().mkdirs();
-                writeJpgWithQuality(new FileImageOutputStream(fileHandle.file()), pixmapToBufferedImage(pixmap), qualitySlider.getValue() / 100f);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                MemoryCacheImageOutputStream os = new MemoryCacheImageOutputStream(baos);
+                Pixmap pixmap = new Pixmap(Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getBackBufferHeight(), Pixmap.Format.RGBA8888);
+                BufferUtils.copy(pixels, 0, pixmap.getPixels(), pixels.length);
+                writeJpgWithQuality(os, pixmapToBufferedImage(pixmap, false), qualitySlider.getValue() / 100f);
+
+                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+                IIOMetadataUpdater.writeFileWithMetadata(bais, fileHandle.file(), METADATA_KEY, paramMetadataText);
+                pixmap.dispose();
+//                new FileImageOutputStream(fileHandle.file())
+
 //                ImageIO.write(pixmapToBufferedImage(pixmap), "JPG", fileHandle.file()); //TODO Android support?
 
             } else
@@ -536,7 +570,6 @@ public class ScreenshotUI {
             e.printStackTrace();
         }
         System.out.println("saved screenshot to "+fileHandle.file().getAbsolutePath());
-        pixmap.dispose();
     }
 
     public static byte[] getPreviewImageData(byte[] pixels, String extension){
@@ -552,9 +585,9 @@ public class ScreenshotUI {
 
         try {
             if (extension.equalsIgnoreCase("png"))
-                writePng(new MemoryCacheImageOutputStream(encodedStream), pixmapToBufferedImage(originalScreenshotPixmap));
+                writePng(new MemoryCacheImageOutputStream(encodedStream), pixmapToBufferedImage(originalScreenshotPixmap, false));
             else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("jpeg"))
-                writeJpgWithQuality(new MemoryCacheImageOutputStream(encodedStream), pixmapToBufferedImage(originalScreenshotPixmap), qualitySlider.getValue() / 100f);
+                writeJpgWithQuality(new MemoryCacheImageOutputStream(encodedStream), pixmapToBufferedImage(originalScreenshotPixmap, false), qualitySlider.getValue() / 100f);
             else
                 throw new IllegalArgumentException("Extension not supported: "+extension+" supported extensions: png, jpg");
             byte[] data = encodedStream.toByteArray();
@@ -591,7 +624,7 @@ public class ScreenshotUI {
 
 
     //Source: https://www.badlogicgames.com/forum/viewtopic.php?f=11&t=8947&p=40600&hilit=saving+pixmap+as+jpeg#p40600
-    public static BufferedImage pixmapToBufferedImage(Pixmap p) {
+    public static BufferedImage pixmapToBufferedImage(Pixmap p, boolean flip) {
         int w = p.getWidth();
         int h = p.getHeight();
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -600,7 +633,7 @@ public class ScreenshotUI {
         for (int y=0; y<h; y++) {
             for (int x=0; x<w; x++) {
                 //convert RGBA to RGB
-                int value = p.getPixel(x, y);
+                int value = p.getPixel(x, !flip ? y : h-y);
                 int R = ((value & 0xff000000) >>> 24);
                 int G = ((value & 0x00ff0000) >>> 16);
                 int B = ((value & 0x0000ff00) >>> 8);

@@ -27,11 +27,11 @@ import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ShaderBuilder {
 
-    final static String MAKRO_VERSION = "//<VERSION>";
-    final static String MAKRO_FIELDS = "//<FIELDS>";
-    final static String MAKRO_INIT = "//<INIT>";
-    final static String MAKRO_KERNEL = "//<ITERATE>";
-    final static String MAKRO_CONDITION = "true//<CONDITION>";
+    final static String PLACEHOLDER_VERSION = "//<VERSION>";
+    final static String PLACEHOLDER_FIELDS = "//<FIELDS>";
+    final static String PLACEHOLDER_INIT = "//<INIT>";
+    final static String PLACEHOLDER_KERNEL = "//<ITERATE>";
+    final static String PLACEHOLDER_CONDITION = "true//<CONDITION>";
 
     final static String ITERATIONS_VAR_NAME = "n";
 
@@ -52,6 +52,12 @@ public class ShaderBuilder {
 
     String precision;
 
+    public ShaderBuilder(ComputeExpressionDomain expressionDomain, SystemContext systemContext){
+        this.expressionDomain = expressionDomain;
+        this.firstExpression = expressionDomain.getMainExpressions().get(0);
+        this.systemContext = systemContext;
+    }
+
     protected int getParamFloatCount(){
         return isDoublePrecision(true) ? 6 : 3;
     }
@@ -63,25 +69,19 @@ public class ShaderBuilder {
     protected boolean isDoublePrecision(boolean includeEmulated){
         if (includeEmulated && isEmulatedDoublePrecision())
             return true;
-        return ShaderSystemContext.TEXT_PRECISION_64.equals(precision);
+        return ShaderSystemContext.UID_PRECISION_64.equals(precision);
     }
 
     protected boolean isEmulatedDoublePrecision(){
-        return ShaderSystemContext.TEXT_PRECISION_64_EMULATED.equals(precision);
+        return ShaderSystemContext.UID_PRECISION_64_EMULATED.equals(precision);
     }
 
     protected boolean isPerturbedPrecision(){
-        return ShaderSystemContext.TEXT_PRECISION_64_REFERENCE.equals(precision);
+        return ShaderSystemContext.UID_PRECISION_64_REFERENCE.equals(precision);
     }
 
     protected void setPrecision(String precision){
         this.precision = precision;
-    }
-
-    public ShaderBuilder(ComputeExpressionDomain expressionDomain, SystemContext systemContext){
-        this.expressionDomain = expressionDomain;
-        this.firstExpression = expressionDomain.getMainExpressions().get(0);
-        this.systemContext = systemContext;
     }
 
     protected void initLocalVariables() {
@@ -115,20 +115,20 @@ public class ShaderBuilder {
 
     public String processShadertemplateLine(String templateLine, float rendererHeight, boolean newtonFractal) {
         String line = templateLine;
-        if (line.contains(MAKRO_VERSION)){
-            line = line.replaceAll(MAKRO_VERSION, getVersionString());
+        if (line.contains(PLACEHOLDER_VERSION)){
+            line = line.replaceAll(PLACEHOLDER_VERSION, getVersionString());
         }
-        if (line.contains(MAKRO_INIT)){
-            line = line.replaceAll(MAKRO_INIT, getInitString());
+        if (line.contains(PLACEHOLDER_INIT)){
+            line = line.replaceAll(PLACEHOLDER_INIT, getInitString());
         }
-        if (line.contains(MAKRO_KERNEL)){
-            line = line.replaceAll(MAKRO_KERNEL, getKernelString());
+        if (line.contains(PLACEHOLDER_KERNEL)){
+            line = line.replaceAll(PLACEHOLDER_KERNEL, getKernelString());
         }
-        if (line.contains(MAKRO_CONDITION)){
-            line = line.replaceAll(MAKRO_CONDITION, getConditionString());
+        if (line.contains(PLACEHOLDER_CONDITION)){
+            line = line.replaceAll(PLACEHOLDER_CONDITION, getConditionString());
         }
-        if (line.contains(MAKRO_FIELDS)){ //fields might be added in previous stages -> insert fields last
-            line = line.replaceAll(MAKRO_FIELDS, getFieldsString());
+        if (line.contains(PLACEHOLDER_FIELDS)){ //fields might be added in previous stages -> insert fields last
+            line = line.replaceAll(PLACEHOLDER_FIELDS, getFieldsString());
         }
         return line;
     }
@@ -199,6 +199,8 @@ public class ShaderBuilder {
         Map<String, String> placeholderValues = new HashMap<>();
         placeholderValues.put("type", getGlslType());
 
+        boolean flipI = systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_FLIPIMAG).getGeneral(Boolean.class);
+
         int i = 0;
         for (String name : paramSuppliers.keySet()){
             ParamSupplier supp = paramSuppliers.get(name);
@@ -263,7 +265,7 @@ public class ShaderBuilder {
                 if (!isDoublePrecision(true)) {
                     writeStringBuilderLines(stringBuilder, placeholderValues, "//initRenderer map parameter " + name,
                             "type "+varNameReal+" = params["+paramIndexReal+"] + params["+paramIndexDelta+"] * deltaX;",
-                            "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY;");
+                            "type "+varNameImag+" = params["+paramIndexImag+"] + params["+paramIndexDelta+"] * deltaY*flipFactor;");
                 }
                 else if (isEmulatedDoublePrecision()){
 
@@ -336,18 +338,18 @@ public class ShaderBuilder {
     private String getConditionString(){
         String cond = (String)systemContext.getParamValue(ShaderSystemContext.PARAM_CONDITION);
         switch (cond){
-            case ShaderSystemContext.TEXT_COND_ABS:
+            case ShaderSystemContext.UID_COND_ABS:
                 return "local_0*local_0 + local_1*local_1 > limitSq";
-            case ShaderSystemContext.TEXT_COND_ABS_R:
+            case ShaderSystemContext.UID_COND_ABS_R:
                 return "abs(local_0) > limit";
-            case ShaderSystemContext.TEXT_COND_ABS_I:
+            case ShaderSystemContext.UID_COND_ABS_I:
                 return "abs(local_1) > limit";
-            case ShaderSystemContext.TEXT_COND_ABS_MULT_RI:
+            case ShaderSystemContext.UID_COND_ABS_MULT_RI:
                 return "abs(local_0*local_1) > limit";
-            case ShaderSystemContext.TEXT_COND_MULT_RI:
+            case ShaderSystemContext.UID_COND_MULT_RI:
                 return "local_0*local_1 > limit";
             default:
-                return "";
+                throw new IllegalArgumentException("Condition not supported: "+cond);
         }
     }
 
@@ -393,8 +395,16 @@ public class ShaderBuilder {
         //write iteration instructions
         ComputeExpression expr = expressionDomain.getMainExpressions().get(0);
         List<ComputeInstruction> instructions = expr.getInstructions();
-        for (ComputeInstruction instruction : instructions) {
-            printKernelInstruction(sb, instruction);
+        try {
+            for (ComputeInstruction instruction : instructions) {
+                printKernelInstruction(sb, instruction);
+            }
+        } catch (IllegalArgumentException e){
+            StringBuilder instrSb = new StringBuilder("Instructions:\n");
+            for (ComputeInstruction instr : instructions){
+                instrSb.append(instr.toString()).append("\n");
+            }
+            throw new IllegalArgumentException(e.getMessage()+"\n"+instrSb.toString());
         }
 
         writeOrbitTrapConditions(sb);
@@ -499,12 +509,12 @@ public class ShaderBuilder {
             //TODO variable mapping
             if (instruction.type == ComputeInstruction.INSTR_ADD_COMPLEX){
                 if (!isEmulatedDoublePrecision()) {
-                    writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//add_complex",
+                    writeInstructionLines(stringBuilder, instruction, placeholderValues, "//add_complex",
                             "fromReal = fromReal + toReal;",
                             "fromImag = fromImag + toImag;");
                 }
                 else {
-                    writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//add_complex (float-float)",
+                    writeInstructionLines(stringBuilder, instruction, placeholderValues, "//add_complex (float-float)",
 //                            "fromReal = fromReal +  toReal;",
 //                            "fromImag = fromImag + toImag;");
                             "addFloatFloat(fromReal, fromReal2, toReal, toReal2);",
@@ -513,20 +523,20 @@ public class ShaderBuilder {
                     //addFloatFloat(ah,al,bh,bl);
                 }
             } else if (instruction.type == ComputeInstruction.INSTR_ADD_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//add_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//add_part",
                         "fromReal = fromReal + fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_SUB_COMPLEX){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sub_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sub_complex",
                         "fromReal = fromReal - toReal;",
                         "fromImag = fromImag - toImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_SUB_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sub_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sub_part",
                         "fromReal = fromReal - fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_MULT_COMPLEX){
                 String tempVarName = getTempVarName();
                 //real = ac-bd
                 //imag = ad+bc
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//mult_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//mult_complex",
                         "float "+tempVarName+" = fromReal*toReal - fromImag*toImag;",
                         "fromImag = (fromReal*toImag) + (fromImag*toReal);",
                         "fromReal = "+tempVarName+";");
@@ -534,13 +544,13 @@ public class ShaderBuilder {
 //                        "fromImag = (fromReal + fromImag)*(toReal + toImag) - "+tempVarName+";",
 //                        "fromReal = "+tempVarName+";");
             } else if (instruction.type == ComputeInstruction.INSTR_MULT_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//mult_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//mult_part",
                         "fromReal = fromReal*fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_DIV_COMPLEX){
                 placeholderValues.put("temp_div", getTempVarName());
                 placeholderValues.put("tempR", getTempVarName());
                 placeholderValues.put("tempI", getTempVarName());
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//div_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//div_complex",
                         "float temp_div = toReal*toReal + toImag*toImag;",
                         "float tempR = fromReal*toReal + fromImag*toImag;",
                         "float tempI = fromImag*toReal - fromReal*toImag;",
@@ -550,13 +560,13 @@ public class ShaderBuilder {
                         "}"
                         );
             } else if (instruction.type == ComputeInstruction.INSTR_DIV_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//div_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//div_part",
                         "fromReal = fromReal / toReal;");
             } else if (instruction.type == ComputeInstruction.INSTR_POW_COMPLEX){
                 String temp1 = getTempVarName();
                 String temp2 = getTempVarName();
                 String temp3 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//pow_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//pow_complex",
                         "float "+temp3+" = sqrt(fromReal*fromReal + fromImag*fromImag);",
                         "float "+temp2+" = 0.0;",
                         "float "+temp1+" = 0.0;",
@@ -579,66 +589,66 @@ public class ShaderBuilder {
 //                        "}"
                 );
             } else if (instruction.type == ComputeInstruction.INSTR_POW_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//pow_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//pow_part",
                         "fromReal = fromReal^fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_COPY_COMPLEX){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//copy_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//copy_complex",
                         "toReal = fromReal;",
                         "toImag = fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_COPY_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//copy_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//copy_part",
                         "toReal = fromReal;");
             } else if (instruction.type == ComputeInstruction.INSTR_ABS_COMPLEX){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//abs_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//abs_complex",
                         "fromReal = abs(fromReal);",
                         "fromImag = abs(fromImag);");
             } else if (instruction.type == ComputeInstruction.INSTR_ABS_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//abs_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//abs_part",
                         "fromReal = abs(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_SIN_COMPLEX){
                 String tempVarName7 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sin_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sin_complex",
                         "float "+tempVarName7+" = sin(fromReal) * cosh(fromImag);",
                         "fromImag = cos(fromReal) * sinh(fromImag);",
                         "fromReal = "+tempVarName7+";");
             } else if (instruction.type == ComputeInstruction.INSTR_SIN_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sin_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sin_part",
                         "fromReal = sin(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_COS_COMPLEX){
                 String tempVarName8 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//cos_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//cos_complex",
                         "float "+tempVarName8+" = cos(fromReal) * cosh(fromImag);",
                         "fromImag = -sin(fromReal) * sinh(fromImag);",
                         "fromReal = "+tempVarName8+";");
             } else if (instruction.type == ComputeInstruction.INSTR_COS_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//cos_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//cos_part",
                         "fromReal = cos(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_TAN_COMPLEX){
                 String tempVarName6 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//tan_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//tan_complex",
                         "float "+tempVarName6+" = cos(fromReal+fromReal)+cosh(fromImag+fromImag);",
                         "fromReal = sin(fromReal+fromReal)/"+tempVarName6+";",
                         "fromImag = sinh(fromImag+fromImag)/"+tempVarName6+";");
             } else if (instruction.type == ComputeInstruction.INSTR_TAN_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//tan_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//tan_part",
                         "fromReal = tan(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_SINH_COMPLEX){
                 String tempVarName4 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sinh_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sinh_complex",
                         "float "+tempVarName4+" = sinh(fromReal) * cos(fromImag);",
                         "fromImag = cosh(fromReal)*sin(fromImag);",
                         "fromReal = "+tempVarName4+";");
             } else if (instruction.type == ComputeInstruction.INSTR_SINH_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//sinh_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//sinh_part",
                         "fromReal = sinh(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_COSH_COMPLEX){
                 String tempVarName5 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//cosh_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//cosh_complex",
                         "float "+tempVarName5+" = cosh(fromReal) * cos(fromImag);",
                         "fromImag = sinh(fromReal)*sin(fromImag);",
                         "fromReal = "+tempVarName5+";");
             } else if (instruction.type == ComputeInstruction.INSTR_COSH_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//cosh_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//cosh_part",
                         "fromReal = cosh(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_TANH_COMPLEX){
                 String tempVarName3 = getTempVarName();
@@ -646,7 +656,7 @@ public class ShaderBuilder {
 //                        "float "+tempVarName3+" = sinh(2.0*fromReal)/(cosh(2.0*fromReal)+cos(2.0*fromImag));",
 //                        "fromImag = sin(2.0*fromImag)/(cosh(2.0*fromReal)+cos(2.0*fromImag));",
 //                        "fromReal = "+tempVarName3+";");
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//tanh_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//tanh_complex",
                         "fromReal = fromReal+fromReal;",
                         "fromImag = fromImag+fromImag;",
                         "float "+tempVarName3+" = cosh(fromReal)+cos(fromImag);",
@@ -654,7 +664,7 @@ public class ShaderBuilder {
                         tempVarName3+" = sinh(fromReal)/"+tempVarName3+";",
                         "fromReal = "+tempVarName3+";");
             } else if (instruction.type == ComputeInstruction.INSTR_TANH_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//tanh_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//tanh_part",
                         "fromReal = tanh(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_SQUARE_COMPLEX){
                 if (!isEmulatedDoublePrecision()) {
@@ -663,7 +673,7 @@ public class ShaderBuilder {
     //                        "float "+tempVarName2+" = fromReal*fromReal - fromImag*fromImag;",
     //                        "fromImag = fromReal*fromImag*2.0;",
     //                        "fromReal = "+tempVarName2+";");
-                    writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//square_complex",
+                    writeInstructionLines(stringBuilder, instruction, placeholderValues, "//square_complex",
                             "float " + tempVarName2 + " = fromReal*fromImag;",
                             "fromReal = fromReal*fromReal - fromImag*fromImag;",
                             "fromImag = " + tempVarName2 + "+" + tempVarName2 + ";");
@@ -677,7 +687,7 @@ public class ShaderBuilder {
 
                     String tempVarName = getTempVarName();
                     String tempVarName2 = getTempVarName();
-                    writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//square_complex (float-float)",
+                    writeInstructionLines(stringBuilder, instruction, placeholderValues, "//square_complex (float-float)",
                             "float "+tempVarName+" = fromReal;",
                             "float "+tempVarName2+" = fromReal2;",
                             "multFloatFloat("+tempVarName+", "+tempVarName2+", fromImag, fromImag2);",
@@ -691,14 +701,14 @@ public class ShaderBuilder {
                             "addFloatFloat(fromImag, fromImag2, "+tempVarName+", "+tempVarName2+");");
                 }
             } else if (instruction.type == ComputeInstruction.INSTR_SQUARE_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//square_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//square_part",
                         "fromReal = fromReal*fromReal;");
             } else if (instruction.type == ComputeInstruction.INSTR_NEGATE_COMPLEX){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//negate_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//negate_complex",
                         "fromReal = -fromReal;",
                         "fromImag = -fromImag;");
             } else if (instruction.type == ComputeInstruction.INSTR_NEGATE_PART){
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//negate_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//negate_part",
                         "fromReal = -fromReal;");
             } else if (instruction.type == ComputeInstruction.INSTR_RECIPROCAL_COMPLEX) {
                 String tempVarName9 = getTempVarName();
@@ -709,7 +719,7 @@ public class ShaderBuilder {
 //                        "   fromImag = - fromImag / " + tempVarName9 + ";",
 //                        "}"
 //                );
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//reciprocal_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//reciprocal_complex",
                         "float " + tempVarName9 + " = fromReal*fromReal + fromImag*fromImag;",
                         "if (" + tempVarName9 + " != 0.0){",
                         "   "+tempVarName9+" = 1.0/"+tempVarName9+";",
@@ -718,11 +728,11 @@ public class ShaderBuilder {
                         "}"
                 );
             } else if (instruction.type == ComputeInstruction.INSTR_LOG_PART) {
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_part",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//log_part",
                         "fromReal = log(fromReal);");
             } else if (instruction.type == ComputeInstruction.INSTR_LOG_COMPLEX) {
                 String tempVarName10 = getTempVarName();
-                writeinstrunctionlines(stringBuilder, instruction, placeholderValues, "//log_complex",
+                writeInstructionLines(stringBuilder, instruction, placeholderValues, "//log_complex",
                         "float "+tempVarName10+" = atan(fromImag, fromReal);",
                         "fromReal = fromReal*fromReal;",
                         "fromImag = fromImag*fromImag;",
@@ -733,7 +743,7 @@ public class ShaderBuilder {
     }
 
 
-    private void writeinstrunctionlines(StringBuilder stringBuilder, ComputeInstruction instruction, Map<String, String> placeholderValues, String... lines){
+    private void writeInstructionLines(StringBuilder stringBuilder, ComputeInstruction instruction, Map<String, String> placeholderValues, String... lines){
         String[] newLines = new String[lines.length];
         boolean fromReal = instruction.fromReal >= 0;
         boolean fromImag = instruction.fromImag >= 0;
@@ -784,10 +794,13 @@ public class ShaderBuilder {
 //                line = line.replaceAll("toImag", localVariables[instruction.toImag]);
             }
             newLines[i++] = line;
+
+            if (line.contains("fromReal") || line.contains("toReal") || line.contains("fromImag") || line.contains("toImag")){
+                throw new IllegalArgumentException("Error parsing instruction: "+instruction.toString());
+            }
         }
         writeStringBuilderLines(stringBuilder, placeholderValues, newLines);
     }
-
 
     private void writeStringBuilderLines(StringBuilder kernelStringBuilder, Map<String, String> placeholderValues, String... lines){
         for (String line : lines)

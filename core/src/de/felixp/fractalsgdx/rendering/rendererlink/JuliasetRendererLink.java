@@ -26,6 +26,10 @@ import static de.felixperko.fractals.system.systems.common.CommonFractalParamete
 
 public class JuliasetRendererLink extends DefaultRendererLink{
 
+    public static boolean isSyncMouse(){
+        return Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
+    }
+
     public JuliasetRendererLink(FractalRenderer sourceRenderer, FractalRenderer targetRenderer) {
         super(sourceRenderer, targetRenderer,
                 Arrays.asList(ShaderSystemContext.PARAM_LIMIT,
@@ -137,10 +141,6 @@ public class JuliasetRendererLink extends DefaultRendererLink{
         }
 
         return changed;
-    }
-
-    public boolean isSyncMouse(){
-        return Gdx.input.isKeyPressed(Input.Keys.ALT_LEFT) || Gdx.input.isKeyPressed(Input.Keys.ALT_RIGHT);
     }
 
     @Override

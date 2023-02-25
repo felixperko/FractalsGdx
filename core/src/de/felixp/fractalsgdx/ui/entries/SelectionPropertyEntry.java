@@ -83,13 +83,14 @@ public class SelectionPropertyEntry extends AbstractPropertyEntry {
                 if (checkValue(newSelectedObj))
                     setCheckedValue(newSelectedObj);
                 else if (newSelectedObj != null)
-                    throw new IllegalArgumentException("Parameter invalid: '" + propertyName + "' selected: " + newSelectedObj.toString());
+                    throw new IllegalArgumentException("Parameter "+propertyName+" invalid: '" + supplier.getGeneral().toString() + "' selected: " + newSelectedObj.toString());
 
                 box.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
                         readFields();
                         ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
+                        submit();
                     }
                 });
 //                for (String name : selection.getOptionNames()){

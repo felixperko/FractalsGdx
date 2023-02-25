@@ -17,8 +17,8 @@ import de.felixperko.fractals.system.numbers.Number;
 
 public class NumberParamInterpolation extends AbstractParamInterpolation<Number> {
 
-    public NumberParamInterpolation(String paramUid, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass) {
-        super(paramUid, paramType, paramContainerKey, attributeUid, interpolationFunctionClass);
+    public NumberParamInterpolation(String paramUid, String paramName, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass) {
+        super(paramUid, paramName, paramType, paramContainerKey, attributeUid, interpolationFunctionClass);
     }
 
     @Override

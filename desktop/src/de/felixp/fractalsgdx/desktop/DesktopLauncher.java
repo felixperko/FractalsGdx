@@ -132,7 +132,7 @@ public class DesktopLauncher {
 			}
 		}
 
-		config.samples = Integer.parseInt(settings.getOrDefault(SETTING_SHAPE_MSAA, "4"));
+		config.samples = Integer.parseInt(settings.getOrDefault(SETTING_SHAPE_MSAA, "8"));
 		config.vSyncEnabled = Boolean.parseBoolean(settings.getOrDefault(SETTING_VSYNC, "true"));
 		return config;
 	}

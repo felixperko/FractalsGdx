@@ -1,5 +1,7 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Application;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -102,7 +104,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 if (textSupplier != null) {
                     applyValue(textSupplier.getGeneral());
                 }
-                addSubmitListenerToField(field);
+                boolean resetKeyboardFocus = Gdx.app.getType() == Application.ApplicationType.Android;
+                addSubmitListenerToField(field, resetKeyboardFocus);
                 field.addListener(new ChangeListener() {
                     @Override
                     public void changed(ChangeEvent event, Actor actor) {
@@ -196,7 +199,12 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
 
                 float step = 0.001f;
 
-                slider1 = new VisSlider(0, 1, 0.001f, false);
+                slider1 = new VisSlider(0, 1, 0.001f, false) {
+                    @Override
+                    public float getPrefWidth() {
+                        return super.getPrefWidth()*1.5f;
+                    }
+                };
 
                 ParamSupplier paramSupplier = paramContainer.getParam(propertyUID);
 
@@ -242,7 +250,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 valueLabel1 = new VisLabel() {
                     @Override
                     public float getPrefWidth() {
-                        float minWidth = 50;
+                        float minWidth = 60*FractalsGdxMain.getUiScale();
                         float prefWidth = super.getPrefWidth();
                         return prefWidth > minWidth ? prefWidth : minWidth;
                     }
@@ -261,8 +269,15 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                             return;
                         }
                         updateSlider(oldVal, max);
+                        String oldText = text;
+                        readFields();
+                        if (!oldText.equals(text))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(minField1);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(minField1, true);
                 maxField1.setTextFieldListener(new VisTextField.TextFieldListener() {
                     @Override
                     public void keyTyped(VisTextField textField, char c) {
@@ -275,10 +290,15 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                             return;
                         }
                         updateSlider(min, oldVal);
-                        MainStage stage = (MainStage) FractalsGdxMain.stage;
-                        stage.setKeyboardFocus(maxField1);
+                        String oldText = text;
+                        readFields();
+                        if (!oldText.equals(text))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(maxField1);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(maxField1, true);
                 updateLabelText();
                 //update disabled in case of invalid range
                 updateSlider(min, max);
@@ -289,7 +309,7 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
                 VisTable innerTable1 = new VisTable();
                 if (limitsVisible)
                     innerTable1.add(minField1);
-                innerTable1.add(slider1).expandX().fillX();
+                innerTable1.add(slider1).expandX().fillX().padLeft(3).padRight(3);
                 innerTable1.add(valueLabel1).minWidth(70).padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField1);
@@ -355,6 +375,8 @@ abstract class AbstractSingleTextPropertyEntry extends AbstractPropertyEntry {
     }
 
     public String getText(Object value) {
+        if (value == null)
+            return "null";
         return value.toString();
     }
 

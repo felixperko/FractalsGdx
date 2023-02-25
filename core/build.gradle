@@ -11,7 +11,9 @@ dependencies {
     implementation files ('C:\\Users\\Felix\\git\\FractalsGdx\\android\\res\\FractalsCompute.jar')
 
     // https://mvnrepository.com/artifact/com.siemens.ct.exi/exificient
-    implementation group: 'com.siemens.ct.exi', name: 'exificient', version: '1.0.4'
+//    implementation group: 'com.siemens.ct.exi', name: 'exificient', version: '1.0.4'
+
+    implementation 'com.github.tommyettinger:colorful:0.8.4'
 
 //    implementation ':Fractals2:FractalsCompute'
 

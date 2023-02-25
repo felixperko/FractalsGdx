@@ -97,6 +97,8 @@ public class PropertyEntryFactory {
                 return new ComplexNumberPropertyEntry(node, paramCont, paramDef, numberFactory, submitValue);
             case ("boolean"):
                 return new BooleanPropertyEntry(node, paramCont, paramDef, submitValue);
+            case ("string"):
+                return new StringPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("selection"):
                 return new SelectionPropertyEntry(node, paramCont, paramDef, submitValue);
             case ("list"):

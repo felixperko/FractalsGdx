@@ -10,7 +10,10 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.1'
+        classpath 'com.android.tools.build:gradle:4.1.3'
+        //> Failed to notify project evaluation listener.
+        //   > 'void org.apache.commons.compress.archivers.zip.ZipFile.<init>(java.nio.channels.SeekableByteChannel)'
+//        classpath 'com.android.tools.build:gradle:7.0.1'
         classpath 'com.mobidevelop.robovm:robovm-gradle-plugin:2.3.5'
         classpath "org.wisepersist:gwt-gradle-plugin:1.1.14"
     }

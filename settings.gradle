@@ -1,4 +1,3 @@
-include ':Fractals2'
-project(':Fractals2').projectDir = new File('C:/Users/Felix/git/FractalsCompute/Fractals2')
+//project(':Fractals2').projectDir = new File('C:/Users/Felix/git/FractalsCompute/Fractals2')
 //include 'desktop', 'android', 'html', 'core', 'ios'
 include 'desktop', 'core', 'android', 'html'

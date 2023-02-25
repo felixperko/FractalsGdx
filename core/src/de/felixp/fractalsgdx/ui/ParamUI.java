@@ -44,19 +44,18 @@ public class ParamUI {
 
     public ParamUI(MainStage mainStage){
         this.stage = mainStage;
+
+        serverParamsSideMenu = new CollapsiblePropertyList();
+        clientParamsSideMenu = new CollapsiblePropertyList();
     }
 
     public void init(ParamConfiguration clientParameterConfiguration, ParamContainer clientParams){
-        //extra button to switch mandelbrot <-> juliaset
-        //
-
-        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getSwitchRenderersButton();
 
         //initRenderer menus at sides
         //
 
-        serverParamsSideMenu = new CollapsiblePropertyList().addButton(switchJuliasetMandelbrotButton);
-        clientParamsSideMenu = new CollapsiblePropertyList();
+        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getSwitchRenderersButton();
+        serverParamsSideMenu.addButton(switchJuliasetMandelbrotButton);
 
 //        clientParamsSideMenu.setSliderLimitsVisible(false);
         clientParamsSideMenu.setControlWidthScreenScaling(0.1f);
@@ -73,7 +72,7 @@ public class ParamUI {
             public void changed(ChangeEvent event, Actor actor) {
                 for (AbstractPropertyEntry e : clientParamsSideMenu.getPropertyEntries()) {
 //                    e.setParamContainer(clientParams);
-                    e.applyClientValue(clientParams);
+                    e.applyClientValue(clientParamsSideMenu.getParamContainer());
                 }
                 stage.refreshRenderers();
             }
@@ -144,9 +143,8 @@ public class ParamUI {
                 renderer.getSystemContext().getParamConfiguration(), serverPropertyEntryFactory);
     }
 
-    public void refreshClientParameterUI(FractalRenderer renderer){
-        setParameterConfiguration(renderer, clientParamsSideMenu, stage.clientParams,
-                stage.clientParamConfiguration, clientPropertyEntryFactory);
+    public void setServerParameterConfiguration(FractalRenderer renderer){
+        setServerParameterConfiguration(renderer, renderer.getSystemContext().getParamContainer(), renderer.getSystemContext().getParamConfiguration());
     }
 
     public void setServerParameterConfiguration(FractalRenderer renderer, ParamContainer paramContainer, ParamConfiguration parameterConfiguration){

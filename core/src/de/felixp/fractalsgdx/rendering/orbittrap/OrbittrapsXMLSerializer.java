@@ -5,7 +5,7 @@ import org.w3c.dom.Node;
 
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
-import de.felixperko.io.serializers.AbstractParamXMLSerializer;
+import de.felixperko.fractals.io.serializers.AbstractParamXMLSerializer;
 
 public class OrbittrapsXMLSerializer extends AbstractParamXMLSerializer {
 

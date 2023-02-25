@@ -48,6 +48,7 @@ import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;
 import de.felixperko.fractals.util.NumberUtil;
 
+@Deprecated
 public class RemoteRenderer extends AbstractFractalRenderer {
 
     private static Logger LOG = LoggerFactory.getLogger(RemoteRenderer.class);
@@ -226,7 +227,7 @@ public class RemoteRenderer extends AbstractFractalRenderer {
     float timeCounter = 0;
 
     @Override
-    public void draw(Batch batch, float parentAlpha) {
+    public void render(Batch batch, float parentAlpha) {
 
         batch.setColor(Color.WHITE);
 //        getStage().getViewport().apply();
@@ -627,6 +628,11 @@ public class RemoteRenderer extends AbstractFractalRenderer {
     @Override
     public int getPixelCount() {
         return (int)(Math.ceil(Gdx.graphics.getWidth()*getWidth())+Math.ceil(Gdx.graphics.getHeight()*getHeight()));
+    }
+
+    @Override
+    protected void zoom(Number zoomFactor) {
+
     }
 
     public UUID getSystemId() {

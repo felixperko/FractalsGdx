@@ -82,7 +82,11 @@ public class OrbitSampler {
         traceCalculator.setTraceCount(traceCount, tracePerInstruction);
 
         //calculate traces
-        traceCalculator.calculate(traceChunk, null, null);
+        try {
+            traceCalculator.calculate(traceChunk, null, null);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
         return traceCalculator.getTraces();
     }
 

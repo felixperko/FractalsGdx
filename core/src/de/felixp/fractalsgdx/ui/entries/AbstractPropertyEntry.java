@@ -17,6 +17,7 @@ import com.kotcrab.vis.ui.widget.PopupMenu;
 import com.kotcrab.vis.ui.widget.VisCheckBox;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.widget.VisTextField;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import com.kotcrab.vis.ui.widget.VisWindow;
 
@@ -358,7 +359,7 @@ public abstract class AbstractPropertyEntry {
                                 }
                             });
 
-                            VisTextButton pickValueButton = new VisTextButton("select on plane...", new ChangeListener() {
+                            VisTextButton pickValueButton = new VisTextButton("select on map...", new ChangeListener() {
                                 @Override
                                 public void changed(ChangeEvent event, Actor actor) {
                                     FractalRenderer focusedRenderer = FractalsGdxMain.mainStage.getFocusedRenderer();
@@ -465,7 +466,6 @@ public abstract class AbstractPropertyEntry {
                             generateViews();
                             MainStage stage = (MainStage) FractalsGdxMain.stage;
                             stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                            stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                         }
                     });
                     menu.addItem(controlFieldsItem);
@@ -484,7 +484,6 @@ public abstract class AbstractPropertyEntry {
                                 generateViews();
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                             }
                         });
                         menu.addItem(controlSlidersItem);
@@ -524,7 +523,6 @@ public abstract class AbstractPropertyEntry {
                                 submit();
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                                 supplierClassChanged();
 //                            typeStaticItem.setDisabled(true);
 //                            typeVariableItem.setDisabled(false);
@@ -549,7 +547,6 @@ public abstract class AbstractPropertyEntry {
                                 submit();
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                                 supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
@@ -573,7 +570,6 @@ public abstract class AbstractPropertyEntry {
                                 submit();
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                                 supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
@@ -597,7 +593,6 @@ public abstract class AbstractPropertyEntry {
                                 submit();
                                 MainStage stage = (MainStage) FractalsGdxMain.stage;
                                 stage.getParamUI().refreshServerParameterUI(stage.getFocusedRenderer());
-                                stage.getParamUI().refreshClientParameterUI(stage.getFocusedRenderer());
                                 supplierClassChanged();
 //                                typeStaticItem.setDisabled(false);
 //                                typeVariableItem.setDisabled(true);
@@ -623,27 +618,30 @@ public abstract class AbstractPropertyEntry {
         }
     }
 
-    public void addSubmitListenerToField(Actor actor) {
+    public void addSubmitListenerToField(Actor actor, boolean resetKeyboardFocus) {
         actor.addListener(new InputListener(){
             @Override
             public boolean keyDown(InputEvent event, int keycode) {
                 if (keycode == Input.Keys.ENTER){
-                    if (actor instanceof VisValidatableTextField && ((VisValidatableTextField) actor).isInputValid()){
-                        readFields();
-                        submit();
-                        if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)) {
-                            ((MainStage) FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
+                    if (actor instanceof VisTextField){
+                        if (!(actor instanceof VisValidatableTextField) || ((VisValidatableTextField) actor).isInputValid()) {
+                            readFields();
+                            submit();
+//                            ((VisTextField) actor).focusLost();
+                            if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input.isKeyPressed(Input.Keys.CONTROL_RIGHT)) {
+                                ((MainStage) FractalsGdxMain.stage).getParamUI().getServerParamsSideMenu().getCollapseButton().toggle();
+                            }
+                            if (resetKeyboardFocus) {
+                                FocusManager.resetFocus(FractalsGdxMain.mainStage);
+                                ((MainStage) FractalsGdxMain.stage).resetKeyboardFocus();
+                            }
+                            return true;
                         }
-                        if (Gdx.app.getType() == Application.ApplicationType.Android){
-                            ((MainStage)FractalsGdxMain.stage).resetKeyboardFocus();
-                        }
-                        return true;
                     }
                     return true;
                 }
                 if (keycode == Input.Keys.ESCAPE){
-                    if (actor instanceof Focusable)
-                        ((Focusable)actor).focusLost();
+                    FocusManager.resetFocus(FractalsGdxMain.mainStage);
                     MainStage stage = (MainStage) FractalsGdxMain.stage;
                     stage.escapeHandled();
                     stage.resetKeyboardFocus();
@@ -677,7 +675,9 @@ public abstract class AbstractPropertyEntry {
     public void setParentPropertyList(CollapsiblePropertyList parentPropertyList) {
         this.parentPropertyList = parentPropertyList;
         if (this.paramControlState != null){
-            this.parentPropertyList.getParamControlState(propertyUID).copyValuesIfNull(this.paramControlState);
+            ParamControlState paramControlState = this.parentPropertyList.getParamControlState(propertyUID);
+            if (paramControlState != null)
+                paramControlState.copyValuesIfNull(this.paramControlState);
             this.paramControlState = null;
         }
     }

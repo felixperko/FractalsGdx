@@ -1,5 +1,6 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -28,7 +29,7 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 
 public class ColorPropertyEntry extends WindowPropertyEntry {
 
-    private static final Drawable white = VisUI.getSkin().getDrawable("white") ;
+    private Drawable white = VisUI.getSkin().getDrawable("white") ;
 
     static ColorPicker picker;
 
@@ -47,6 +48,12 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
 
         previewImage = new VisImage(white);
         previewPixmap = new Pixmap(1,1, Pixmap.Format.RGBA8888);
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                updatePreviewImage();
+            }
+        });
 //        windowButton = new ImageButton(previewImage.getDrawable());
 //        previewImage.setColor(color);
 
@@ -59,7 +66,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
 
     @Override
     public Button getWindowButton() {
-        return new VisTextButton("change");
+        return new VisTextButton("set");
     }
 
     @Override
@@ -68,7 +75,6 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
             picker = new ModalColorPicker("");
         picker.getPicker().setShowColorPreviews(false);
         stage.addActor(picker.fadeIn());
-        picker.setColor(color);
         picker.setListener(new ColorPickerListener() {
             @Override
             public void canceled(Color oldColor) {
@@ -96,7 +102,7 @@ public class ColorPropertyEntry extends WindowPropertyEntry {
                 updatePreviewImage();
             }
         });
-        updatePreviewImage();
+        picker.setColor(color);
     }
 
     private void updatePreviewImage() {

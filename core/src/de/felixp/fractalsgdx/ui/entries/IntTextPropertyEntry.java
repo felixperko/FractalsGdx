@@ -17,9 +17,15 @@ public class IntTextPropertyEntry extends AbstractSingleTextPropertyEntry {
 //        showMenu = true;
     }
 
+    int lastValidValue = 0;
+
     @Override
     public ParamSupplier getSupplier() {
-        int val = text == null ? 0 : (int)Double.parseDouble(text);
+        int val = lastValidValue;
+        try {
+            val = Integer.parseInt(text);
+        } catch (NumberFormatException e){
+        }
         StaticParamSupplier supplier = new StaticParamSupplier(getPropertyUID(), val);
         supplier.setLayerRelevant(true);
         return supplier;

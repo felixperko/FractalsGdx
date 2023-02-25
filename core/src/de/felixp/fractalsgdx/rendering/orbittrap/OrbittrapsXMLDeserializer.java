@@ -9,7 +9,7 @@ import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
-import de.felixperko.io.deserializers.AbstractParamXMLDeserializer;
+import de.felixperko.fractals.io.deserializers.AbstractParamXMLDeserializer;
 
 public class OrbittrapsXMLDeserializer extends AbstractParamXMLDeserializer {
 

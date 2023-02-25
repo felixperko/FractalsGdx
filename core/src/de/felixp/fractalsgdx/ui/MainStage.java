@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -42,56 +41,47 @@ import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.params.DrawParamsTurtleGraphics;
+import de.felixp.fractalsgdx.rendering.AbstractFractalRenderer;
 import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.ReactionDiffusionSystemContext;
 import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
 import de.felixp.fractalsgdx.rendering.RemoteRenderer;
-import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
-import de.felixp.fractalsgdx.rendering.RendererProperties;
 import de.felixp.fractalsgdx.rendering.ShaderRenderer;
-import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapsXMLDeserializer;
+import de.felixp.fractalsgdx.rendering.TurtleGraphicsSystemContext;
 import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.ImagePalette;
-import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
-import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.util.FractalsIOUtil;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
-import de.felixperko.fractals.system.numbers.NumberFactory;
-import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
-import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
-import de.felixperko.fractals.system.parameters.ParamDefinition;
-import de.felixperko.fractals.system.parameters.ParamValueType;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
-import de.felixperko.fractals.system.systems.infra.Selection;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.util.NumberUtil;
 import de.felixperko.fractals.util.io.IIOMetadataUpdater;
-import de.felixperko.io.ParamContainerDeserializer;
-import de.felixperko.io.ParamSupplierTypeRegistry;
-import de.felixperko.io.ParamXMLDeserializerRegistry;
-import de.felixperko.io.deserializers.ComplexNumberXMLDeserializer;
-import de.felixperko.io.deserializers.ExpressionsXMLDeserializer;
-import de.felixperko.io.deserializers.NumberXMLDeserializer;
 
 public class MainStage extends Stage {
 
     final static String POSITIONS_PREFS_NAME = "de.felixp.fractalsgdx.ui.MainStage.positions";
 
-    ParamUI paramUI;
+    static Map<String, IPalette> palettes = new LinkedHashMap<>();
 
-    ParamContainer clientParams;
+    ParamUI paramUI;
 
 //    FractalRenderer renderer;
     FractalRenderer focusedRenderer = null;
 
+    RendererConfig activeRendererConfig;
+    String activeRendererConfigParamDefUid;
+    Map<String, RendererConfig> rendererConfigs = new HashMap<>();
     List<FractalRenderer> renderers = new ArrayList<>();
 
     Group rendererGroup;
@@ -101,13 +91,8 @@ public class MainStage extends Stage {
     Preferences positions_prefs;
     Map<String, ParamContainer> locations = new HashMap<>();
 
-    Map<String, IPalette> palettes = new LinkedHashMap<>();
-
     Table activeSettingsTable = null;
 
-    ParamConfiguration clientParamConfiguration;
-
-    RendererLink juliasetLink;
 
     List<Keybinding> keybindings = new ArrayList<>();
 
@@ -125,9 +110,6 @@ public class MainStage extends Stage {
                 name = name.substring(8);
             palettes.put(name, new ImagePalette(fileHandle));
         }
-
-        FractalRenderer renderer = new ShaderRenderer(new RendererContext(0, 0, 1f, 1, RendererProperties.ORIENTATION_FULLSCREEN));
-        setFocusedRenderer(renderer);
 
         positions_prefs = Gdx.app.getPreferences(POSITIONS_PREFS_NAME);
         Map<String, ?> map = positions_prefs.get();
@@ -150,12 +132,11 @@ public class MainStage extends Stage {
         ui.align(Align.topLeft);
         ui.setFillParent(true);
 
-        ParamConfiguration clientParameterConfiguration = initRightParamConfiguration();
-        initRightParamContainer();
-
         //initRenderer ParamUI
         paramUI = new ParamUI(this);
-        paramUI.init(clientParameterConfiguration, clientParams);
+
+        ParamConfiguration clientParameterConfiguration = initRightParamConfiguration();
+        ParamContainer drawParamContainer = initRightParamContainer();
 
         //Topline
         VisTable topButtons = new VisTable();
@@ -200,34 +181,44 @@ public class MainStage extends Stage {
 
         ui.add(topButtons).align(Align.top).colspan(8).expandX().row();
 
-        paramUI.addToUiTable(ui);
+        rendererGroup = new Group();
 
+        rendererConfigs.put(ShaderSystemContext.UID_PARAMCONFIG, new EscapeTimeRendererConfig());
+        rendererConfigs.put(TurtleGraphicsSystemContext.UID_PARAMCONFIG, new TurtleGraphicsRendererConfig());
+        rendererConfigs.put(ReactionDiffusionSystemContext.UID_PARAMCONFIG, new ReactionDiffusionRendererConfig());
+
+        activeRendererConfig = rendererConfigs.get(ShaderSystemContext.UID_PARAMCONFIG);
+        activeRendererConfigParamDefUid = ShaderSystemContext.UID_PARAMCONFIG;
+//        activeRendererConfig = rendererConfigs.get(TurtleGraphicsSystemContext.UID_PARAMCONFIG);
+//        activeRendererConfigParamDefUid = TurtleGraphicsSystemContext.UID_PARAMCONFIG;
+
+        activeRendererConfig.createRenderers();
+        activeRendererConfig.addRenderers(this);
+        FractalRenderer firstRenderer = activeRendererConfig.getRenderers().get(0);
+        setFocusedRenderer(firstRenderer);
+
+        paramUI.init(clientParameterConfiguration, drawParamContainer);
+        paramUI.addToUiTable(ui);
 
         stateBar = new Table();
         stateBar.align(Align.left);
 
         ui.add(stateBar).align(Align.bottomLeft).colspan(5);
 
-        FractalRenderer renderer2 = new ShaderRenderer(
-                new RendererContext(0.05f, 0.05f, 0.3f, 0.3f, RendererProperties.ORIENTATION_BOTTOM_RIGHT)
-        );
-
-        rendererGroup = new Group();
-
         addActor(rendererGroup);
 
         addActor(ui);
 
-        addFractalRenderer(renderer);
-        renderer.initRenderer();
-        addFractalRenderer(renderer2);
-        renderer2.initRenderer();
+        activeRendererConfig.initRenderers();
 
         //reset ParamUI focus to first renderer
-        paramUI.setServerParameterConfiguration(renderer, renderer.getSystemContext().getParamContainer(), renderer.getSystemContext().getParamConfiguration());
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                paramUI.setServerParameterConfiguration(firstRenderer);
+            }
+        });
 
-        juliasetLink = new JuliasetRendererLink(renderer, renderer2);
-        juliasetLink.syncTargetRenderer();
     }
 
     @Override
@@ -241,8 +232,37 @@ public class MainStage extends Stage {
         return super.scrolled(amountX, amountY);
     }
 
+    public boolean switchRendererConfigs(String computeParamDefUid){
+
+        if (computeParamDefUid.equals(activeRendererConfigParamDefUid))
+            return false;
+
+        activeRendererConfig.removeRenderers(this);
+
+        activeRendererConfig = rendererConfigs.get(computeParamDefUid);
+        activeRendererConfigParamDefUid = computeParamDefUid;
+
+        activeRendererConfig.createRenderers();
+        activeRendererConfig.addRenderers(this);
+        FractalRenderer firstRenderer = activeRendererConfig.getRenderers().get(0);
+        setFocusedRenderer(firstRenderer);
+        activeRendererConfig.initRenderers();
+
+//        paramUI.setServerParameterConfiguration(firstRenderer, null, firstRenderer.getSystemContext().getParamConfiguration());
+
+        ParamContainer drawParamContainer = activeRendererConfig.getDrawParamContainer();
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                paramUI.setServerParameterConfiguration(firstRenderer);
+                paramUI.setClientParameterConfiguration(firstRenderer, drawParamContainer, drawParamContainer.getParamConfiguration());
+            }
+        });
+        return true;
+    }
+
     public void pressedSwitchRenderers(){
-        juliasetLink.switchRenderers();
+        activeRendererConfig.switchRenderers();
         //force reset side menu
         FractalRenderer renderer = getFocusedRenderer();
         SystemContext systemContext = renderer.getSystemContext();
@@ -259,7 +279,7 @@ public class MainStage extends Stage {
             palettes.put(paletteName, new ImagePalette(paletteName, texture));
             refreshClientSideMenu();
         }
-        if (paletteName.equals(getClientParam(PARAMS_PALETTE).getGeneral(String.class))){
+        if (paletteName.equals(getClientParam(ClientParamsEscapeTime.PARAMS_PALETTE).getGeneral(String.class))){
             for (FractalRenderer renderer : renderers){
                 renderer.setRefresh();
             }
@@ -267,8 +287,8 @@ public class MainStage extends Stage {
     }
 
     public void refreshClientSideMenu() {
-        clientParamConfiguration = initRightParamConfiguration();
-        clientParams.setParamConfiguration(clientParamConfiguration);
+        ParamConfiguration clientParamConfiguration = initRightParamConfiguration();
+        getClientParams().setParamConfiguration(clientParamConfiguration);
         paramUI.updateClientParamConfiguration(clientParamConfiguration);
 //        paramUI.refreshClientParameterUI(focusedRenderer);
     }
@@ -288,9 +308,9 @@ public class MainStage extends Stage {
     Texture blackTexture2 = new Texture(128,1, Pixmap.Format.RGB888);
 
     public Texture getPaletteTexture(String postprocessParameter, int fallbackIndex) {
-        String paletteName = clientParams.getParam(postprocessParameter).getGeneral(String.class);
+        String paletteName = getClientParams().getParam(postprocessParameter).getGeneral(String.class);
         Texture fallbackTexture = fallbackIndex == 0 ? blackTexture : blackTexture2;
-        if (paletteName.equalsIgnoreCase(PARAMVALUE_PALETTE_DISABLED))
+        if (paletteName.equalsIgnoreCase(ClientParamsEscapeTime.OPTIONVALUE_PALETTE_DISABLED))
             return fallbackTexture;
         IPalette palette = palettes.get(paletteName);
         if (palette == null)
@@ -311,6 +331,8 @@ public class MainStage extends Stage {
     }
 
     private void updateTimeBudgets() {
+        if (getRenderers().isEmpty())
+            return;
         Object fpsObj = getRenderers().get(0).getSystemContext().getParamValue(ShaderSystemContext.PARAM_TARGET_FRAMERATE);
         if (fpsObj == null || !(fpsObj instanceof Integer || fpsObj instanceof Double || fpsObj instanceof Float))
             return;
@@ -356,7 +378,7 @@ public class MainStage extends Stage {
             clientSystem.resetAnchor();//TODO integrate...
             renderer.reset();
         }
-        else if (renderer instanceof ShaderRenderer){
+        else if (renderer instanceof AbstractFractalRenderer){
             renderer.getSystemContext().setParameters(paramContainer);
             renderer.reset();
         }
@@ -447,11 +469,11 @@ public class MainStage extends Stage {
             }
         };
         keybindings.add(resetKeyboardFocusBinding);
-        keybindings.add(new PostprocessToggleKeybinding("toggle orbit traces", PARAMS_DRAW_ORBIT, Input.Keys.O));
-        keybindings.add(new PostprocessToggleKeybinding("toggle trace instructions", PARAMS_ORBIT_TRACE_PER_INSTRUCTION, Input.Keys.I));
-        keybindings.add(new PostprocessToggleKeybinding("toggle overlay midpoint", PARAMS_DRAW_MIDPOINT, Input.Keys.M));
-        keybindings.add(new PostprocessToggleKeybinding("toggle overlay axis", PARAMS_DRAW_AXIS, Input.Keys.C));;
-        keybindings.add(new PostprocessToggleKeybinding("toggle overlay zero", PARAMS_DRAW_ZERO, Input.Keys.Z));
+        keybindings.add(new PostprocessToggleKeybinding("toggle orbit traces", ClientParamsEscapeTime.PARAMS_DRAW_ORBIT, Input.Keys.O));
+        keybindings.add(new PostprocessToggleKeybinding("toggle trace instructions", ClientParamsEscapeTime.PARAMS_ORBIT_TRACE_PER_INSTRUCTION, Input.Keys.I));
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay midpoint", ClientParamsEscapeTime.PARAMS_DRAW_MIDPOINT, Input.Keys.M));
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay axis", ClientParamsEscapeTime.PARAMS_DRAW_AXIS, Input.Keys.C));;
+        keybindings.add(new PostprocessToggleKeybinding("toggle overlay zero", ClientParamsEscapeTime.PARAMS_DRAW_ZERO, Input.Keys.Z));
 
         openCalculationParamMenuBinding.setRequiresRendererFocus(false);
         openPostprocessingParamMenuBinding.setRequiresRendererFocus(false);
@@ -476,264 +498,13 @@ public class MainStage extends Stage {
         return false;
     }
 
-    public final static String PARAMNAME_NUMBERFACTORY = "numberFactory";
-
-    public final static String PARAMNAME_COLOR_ADD = "color offset";
-    public final static String PARAMNAME_COLOR_MULT = "color period";
-    public final static String PARAMNAME_COLOR_SATURATION = "saturation";
-    public final static String PARAMNAME_SOBEL_GLOW_LIMIT = "edge brightness";
-    public final static String PARAMNAME_SOBEL_GLOW_FACTOR = "dim period";
-    public final static String PARAMNAME_AMBIENT_LIGHT = "ambient light";
-
-    public final static String PARAMNAME_FALLBACK_COLOR_ADD = "color offset 2";
-    public final static String PARAMNAME_FALLBACK_COLOR_MULT = "color period 2";
-    public final static String PARAMNAME_FALLBACK_COLOR_SATURATION = "saturation 2";
-    public final static String PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT = "edge brightness 2";
-    public final static String PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR = "glow sensitivity 2";
-    public final static String PARAMNAME_FALLBACK_AMBIENT_LIGHT = "ambient light 2";
-
-    public final static String PARAMNAME_PALETTE = "palette (condition)";
-    public final static String PARAMNAME_PALETTE2 = "palette (fallback)";
-    public final static String PARAMNAME_EXTRACT_CHANNEL = "monochrome source";
-    public final static String PARAMNAME_MAPPING_COLOR = "monochrome color";
-
-    public final static String PARAMNAME_DRAW_AXIS = "draw axis";
-    public final static String PARAMNAME_DRAW_ORBIT = "draw orbit";
-    public final static String PARAMNAME_DRAW_PATH = "draw current path";
-    public final static String PARAMNAME_DRAW_MIDPOINT = "draw midpoint";
-    public final static String PARAMNAME_DRAW_ZERO = "draw (0+0*i)";
-
-    public final static String PARAMNAME_ORBIT_TRACES = "orbit traces";
-    public final static String PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION = "trace instructions";
-    public final static String PARAMNAME_ORBIT_TARGET = "orbit target";
-
-    public final static String PARAMNAME_TRACES_VALUE = "trace position";
-    public final static String PARAMNAME_TRACES_LINE_WIDTH = "line width";
-    public final static String PARAMNAME_TRACES_POINT_SIZE = "point size";
-    public final static String PARAMNAME_TRACES_LINE_TRANSPARENCY = "line transparency";
-    public final static String PARAMNAME_TRACES_POINT_TRANSPARENCY = "point transparency";
-    public final static String PARAMNAME_TRACES_START_COLOR = "";
-    public final static String PARAMNAME_TRACES_END_COLOR = "";
-
-    public final static String PARAMS_NUMBERFACTORY = "0oizcO";
-
-    public final static String PARAMS_COLOR_ADD = "UgHgR5";
-    public final static String PARAMS_COLOR_MULT = "OFTMFw";
-    public final static String PARAMS_COLOR_SATURATION = "EgDJY4";
-    //    public final static String PARAMS_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_SOBEL_GLOW_LIMIT = "bW0VpF";
-    public final static String PARAMS_SOBEL_GLOW_FACTOR = "iOOW84";
-    public final static String PARAMS_AMBIENT_LIGHT = "0IH3rK";
-
-    public final static String PARAMS_FALLBACK_COLOR_ADD = "12f1jD";
-    public final static String PARAMS_FALLBACK_COLOR_MULT = "56al2K";
-    public final static String PARAMS_FALLBACK_COLOR_SATURATION = "pDD1eC";
-    //    public final static String PARAMS_FALLBACK_SOBEL_FACTOR = "glow sensitivity";
-    public final static String PARAMS_FALLBACK_SOBEL_GLOW_LIMIT = "VujYT7";
-    public final static String PARAMS_FALLBACK_SOBEL_GLOW_FACTOR = "2NgNhI";
-    public final static String PARAMS_FALLBACK_AMBIENT_LIGHT = "PWfG3I";
-
-    public final static String PARAMS_PALETTE = "pLrKY-";
-    public final static String PARAMS_PALETTE2 = "3YtNML";
-    public static final String PARAMVALUE_PALETTE_DISABLED = "hue";
-    public final static String PARAMS_EXTRACT_CHANNEL = "xbMt0u";
-    public final static String PARAMS_MAPPING_COLOR = "gS2lYj";
-
-    public final static String PARAMS_DRAW_AXIS = "CGrDXZ";
-    public final static String PARAMS_DRAW_ORBIT = "m9TYl2";
-    public final static String PARAMS_DRAW_PATH = "ENQY4_";
-    public final static String PARAMS_DRAW_MIDPOINT = "LHvVgb";
-    public final static String PARAMS_DRAW_ZERO = "Vwr62J";
-
-    public final static String PARAMS_ORBIT_TRACES = "aW_XS3";
-    public final static String PARAMS_ORBIT_TRACE_PER_INSTRUCTION = "cqTeeI";
-    public final static String PARAMS_ORBIT_TARGET = "mzwBNO";
-
-    public final static String PARAMS_TRACES_VALUE = "mCZoSI";
-    public final static String PARAMS_TRACES_LINE_WIDTH = "Rr79wb";
-    public final static String PARAMS_TRACES_POINT_SIZE = "ZEMbVL";
-    public final static String PARAMS_TRACES_LINE_TRANSPARENCY = "jcENk2";
-    public final static String PARAMS_TRACES_POINT_TRANSPARENCY = "2fXEPs";
-    public final static String PARAMS_TRACES_START_COLOR = "";
-    public final static String PARAMS_TRACES_END_COLOR = "";
-
-    public final static String TYPEID_COLOR = "BlsZQD";
-
-    public final static NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
-
-    protected void initRightParamContainer() {
-        
+    protected ParamContainer initRightParamContainer() {
+        return ClientParamsEscapeTime.getParamContainer(palettes);
     }
 
     protected ParamConfiguration initRightParamConfiguration() {
-        
-        ParamConfiguration config = new ParamConfiguration("AxW_QG", 1.0);
-
-        ParamValueType integerType = CommonFractalParameters.integerType;
-        config.addValueType(integerType);
-        ParamValueType doubleType = CommonFractalParameters.doubleType;
-        config.addValueType(doubleType);
-        ParamValueType booleanType = CommonFractalParameters.booleanType;
-        config.addValueType(booleanType);
-        ParamValueType selectionType = CommonFractalParameters.selectionType;
-        config.addValueType(selectionType);
-        ParamValueType stringType = CommonFractalParameters.stringType;
-        config.addValueType(stringType);
-        ParamValueType complexNumberType = CommonFractalParameters.complexnumberType;
-        config.addValueType(complexNumberType);
-        ParamValueType numberType = CommonFractalParameters.numberType;
-        config.addValueType(numberType);
-        ParamValueType numberFactoryType = CommonFractalParameters.numberfactoryType;
-        config.addValueType(numberFactoryType);
-        ParamValueType colorType = new ParamValueType(TYPEID_COLOR, "color");
-        config.addValueType(colorType);
-
-
-        List<ParamSupplier> params = new ArrayList<>();
-
-        params.add(new StaticParamSupplier(PARAMS_NUMBERFACTORY, nf));
-        params.add(new StaticParamSupplier(PARAMS_COLOR_MULT, nf.createNumber(2.5)));
-        params.add(new StaticParamSupplier(PARAMS_COLOR_ADD, nf.createNumber(0.0)));
-        params.add(new StaticParamSupplier(PARAMS_COLOR_SATURATION, nf.createNumber(0.5)));
-        params.add(new StaticParamSupplier(PARAMS_AMBIENT_LIGHT, nf.createNumber(0.2)));
-        params.add(new StaticParamSupplier(PARAMS_SOBEL_GLOW_LIMIT, nf.createNumber(0.8)));
-        params.add(new StaticParamSupplier(PARAMS_SOBEL_GLOW_FACTOR, nf.createNumber(4.0)));
-
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_MULT, nf.createNumber(1.0)));
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_ADD, nf.createNumber(0.0)));
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_COLOR_SATURATION, nf.createNumber(0.5)));
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_AMBIENT_LIGHT, nf.createNumber(0.0)));
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, nf.createNumber(1.0)));
-        params.add(new StaticParamSupplier(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, nf.createNumber(1.0)));
-
-        params.add(new StaticParamSupplier(PARAMS_PALETTE, PARAMVALUE_PALETTE_DISABLED));
-        params.add(new StaticParamSupplier(PARAMS_PALETTE2, PARAMVALUE_PALETTE_DISABLED));
-        params.add(new StaticParamSupplier(PARAMS_EXTRACT_CHANNEL, 0));
-        params.add(new StaticParamSupplier(PARAMS_MAPPING_COLOR, Color.WHITE));
-
-        params.add(new StaticParamSupplier(PARAMS_DRAW_PATH, true));
-        params.add(new StaticParamSupplier(PARAMS_DRAW_AXIS, false));
-        params.add(new StaticParamSupplier(PARAMS_DRAW_MIDPOINT, false));
-        params.add(new StaticParamSupplier(PARAMS_DRAW_ZERO, false));
-
-        params.add(new StaticParamSupplier(PARAMS_DRAW_ORBIT, false));
-        params.add(new StaticParamSupplier(PARAMS_ORBIT_TRACES, 1000));
-        params.add(new StaticParamSupplier(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, true));
-        params.add(new StaticParamSupplier(PARAMS_ORBIT_TARGET, "mouse"));
-        params.add(new StaticParamSupplier(PARAMS_TRACES_VALUE, nf.createComplexNumber(0,0)));
-
-        params.add(new StaticParamSupplier(PARAMS_TRACES_LINE_WIDTH, nf.createNumber(1.0)));
-        params.add(new StaticParamSupplier(PARAMS_TRACES_POINT_SIZE, nf.createNumber(3.0)));
-        params.add(new StaticParamSupplier(PARAMS_TRACES_LINE_TRANSPARENCY, nf.createNumber(0.5)));
-        params.add(new StaticParamSupplier(PARAMS_TRACES_POINT_TRANSPARENCY, nf.createNumber(0.75)));
-        
-        Map<String, ParamSupplier> paramMap = new HashMap<>();
-        params.stream().map(e -> paramMap.put(e.getUID(), e));
-        
-        config.addParameterDefinition(new ParamDefinition(PARAMS_NUMBERFACTORY, PARAMNAME_NUMBERFACTORY, "Calculator", StaticParamSupplier.class, numberFactoryType, 1.0),
-                paramMap.get(PARAMS_NUMBERFACTORY));
-
-        String cat_coloring_reached = "Coloring (condition reached)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_MULT, PARAMNAME_COLOR_MULT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0.02 max=10"), paramMap.get(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_ADD, PARAMNAME_COLOR_ADD, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_COLOR_SATURATION, PARAMNAME_COLOR_SATURATION, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
-//        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring (reached)", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_AMBIENT_LIGHT, PARAMNAME_AMBIENT_LIGHT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_LIMIT, PARAMNAME_SOBEL_GLOW_LIMIT, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=-1 max=5"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_SOBEL_GLOW_FACTOR, PARAMNAME_SOBEL_GLOW_FACTOR, cat_coloring_reached, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
-
-        String cat_coloring_fallback = "Coloring (fallback)";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_MULT, PARAMNAME_FALLBACK_COLOR_MULT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0.01 max=2"), paramMap.get(PARAMS_COLOR_MULT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_ADD, PARAMNAME_FALLBACK_COLOR_ADD, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_ADD));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_COLOR_SATURATION, PARAMNAME_FALLBACK_COLOR_SATURATION, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_COLOR_SATURATION));
-//        config.addParameterDefinition(new ParameterDefinition(PARAMS_SOBEL_FACTOR, "coloring", StaticParamSupplier.class, doubleType));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_AMBIENT_LIGHT, PARAMNAME_FALLBACK_AMBIENT_LIGHT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=-1 max=1"), paramMap.get(PARAMS_AMBIENT_LIGHT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_LIMIT, PARAMNAME_FALLBACK_SOBEL_GLOW_LIMIT, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=-10 max=10"), paramMap.get(PARAMS_SOBEL_GLOW_LIMIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_FALLBACK_SOBEL_GLOW_FACTOR, PARAMNAME_FALLBACK_SOBEL_GLOW_FACTOR, cat_coloring_fallback, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=2"), paramMap.get(PARAMS_SOBEL_GLOW_FACTOR));
-
-        String cat_coloring_palettes = "Palettes";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE, PARAMNAME_PALETTE, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
-                paramMap.get(PARAMS_PALETTE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_PALETTE2, PARAMNAME_PALETTE2, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
-                paramMap.get(PARAMS_PALETTE2));
-
-        Selection<String> paletteSelection = new Selection<>(PARAMS_PALETTE);
-        Selection<String> paletteSelection2 = new Selection<>(PARAMS_PALETTE2);
-        paletteSelection.addOption(PARAMVALUE_PALETTE_DISABLED, PARAMVALUE_PALETTE_DISABLED, "No predefined palette");
-        paletteSelection2.addOption(PARAMVALUE_PALETTE_DISABLED, PARAMVALUE_PALETTE_DISABLED, "No predefined palette");
-        for (String paletteName : palettes.keySet()) {
-            paletteSelection.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
-            paletteSelection2.addOption(paletteName, paletteName, "Palette '" + paletteName + "'");
-        }
-        config.addSelection(paletteSelection);
-        config.addSelection(paletteSelection2);
-
-        config.addParameterDefinition(new ParamDefinition(PARAMS_EXTRACT_CHANNEL, PARAMNAME_EXTRACT_CHANNEL, cat_coloring_palettes, StaticParamSupplier.class, selectionType, 1.0),
-                paramMap.get(PARAMS_EXTRACT_CHANNEL));
-        Selection<Integer> extractChannelSelection = new Selection<Integer>(PARAMS_EXTRACT_CHANNEL);
-        extractChannelSelection.addOption("disabled", 0, "No channel remapping");
-        extractChannelSelection.addOption("red", 1, "Remap red channel to all (greyscale)");
-        extractChannelSelection.addOption("green", 2, "Remap green channel to all (greyscale)");
-        extractChannelSelection.addOption("blue", 3, "Remap blue channel to all (greyscale)");
-        config.addSelection(extractChannelSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_MAPPING_COLOR, PARAMNAME_MAPPING_COLOR, cat_coloring_palettes, StaticParamSupplier.class, colorType, 1.0),
-                paramMap.get(PARAMS_MAPPING_COLOR));
-
-        String cat_shape_drawing = "Shape drawing";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_AXIS, PARAMNAME_DRAW_AXIS, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
-                paramMap.get(PARAMS_DRAW_AXIS));
-
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ORBIT, PARAMNAME_DRAW_ORBIT, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0)
-                , paramMap.get(PARAMS_DRAW_ORBIT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_PATH, PARAMNAME_DRAW_PATH, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
-                paramMap.get(PARAMS_DRAW_PATH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_MIDPOINT, PARAMNAME_DRAW_MIDPOINT, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
-                paramMap.get(PARAMS_DRAW_MIDPOINT));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_DRAW_ZERO, PARAMNAME_DRAW_ZERO, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0),
-                paramMap.get(PARAMS_DRAW_ZERO));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TARGET, PARAMNAME_ORBIT_TARGET, cat_shape_drawing, StaticParamSupplier.class, selectionType, 1.0)
-                , paramMap.get(PARAMS_ORBIT_TARGET));
-        Selection<String> traceTargetSelection = new Selection<String>(PARAMS_ORBIT_TARGET);
-        traceTargetSelection.addOption("mouse", "mouse", "The trace target is set to the current mouse position");
-        traceTargetSelection.addOption("path", "path", "The trace target is set to the animation named 'path'");
-        config.addSelection(traceTargetSelection);
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACES, PARAMNAME_ORBIT_TRACES, cat_shape_drawing, StaticParamSupplier.class, integerType, 1.0)
-                , paramMap.get(PARAMS_ORBIT_TRACES));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_ORBIT_TRACE_PER_INSTRUCTION, PARAMNAME_ORBIT_TRACE_PER_INSTRUCTION, cat_shape_drawing, StaticParamSupplier.class, booleanType, 1.0)
-                , paramMap.get(PARAMS_ORBIT_TRACE_PER_INSTRUCTION));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_VALUE, PARAMNAME_TRACES_VALUE, cat_shape_drawing, StaticParamSupplier.class, complexNumberType, 1.0)
-                        .withVisible(false), paramMap.get(PARAMS_TRACES_VALUE));
-
-        String cat_shape_settings = "Shape settings";
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_WIDTH, PARAMNAME_TRACES_LINE_WIDTH, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=3"), paramMap.get(PARAMS_TRACES_LINE_WIDTH));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_SIZE, PARAMNAME_TRACES_POINT_SIZE, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=10"), paramMap.get(PARAMS_TRACES_POINT_SIZE));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_LINE_TRANSPARENCY, PARAMNAME_TRACES_LINE_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_LINE_TRANSPARENCY));
-        config.addParameterDefinition(new ParamDefinition(PARAMS_TRACES_POINT_TRANSPARENCY, PARAMNAME_TRACES_POINT_TRANSPARENCY, cat_shape_settings, StaticParamSupplier.class, numberType, 1.0)
-                .withHints("ui-element[default]:slider min=0 max=1"), paramMap.get(PARAMS_TRACES_POINT_TRANSPARENCY));
-
-        //no client param resets the renderer
-        for (ParamDefinition paramDef : config.getParameters())
-            paramDef.setResetRendererOnChange(false);
-
-        this.clientParamConfiguration = config;
-        this.clientParams = new ParamContainer(config);
-        params.forEach(supp -> clientParams.addParam(supp));
-        return config;
+        ParamContainer paramContainer = ClientParamsEscapeTime.getParamContainer(palettes);
+        return paramContainer.getParamConfiguration();
     }
 
     protected FractalRenderer getRenderer(int position){
@@ -744,12 +515,18 @@ public class MainStage extends Stage {
         if (!(renderer instanceof Actor))
             throw new IllegalArgumentException("Renderer has to extend "+Actor.class);
         this.renderers.add(renderer);
-        rendererGroup.addActor((Actor)renderer);
+        Gdx.app.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                rendererGroup.addActor((Actor)renderer);
+            }
+        });
         renderer.updateSize();
     }
 
     public void removeFractalRenderer(FractalRenderer renderer){
         renderer.removed();
+        renderer.disposeRenderer();
         this.renderers.remove(renderer);
         if (renderer instanceof Actor)
             rendererGroup.removeActor((Actor)renderer);
@@ -779,7 +556,7 @@ public class MainStage extends Stage {
     }
 
     public ParamSupplier getClientParam(String uid){
-        return clientParams.getParam(uid);
+        return getClientParams().getParam(uid);
     }
 
     VisLabel samplesLeftLabel = null;
@@ -941,14 +718,24 @@ public class MainStage extends Stage {
                 ParamContainer newContainer = new ParamContainer(paramContainer, true);
                 paramUI.serverParamsSideMenu.propertyEntryList.forEach(pe -> pe.applyClientValue(newContainer));
 //                paramText = newContainer.serializeJson(true).replaceAll("\r\n", "\n");
-                paramText = FractalsIOUtil.serializeParamContainer(newContainer, focusedRenderer.getSystemContext().getParamConfiguration());
+                try {
+                    paramText = FractalsIOUtil.serializeParamContainers(newContainer, focusedRenderer.getSystemContext().getParamConfiguration(),
+                            getClientParams(), getClientParamConfiguration());
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
             }
 //        }
 //        catch (IOException e){
 //            e.printStackTrace();
 //        }
 
-        ScrollableTextArea parameterTextArea = new ScrollableTextArea(paramText);
+        ScrollableTextArea parameterTextArea = new ScrollableTextArea(paramText){
+            @Override
+            public float getPrefWidth() {
+                return Gdx.graphics.getWidth()/2;
+            }
+        };
         ScrollPane scrollPane = parameterTextArea.createCompatibleScrollPane();
 
         importFileBtn.addListener(new ChangeListener() {
@@ -967,7 +754,9 @@ public class MainStage extends Stage {
                         FileHandle file = Gdx.files.external(fileChooserFilePath);
                         try {
                             System.out.println("reading metadata for file: "+file.path());
-                            String text = IIOMetadataUpdater.readMetadata(new File(file.path()), "paramContainer");
+                            String text = IIOMetadataUpdater.readMetadata(new File(file.path()), ScreenshotUI.METADATA_KEY);
+                            if (text == null || text.isEmpty()) //JPG Tags work differently, key is "comment" for some reason
+                                text = IIOMetadataUpdater.readMetadata(new File(file.path()), "comment");
                             parameterTextArea.setText(text);
 //                            importWindow.remove();
                         } catch (IOException e) {
@@ -992,13 +781,16 @@ public class MainStage extends Stage {
             public void changed(ChangeEvent event, Actor actor) {
 //                try {
 //                    ParamContainer paramContainer = ParamContainer.deserializeJson(parameterTextArea.getText());
-                    ParamContainer newParamContainer = FractalsIOUtil.deserializeParamContainer(parameterTextArea.getText().getBytes(StandardCharsets.UTF_8), focusedRenderer.getSystemContext().getParamConfiguration(), paramContainer);
+                    ParamContainer[] newParamContainers = FractalsIOUtil.deserializeParamContainers(
+                            parameterTextArea.getText().getBytes(StandardCharsets.UTF_8), focusedRenderer.getSystemContext().getParamConfiguration(), paramUI.serverParamsSideMenu.getParamContainer(),
+                            getClientParamConfiguration(), getClientParams());
 
-                    if (newParamContainer == null){
+                    if (newParamContainers == null){
                         System.err.println("MainStage: created ParamContainer was null!");
                     }
                     else {
-                        submitServer(focusedRenderer, newParamContainer);
+                        submitServer(focusedRenderer, newParamContainers[0]);
+                        paramUI.setClientParameterConfiguration(focusedRenderer, newParamContainers[1], getClientParamConfiguration());
                     }
                     focusedRenderer.reset();
 //                }
@@ -1025,7 +817,6 @@ public class MainStage extends Stage {
         window.pack();
         ((VisWindow) window).centerWindow();
 
-        parameterTextArea.setText(paramText);
     }
 
     static FileChooser fileChooser;
@@ -1094,7 +885,7 @@ public class MainStage extends Stage {
                 FileHandle file = Gdx.files.external(fileTextField.getText());
                 try {
                     System.out.println("reading metadata for file: "+file.path());
-                    String text = IIOMetadataUpdater.readMetadata(new File(file.path()), "paramContainer");
+                    String text = IIOMetadataUpdater.readMetadata(new File(file.path()), ScreenshotUI.METADATA_KEY);
                     parameterTextArea.setText(text);
                     importWindow.remove();
                 } catch (IOException e) {
@@ -1158,7 +949,9 @@ public class MainStage extends Stage {
 
 //                try {
 //                    positions_prefs.putString(nameFld.getText(), container.serializeObjectBase64());
-                    positions_prefs.putString(nameFld.getText(), FractalsIOUtil.serializeParamContainer(container, focusedRenderer.getSystemContext().getParamConfiguration()));
+                    positions_prefs.putString(nameFld.getText(),
+                            FractalsIOUtil.serializeParamContainers(container, focusedRenderer.getSystemContext().getParamConfiguration(),
+                                    getClientParams(), getClientParamConfiguration()));
                     positions_prefs.flush();
 //                } catch (IOException e) {
 //                    throw new IllegalStateException("couldn't serialize locations");
@@ -1194,7 +987,7 @@ public class MainStage extends Stage {
     }
 
     public ParamContainer getClientParams() {
-        return clientParams;
+        return paramUI.getClientParamsSideMenu().getParamContainer();
     }
 
     public FractalRenderer getFocusedRenderer() {
@@ -1215,7 +1008,7 @@ public class MainStage extends Stage {
     }
 
     public ParamConfiguration getClientParamConfiguration() {
-        return clientParamConfiguration;
+        return paramUI.clientParamsSideMenu.getParamContainer().getParamConfiguration();
     }
 
     public void escapeHandled() {

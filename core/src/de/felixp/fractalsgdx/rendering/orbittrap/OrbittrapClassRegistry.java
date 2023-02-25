@@ -1,6 +1,6 @@
 package de.felixp.fractalsgdx.rendering.orbittrap;
 
-import de.felixperko.io.ClassKeyRegistry;
+import de.felixperko.fractals.io.ClassKeyRegistry;
 
 public class OrbittrapClassRegistry extends ClassKeyRegistry<Orbittrap> {
 

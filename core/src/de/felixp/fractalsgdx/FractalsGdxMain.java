@@ -35,6 +35,12 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	public static boolean windowed = true;
     public static boolean uiScaleWorkaround = false;
+	private static int uiScale = 1;
+
+	public static int getUiScale(){
+		return uiScale;
+	}
+
     static int forceWidth = -1;
     static int forceHeight = -1;
 
@@ -55,7 +61,6 @@ public class FractalsGdxMain extends ApplicationAdapter {
 
 	public static Map<Integer, Map<Integer,Pixmap>> newPixmaps = new HashMap<>();
 
-	private int uiScale = 1;
 
 	@Override
 	public void create () {

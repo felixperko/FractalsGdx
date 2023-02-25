@@ -447,8 +447,10 @@ public class ExpressionsPropertyEntry extends AbstractSingleTextPropertyEntry {
             windowExpressionFields.put(inputVarName, exprField);
 
             VisTable parsedTable = new VisTable(true);
+            parsedTable.add(e.getKey()+" =");
             parsedTable.add(serializedLabel);
-            parsedTable.add("d"+e.getKey()+" =");
+            parsedTable.add();
+            parsedTable.add(e.getKey()+"' =");
             parsedTable.add(serializedDerivLabel);
 
             exprTable.add(exprLabel);

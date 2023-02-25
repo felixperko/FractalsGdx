@@ -43,8 +43,9 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     boolean inheritRealPart = false;
     boolean inheritImagPart = false;
 
-    public AbstractParamInterpolation(String paramUid, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass){
+    public AbstractParamInterpolation(String paramUid, String paramName, String paramType, String paramContainerKey, String attributeUid, Class<? extends InterpolationFunction> interpolationFunctionClass){
         this.paramUid = paramUid;
+        this.paramName = paramName;
         this.attrUid = attributeUid;
         this.paramType = paramType;
         this.paramContainerKey = paramContainerKey;
@@ -350,7 +351,8 @@ abstract class AbstractParamInterpolation<T> implements ParamInterpolation<T>{
     @Override
     public void setControlPoint(int index, T controlPoint, T derivative, NumberFactory numberFactory) {
         controlPoints.set(index, controlPoint);
-        derivatives.set(index, derivative);
+        if (derivative != null)
+            derivatives.set(index, derivative);
         setNumberFactory(numberFactory);
         controlPointsChanged();
     }

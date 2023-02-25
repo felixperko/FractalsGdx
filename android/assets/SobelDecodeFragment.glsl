@@ -30,10 +30,11 @@ uniform float mappingColorG;
 uniform float mappingColorB;
 uniform vec2 resolution;
 uniform int sobelSpan;
+uniform int kernelRadius;
 
 const float resultOffset = 5.0;
-const int kernelRadius = 2;
-const int kernelDim = (kernelRadius*2+1);
+const int maxKernelRadius = 2;
+const int kernelDim = (maxKernelRadius*2+1);
 const int kernelLength = kernelDim*kernelDim;
 const int kernelMidIndex = kernelLength/2;
 
@@ -85,41 +86,62 @@ void make_kernel(inout float n[kernelLength], sampler2D tex, vec2 coord, int log
 //    }
 
     //texelFetchOffset(gsampler sampler, ivec texCoord, int lod, ivec offset);
-//    n[0] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -1))));
-//    n[1] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -1))));
-//    n[2] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -1))));
-//    n[3] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  0))));
-//    n[4] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  0))));
-//    n[5] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  0))));
-//    n[6] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  1))));
-//    n[7] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  1))));
-//    n[8] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  1))));
+    if (kernelRadius == 1){
+        n[0] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -1))));
+        n[1] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -1))));
+        n[2] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -1))));
+        n[3] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  0))));
+        n[4] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  0))));
+        n[5] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  0))));
+        n[6] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  1))));
+        n[7] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  1))));
+        n[8] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  1))));
+    }
 
-    n[0] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2, -2))));
-    n[1] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -2))));
-    n[2] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -2))));
-    n[3] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -2))));
-    n[4] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2, -2))));
-    n[5] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2, -1))));
-    n[6] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -1))));
-    n[7] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -1))));
-    n[8] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -1))));
-    n[9] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2, -1))));
-    n[10] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  0))));
-    n[11] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  0))));
-    n[12] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  0))));
-    n[13] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  0))));
-    n[14] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  0))));
-    n[15] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  1))));
-    n[16] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  1))));
-    n[17] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  1))));
-    n[18] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  1))));
-    n[19] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  1))));
-    n[20] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  2))));
-    n[21] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  2))));
-    n[22] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  2))));
-    n[23] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  2))));
-    n[24] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  2))));
+    if (kernelRadius == 2){
+        n[0] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2, -2))));
+        n[1] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -2))));
+        n[2] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -2))));
+        n[3] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -2))));
+        n[4] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2, -2))));
+        n[5] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2, -1))));
+        n[6] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1, -1))));
+        n[7] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0, -1))));
+        n[8] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1, -1))));
+        n[9] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2, -1))));
+        n[10] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  0))));
+        n[11] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  0))));
+        n[12] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  0))));
+        n[13] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  0))));
+        n[14] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  0))));
+        n[15] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  1))));
+        n[16] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  1))));
+        n[17] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  1))));
+        n[18] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  1))));
+        n[19] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  1))));
+        n[20] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-2,  2))));
+        n[21] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2(-1,  2))));
+        n[22] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 0,  2))));
+        n[23] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 1,  2))));
+        n[24] = max(0.0, decode(texelFetchOffset(tex, ivec2(gl_FragCoord.x, resolution.y-gl_FragCoord.y), 0, ivec2( 2,  2))));
+    }
+}
+
+float applySobel(in float n[kernelLength], in float magnitude){
+    if (kernelRadius == 1){
+        float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
+        float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
+        return sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v))*abs(magnitude);
+    }
+
+    if (kernelRadius == 2){
+        float sobel_edge_h = n[4] + (4.0*n[9]) + (6.0*n[14]) + (4.0*n[19]) + n[24] - (n[0] + (4.0*n[5]) + (6.0*n[10]) + (4.0*n[15]) + n[20]);
+        float sobel_edge_v = n[0] + (4.0*n[1]) + (6.0*n[2]) + (4.0*n[3]) + n[4] - (n[20] + (4.0*n[21]) + (6.0*n[22]) + (4.0*n[23]) + n[24]);
+        float sobel_edge_h2 = (2.0*n[3]) + (8.0*n[8]) + (12.0*n[13]) + (8.0*n[18]) + (2.0*n[23]) - ((2.0*n[1]) + (8.0*n[6]) + (12.0*n[11]) + (8.0*n[16]) + (2.0*n[21]));
+        float sobel_edge_v2 = (2.0*n[5]) + (8.0*n[6]) + (12.0*n[7]) + (8.0*n[8]) + (2.0*n[9]) - ((2.0*n[15]) + (8.0*n[16]) + (12.0*n[17]) + (8.0*n[18]) + (2.0*n[19]));
+        return sqrt(( ((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2)))*0.01*abs(magnitude));
+    }
+    return 0.0;
 }
 
 void main(void){
@@ -141,28 +163,12 @@ void main(void){
     float sobel = 0.0;
     if (light_sobel_magnitude != 0.0){
         make_kernel(n, u_texture, v_texCoords.xy, 1);
-        float sobel_edge_h = n[4] + (4.0*n[9]) + (6.0*n[14]) + (4.0*n[19]) + n[24] - (n[0] + (4.0*n[5]) + (6.0*n[10]) + (4.0*n[15]) + n[20]);
-        float sobel_edge_v = n[0] + (4.0*n[1]) + (6.0*n[2]) + (4.0*n[3]) + n[4] - (n[20] + (4.0*n[21]) + (6.0*n[22]) + (4.0*n[23]) + n[24]);
-        float sobel_edge_h2 = (2.0*n[3]) + (8.0*n[8]) + (12.0*n[13]) + (8.0*n[18]) + (2.0*n[23]) - ((2.0*n[1]) + (8.0*n[6]) + (12.0*n[11]) + (8.0*n[16]) + (2.0*n[21]));
-        float sobel_edge_v2 = (2.0*n[5]) + (8.0*n[6]) + (12.0*n[7]) + (8.0*n[8]) + (2.0*n[9]) - ((2.0*n[15]) + (8.0*n[16]) + (12.0*n[17]) + (8.0*n[18]) + (2.0*n[19]));
-        sobel = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2))*0.0001)*abs(light_sobel_magnitude);
-
-//        float sobel_edge_h = n[2] + (2.0*n[5]) + n[8] - (n[0] + (2.0*n[3]) + n[6]);
-//        float sobel_edge_v = n[0] + (2.0*n[1]) + n[2] - (n[6] + (2.0*n[7]) + n[8]);
-//        sobel = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v));
+        sobel = applySobel(n, light_sobel_magnitude)*0.01;
     }
     float sobel2 = 0.0;
     if (light_sobel_magnitude2 != 0.0 && value1 <= 0.0){
         make_kernel(n2, altColorTexture, v_texCoords.xy, 1);
-        float sobel_edge_h = n2[4] + (4.0*n2[9]) + (6.0*n2[14]) + (4.0*n2[19])+ n2[24] - (n2[0] + (4.0*n2[5]) + (6.0*n2[10]) + (4.0*n2[15]) + n2[20]);
-        float sobel_edge_v = n2[0] + (4.0*n2[1]) + (6.0*n2[2]) + (4.0*n2[3]) + n2[4] - (n2[20] + (4.0*n2[21]) + (6.0*n2[22]) + (4.0*n2[23]) + n2[24]);
-        float sobel_edge_h2 = (2.0*n2[3]) + (8.0*n2[8]) + (12.0*n2[13]) + (8.0*n2[18]) + (2.0*n2[23]) - ((2.0*n2[1]) + (8.0*n2[6]) + (12.0*n2[11]) + (8.0*n2[16]) + (2.0*n2[21]));
-        float sobel_edge_v2 = (2.0*n2[5]) + (8.0*n2[6]) + (12.0*n2[7]) + (8.0*n2[8]) + (2.0*n2[9]) - ((2.0*n2[15]) + (8.0*n2[16]) + (12.0*n2[17]) + (8.0*n2[18]) + (2.0*n2[19]));
-        sobel2 = sqrt(((sobel_edge_h*sobel_edge_h)+(sobel_edge_h2*sobel_edge_h2) + (sobel_edge_v*sobel_edge_v)+(sobel_edge_v2*sobel_edge_v2)))*0.001/12.0;
-
-//        float sobel_edge_h = n2[2] + (2.0*n2[5]) + n2[8] - (n2[0] + (2.0*n2[3]) + n2[6]);
-//        float sobel_edge_v = n2[0] + (2.0*n2[1]) + n2[2] - (n2[6] + (2.0*n2[7]) + n2[8]);
-//        sobel2 = sqrt((sobel_edge_h*sobel_edge_h) + (sobel_edge_v*sobel_edge_v))*0.001;
+        sobel2 = applySobel(n2, light_sobel_magnitude2)*0.001;
     }
 
     vec3 add = vec3(0.0, 0.0, 0.0);
@@ -196,9 +202,10 @@ void main(void){
 
             if (light_sobel_period > 0.0){
 //                s = fract(s/light_sobel_period);
-//                s =
-                s = fract(s*0.5/light_sobel_period)*2.0;
-                s = 1.0 - abs(1.0 - s);
+                float dim = s+1.0;
+                dim = fract((dim*0.5)/light_sobel_period)*2.0;
+                dim = 1.0 - abs(1.0 - dim);
+                s = s*(dim*0.75+0.25);
             }
         }
 
@@ -264,16 +271,16 @@ void main(void){
 
 //    }
 
-    if (light_sobel_period2 != 0.0){
-        sobel2 = fract(sobel2/light_sobel_period2);
-        //        s = 1.0 - abs(1.0 - s);
-
-        //        sobel2 = fract(sobel2/light_sobel_period2)*2.0;
-        //        sobel2 = sobel2*2.0;
-//        if (sobel2 > 1.0)
-//            sobel2 = 2.0-sobel2;
-//            sobel2 = sobel2 - 1.0;
-    }
+//    if (light_sobel_period2 != 0.0){
+////        sobel2 = fract(sobel2/light_sobel_period2);
+//        //        s = 1.0 - abs(1.0 - s);
+//
+////                sobel2 = fract(sobel2/light_sobel_period2)*2.0;
+////                sobel2 = sobel2*2.0;
+////        if (sobel2 > 1.0)
+////            sobel2 = 2.0-sobel2;
+////            sobel2 = sobel2 - 1.0;
+//    }
 
     float brightness2 = light_ambient2;
     if (gl_FragCoord.x >= 2.0 && gl_FragCoord.x < resolution.x-2.0 && gl_FragCoord.y >= 2.0 && gl_FragCoord.y < resolution.y-2.0)
@@ -287,7 +294,10 @@ void main(void){
     rgb = rgb*brightness;
     vec3 c = vec3(rgb.r+add.r, rgb.g+add.g, rgb.b+add.b);
     vec3 c2 = hsv2rgb(vec3(val2, colorSaturation2, brightness2));
+
+    //combine values
     float f = value1 > 0.0 ? 1.0 : 0.0;
+//    float f2 = value1 > 0.0 ? 0.0 : 1.0;
     float f2 = value1 > 0.0 ? 0.0 : 1.0;
     vec4 rgb1 = texture(paletteEscaped, vec2(mod(val1, 1.0), 0.0));
     vec4 rgb2 = texture(paletteFallback, vec2(mod(val2, 1.0), 0.0));

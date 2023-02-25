@@ -1,10 +1,14 @@
 package de.felixp.fractalsgdx.ui.entries;
 
+import com.badlogic.gdx.Application;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.kotcrab.vis.ui.FocusManager;
 import com.kotcrab.vis.ui.Focusable;
+import com.kotcrab.vis.ui.VisUI;
 import com.kotcrab.vis.ui.util.InputValidator;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisSlider;
@@ -129,10 +133,11 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
 
                 optionButton = new VisTextButton("...");
 
+                boolean resetKeyboardFocus = Gdx.app.getType() == Application.ApplicationType.Android;
                 field1 = new TabTraversableTextField(validator1);
-                addSubmitListenerToField(field1);
+                addSubmitListenerToField(field1, resetKeyboardFocus);
                 field2 = new TabTraversableTextField(validator2);
-                addSubmitListenerToField(field2);
+                addSubmitListenerToField(field2, resetKeyboardFocus);
 //                field1.setPrefWidth(prefControlWidth*0.45f);
 //                field2.setPrefWidth(prefControlWidth*0.45f);
 
@@ -354,7 +359,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 valueLabel1 = new VisLabel(){
                     @Override
                     public float getPrefWidth() {
-                        float minWidth = 50;
+                        float minWidth = 60*FractalsGdxMain.getUiScale();
                         float prefWidth = super.getPrefWidth();
                         return prefWidth > minWidth ? prefWidth : minWidth;
                     }
@@ -362,7 +367,7 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 valueLabel2 = new VisLabel(){
                     @Override
                     public float getPrefWidth() {
-                        float minWidth = 50;
+                        float minWidth = 60*FractalsGdxMain.getUiScale();
                         float prefWidth = super.getPrefWidth();
                         return prefWidth > minWidth ? prefWidth : minWidth;
                     }
@@ -381,8 +386,16 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                             return;
                         }
                         updateSlider(oldVal, max1, min2, max2);
+                        String oldText1 = text1;
+                        String oldText2 = text2;
+                        readFields();
+                        if (!text1.equals(oldText1) || !text2.equals(oldText2))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(minField1);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(minField1, true);
                 maxField1.setTextFieldListener(new VisTextField.TextFieldListener() {
                     @Override
                     public void keyTyped(VisTextField textField, char c) {
@@ -395,8 +408,17 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                             return;
                         }
                         updateSlider(min1, oldVal, min2, max2);
+                        readFields();
+                        String oldText1 = text1;
+                        String oldText2 = text2;
+                        readFields();
+                        if (!text1.equals(oldText1) || !text2.equals(oldText2))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(maxField1);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(maxField1, true);
                 minField2.setTextFieldListener(new VisTextField.TextFieldListener() {
                     @Override
                     public void keyTyped(VisTextField textField, char c) {
@@ -409,8 +431,17 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                             return;
                         }
                         updateSlider(min1, max1, oldVal, max2);
+                        readFields();
+                        String oldText1 = text1;
+                        String oldText2 = text2;
+                        readFields();
+                        if (!text1.equals(oldText1) || !text2.equals(oldText2))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(minField2);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(minField2, true);
                 maxField2.setTextFieldListener(new VisTextField.TextFieldListener() {
                     @Override
                     public void keyTyped(VisTextField textField, char c) {
@@ -423,8 +454,16 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                             return;
                         }
                         updateSlider(min1, max1, min2, oldVal);
+                        String oldText1 = text1;
+                        String oldText2 = text2;
+                        readFields();
+                        if (!text1.equals(oldText1) || !text2.equals(oldText2))
+                            submit();
+                        FractalsGdxMain.mainStage.setKeyboardFocus(maxField2);
+                        FractalsGdxMain.mainStage.getFocusedRenderer().setFocused(false);
                     }
                 });
+                addSubmitListenerToField(minField2, true);
                 updateLabelText();
                 //update disabled in case of invalid range
                 updateSlider(min1, max1, min2, max2);
@@ -434,15 +473,15 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
                 VisTable innerTable1 = new VisTable();
                 if (limitsVisible)
                     innerTable1.add(minField1);
-                innerTable1.add(slider1).expandX().fillX();
-                innerTable1.add(valueLabel1).minWidth(70).padRight(3);
+                innerTable1.add(slider1).expandX().fillX().padLeft(3).padRight(3);
+                innerTable1.add(valueLabel1).minWidth(70).center().padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField1).row();
 
 //                VisTable innerTable2 = new VisTable(true);
                 if (limitsVisible)
                     innerTable1.add(minField2);
-                innerTable1.add(slider2).expandX().fillX();
+                innerTable1.add(slider2).expandX().fillX().padLeft(3).padRight(3);
                 innerTable1.add(valueLabel2).minWidth(70).padRight(3);
                 if (limitsVisible)
                     innerTable1.add(maxField2);
@@ -557,6 +596,11 @@ public abstract class AbstractDoubleTextPropertyEntry extends AbstractPropertyEn
     private class TestSlider extends VisSlider implements Focusable{
         public TestSlider(float min, float max, float stepSize, boolean vertical) {
             super(min, max, stepSize, vertical);
+        }
+
+        @Override
+        public float getPrefWidth() {
+            return super.getPrefWidth()*1.5f;
         }
 
         @Override

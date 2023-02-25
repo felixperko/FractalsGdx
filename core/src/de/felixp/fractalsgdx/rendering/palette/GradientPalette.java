@@ -1,11 +1,9 @@
 package de.felixp.fractalsgdx.rendering.palette;
 
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class GradientPalette extends AbstractPalette{
@@ -14,7 +12,9 @@ public class GradientPalette extends AbstractPalette{
     public static int DEFAULT_PALETTE_SIZE = 4096;
 
     public static final String INTERPOLATIONTYPE_LINEAR = "linear";
+    public static final String INTERPOLATIONTYPE_QUADRATIC = "quadratic";
     public static final String COLORSPACE_RGB = "RGB";
+    public static final String COLORSPACE_OKLAB = "OKLAB";
 
     PaletteGenerator paletteGenerator = new PaletteGenerator();
 
@@ -57,7 +57,7 @@ public class GradientPalette extends AbstractPalette{
     }
 
     public void paletteGeneratorUpdate() {
-        paletteGenerator.setPalettePoints(palettePoints);
+        paletteGenerator.setParams(palettePoints, settingColorSpace, settingInterpolationType);
         pixmap = paletteGenerator.generatePixmap();
         setTexture(new Texture(pixmap));
     }

@@ -3,6 +3,7 @@ package de.felixp.fractalsgdx.rendering;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
@@ -15,46 +16,68 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.params.ComputeParamsCommon;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
+import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
-abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRenderer {
+public abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRenderer {
 
     private static Logger LOG = LoggerFactory.getLogger(AbstractFractalRenderer.class);
     private static int ID_COUNTER = 1;
 
     protected static void setColoringParams(ShaderProgram shader, float width, float height, MainStage stage, SystemContext systemContext, RendererContext rendererContext) {
 
-        boolean scaleMagnitude2ByDims = true;
+        boolean scaleMagnitude2ByDims = false;
         double magnitude2Factor = 1.0;
         if (scaleMagnitude2ByDims){
             magnitude2Factor = Math.max(Gdx.graphics.getWidth()/1920.0, Gdx.graphics.getHeight()/1080.0);
-//            double scaleFactor = Math.sqrt(Math.sqrt(systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class).toDouble()));
-//            if (scaleFactor > 0.0) {
-//                magnitude2Factor /= Math.min(scaleFactor, 100.0);
-//            }
+        }
+        double scaleFactor = Math.sqrt(Math.sqrt(systemContext.getParamContainer().getParam(ShaderSystemContext.PARAM_ZOOM).getGeneral(Number.class).toDouble()));
+        if (scaleFactor > 0.0) {
+            magnitude2Factor /= Math.min(scaleFactor, 100.0);
+        }
+        int extractChannel = 0;
+        ParamSupplier supp = stage.getClientParam(ClientParamsEscapeTime.PARAMS_EXTRACT_CHANNEL);
+        String extractChannelUid = (String) supp.getGeneral();
+        switch (extractChannelUid){
+            case ClientParamsEscapeTime.OPTIONVALUE_EXTRACT_CHANNEL_R:
+                extractChannel = 1;
+                break;
+            case ClientParamsEscapeTime.OPTIONVALUE_EXTRACT_CHANNEL_G:
+                extractChannel = 2;
+                break;
+            case ClientParamsEscapeTime.OPTIONVALUE_EXTRACT_CHANNEL_B:
+                extractChannel = 3;
+                break;
+            default:
+                extractChannel = 0;
         }
 
 //        rendererContext.applyParameterAnimations(systemContext, systemContext.getParamContainer(), stage.getParamMap(), systemContext.getNumberFactory());
-        shader.setUniformi("usePalette", stage.getClientParam(MainStage.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
-        shader.setUniformi("usePalette2", stage.getClientParam(MainStage.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(MainStage.PARAMVALUE_PALETTE_DISABLED) ? 0 : 1);
-        shader.setUniformf("colorAdd", (float)stage.getClientParam(MainStage.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorAdd2", (float)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_ADD).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorMult", (float)(double)stage.getClientParam(MainStage.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorMult2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_MULT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParam(MainStage.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
-        shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());shader.setUniformf("light_ambient", (float)(double)stage.getClientParam(MainStage.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_ambient2", (float)(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
-        shader.setUniformf("light_sobel_magnitude2", (float)(magnitude2Factor*stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble()));
-        shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParam(MainStage.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
-        shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParam(MainStage.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
-        shader.setUniformi("extractChannel", (int)(int)stage.getClientParam(MainStage.PARAMS_EXTRACT_CHANNEL).getGeneral());
-        Object color = stage.getClientParam(MainStage.PARAMS_MAPPING_COLOR).getGeneral();
+        shader.setUniformi("usePalette", stage.getClientParam(ClientParamsEscapeTime.PARAMS_PALETTE).getGeneral(String.class).equalsIgnoreCase(ClientParamsEscapeTime.OPTIONVALUE_PALETTE_DISABLED) ? 0 : 1);
+        shader.setUniformi("usePalette2", stage.getClientParam(ClientParamsEscapeTime.PARAMS_PALETTE2).getGeneral(String.class).equalsIgnoreCase(ClientParamsEscapeTime.OPTIONVALUE_PALETTE_DISABLED) ? 0 : 1);
+        shader.setUniformf("colorAdd", (float)stage.getClientParam(ClientParamsEscapeTime.PARAMS_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorAdd2", (float)stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_COLOR_ADD).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorMult2", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_COLOR_MULT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_COLOR_SATURATION).getGeneral(Number.class).toDouble());
+        shader.setUniformf("colorSaturation2", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_COLOR_SATURATION).getGeneral(Number.class).toDouble());shader.setUniformf("light_ambient", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_ambient2", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_AMBIENT_LIGHT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude", (float)(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble());
+        shader.setUniformf("light_sobel_magnitude2", (float)(magnitude2Factor*stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_SOBEL_GLOW_LIMIT).getGeneral(Number.class).toDouble()));
+        shader.setUniformf("light_sobel_period", (float)((double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
+        shader.setUniformf("light_sobel_period2", (float)(1.0/(double)stage.getClientParam(ClientParamsEscapeTime.PARAMS_FALLBACK_SOBEL_GLOW_FACTOR).getGeneral(Number.class).toDouble()));
+        shader.setUniformi("extractChannel", extractChannel);
+        shader.setUniformi("kernelRadius", (int)stage.getClientParam(ClientParamsEscapeTime.PARAMS_SOBEL_RADIUS).getGeneral());
+        Object color = stage.getClientParam(ClientParamsEscapeTime.PARAMS_MAPPING_COLOR).getGeneral();
 //        float[] hsv = ((Color)color).toHsv(new float[4]);
 //        shader.setUniformf("mappingColorR", hsv[0]);
 //        shader.setUniformf("mappingColorG", hsv[1]);
@@ -86,15 +109,23 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
 
     double timeBudgetS = 0.0;
 
+    boolean initialized = false;
+
+    ClickListener clickListener = null;
+
+    boolean disabled = false;
+
     public AbstractFractalRenderer(RendererContext rendererContext){
         this.rendererContext = rendererContext;
     }
 
-
     @Override
     public void initRenderer() {
+        if (initialized)
+            return;
+        initialized = true;
         AbstractFractalRenderer thisRenderer = this;
-        getStage().addListener(new ClickListener(){
+        clickListener = new ClickListener(){
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 boolean wasFocused = isFocused;
@@ -103,12 +134,33 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
                     focusChanged(isFocused);
                 return super.touchDown(event, x, y, pointer, button);
             }
-        });
+        };
+        getStage().addListener(clickListener);
         init();
+    }
+
+    @Override
+    public void disposeRenderer() {
+        FractalsGdxMain.mainStage.removeListener(clickListener);
     }
 
     public abstract void init();
     public abstract int getPixelCount();
+
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
+
+        if (handleSwitchRendererConfigs())
+            return;
+
+        if (isDisabled()) {
+            return;
+        }
+
+        render(batch, parentAlpha);
+    }
+
+    protected abstract void render(Batch batch, float parentAlpha);
 
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){
 //        ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),
@@ -147,6 +199,51 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     @Override
     public boolean scrolled(float amountX, float amountY) {
         return false;
+    }
+
+    public void zoomAndPan(Number zoomFactor, float anchorScreenX, float anchorScreenY) {
+        ComplexNumber clickedPoint = getComplexMapping(anchorScreenX, anchorScreenY);
+        zoomAndPan(zoomFactor, clickedPoint);
+    }
+
+    public void zoomAndPan(Number zoomFactor, ComplexNumber clickedPoint) {
+        ComplexNumber newMidpoint = getZoomAnchor(zoomFactor, clickedPoint);
+        zoom(zoomFactor);
+        getSystemContext().setMidpoint(newMidpoint);
+        rendererContext.panned(getSystemContext().getParamContainer());
+    }
+
+    protected abstract void zoom(Number zoomFactor);
+
+    public ComplexNumber getZoomAnchor(Number zoomFactor, ComplexNumber clickedPoint){
+        if (zoomFactor.toDouble() < 1.0){
+            Number deltaScaleFactor = getSystemContext().getNumberFactory().createNumber(1.0);
+            deltaScaleFactor.sub(zoomFactor);
+
+            ComplexNumber currMidpoint = getSystemContext().getMidpoint();
+            ComplexNumber newMidpoint = clickedPoint.copy();
+            newMidpoint.sub(currMidpoint); //delta
+            newMidpoint.multNumber(deltaScaleFactor);
+            newMidpoint.add(currMidpoint);
+            return newMidpoint;
+        }
+        else if (zoomFactor.toDouble() > 1.0){
+            Number deltaScaleFactor = zoomFactor.copy();
+            deltaScaleFactor.sub(getSystemContext().getNumberFactory().createNumber(1.0));
+
+            ComplexNumber currMidpoint = getSystemContext().getMidpoint();
+            ComplexNumber newMidpoint = currMidpoint.copy();
+            newMidpoint.sub(clickedPoint); //delta
+            newMidpoint.multNumber(deltaScaleFactor);
+            newMidpoint.add(currMidpoint);
+            return newMidpoint;
+        }
+        return getSystemContext().getMidpoint().copy();
+    }
+
+    public void focus(){
+        FractalsGdxMain.mainStage.setKeyboardFocus(this);
+        FractalsGdxMain.mainStage.setFocusedRenderer(this);
     }
 
     private void printShaderLines(String lines) {
@@ -247,9 +344,9 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
         long t2 = System.nanoTime();
 
         // this loop makes sure the whole screenshot is opaque and looks exactly like what the user is seeing
-//        for(int i = 4; i < pixels.length; i += 4) {
-//            pixels[i - 1] = (byte) 255;
-//        }
+        for(int i = 4; i < pixels.length; i += 4) {
+            pixels[i - 1] = (byte) 255;
+        }
 
         rendererContext.madeScreenshot(pixels);
 
@@ -319,12 +416,58 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     }
 
     @Override
-    public void applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory) {
+    public boolean[] applyParameterAnimations(ParamContainer serverParamContainer, ParamContainer clientParamContainer, NumberFactory numberFactory) {
         boolean[] res = rendererContext.applyParameterAnimations(getSystemContext(), serverParamContainer, clientParamContainer, numberFactory);
         if (res[1])
             reset();
         else if (res[0])
             setRefresh();
+        return res;
+    }
+
+    String lastUidCalc = null;
+
+    protected boolean handleSwitchRendererConfigs() {
+        String uidCalc = getSystemContext().getParamContainer().getParam(ComputeParamsCommon.PARAM_CALCULATOR).getGeneral(String.class);
+        if (lastUidCalc == null)
+            lastUidCalc = uidCalc;
+        if (uidCalc.equals(lastUidCalc)){
+            return false;
+        }
+        getSystemContext().getParamContainer().removeParam(ComputeParamsCommon.PARAM_CALCULATOR);
+        lastUidCalc = uidCalc;
+        boolean changed = true;
+        if (uidCalc.equals(ComputeParamsCommon.UID_CALCULATOR_ESCAPETIME) || uidCalc.equals(ComputeParamsCommon.UID_CALCULATOR_NEWTONFRACTAL))
+            changed = FractalsGdxMain.mainStage.switchRendererConfigs(ShaderSystemContext.UID_PARAMCONFIG);
+        else if (uidCalc.equals(ComputeParamsCommon.UID_CALCULATOR_TURTLEGRAPHICS))
+            changed = FractalsGdxMain.mainStage.switchRendererConfigs(TurtleGraphicsSystemContext.UID_PARAMCONFIG);
+        else if (uidCalc.equals(ComputeParamsCommon.UID_CALCULATOR_REACTIONDIFFUSION))
+            changed = FractalsGdxMain.mainStage.switchRendererConfigs(ReactionDiffusionSystemContext.UID_PARAMCONFIG);
+        else
+            changed = false;
+
+        if (changed)
+            setDisabled(true);
+        if (!changed)
+            getSystemContext().getParamContainer().addParam(new StaticParamSupplier(ComputeParamsCommon.PARAM_CALCULATOR, uidCalc));
+
+//        if (changed){
+////            getSystemContext().getParamContainer().addParam(new StaticParamSupplier(ComputeParamsCommon.PARAM_CALCULATOR, uidCalc));
+//            Gdx.app.postRunnable(new Runnable() {
+//                @Override
+//                public void run() {
+//                    FractalRenderer newFirstRenderer = FractalsGdxMain.mainStage.getRenderers().get(0);
+//                    if (newFirstRenderer != null) {
+//                        if (newFirstRenderer.getSystemContext().getParamConfiguration().getParamDefinitionByUID(ComputeParamsCommon.PARAM_CALCULATOR) != null) {
+//                            newFirstRenderer.getSystemContext().getParamContainer().addParam(new StaticParamSupplier(ComputeParamsCommon.PARAM_CALCULATOR, uidCalc));
+////                            if (newFirstRenderer instanceof AbstractFractalRenderer)
+////                                ((AbstractFractalRenderer)newFirstRenderer).paramsChanged(newFirstRenderer.getSystemContext().getParamContainer());
+//                        }
+//                    }
+//                }
+//            });
+//        }
+        return changed;
     }
 
     public void addPanListener(PanListener panListener){
@@ -348,6 +491,7 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     @Override
     public void setFocused(boolean focused){
         this.isFocused = focused;
+        setDisabled(false);
     }
 
     protected void mousePosChanged(float newMouseX, float newMouseY) {
@@ -358,5 +502,28 @@ abstract class AbstractFractalRenderer extends WidgetGroup implements FractalRen
     protected void clicked(float mouseX, float mouseY, int button) {
         ComplexNumber mapped = getComplexMapping(mouseX, mouseY);
         rendererContext.clicked(mouseX, mouseY, button, mapped);
+    }
+
+    @Override
+    public ComplexNumber getComplexMapping(float screenX, float screenY) {
+        return getSystemContext().getNumberFactory().createComplexNumber(getReal(screenX), getImag(screenY));
+    }
+
+    boolean paramsChangedCalled = false;
+
+    public void paramsChanged(ParamContainer paramContainer) {
+        if (isFocused && !paramsChangedCalled) {
+            paramsChangedCalled = true;
+            ((MainStage) FractalsGdxMain.stage).getParamUI().setServerParameterConfiguration(this, paramContainer, getSystemContext().getParamConfiguration());
+            paramsChangedCalled = false;
+        }
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        this.disabled = disabled;
     }
 }
