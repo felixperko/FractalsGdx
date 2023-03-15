@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -19,10 +19,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -35,14 +31,12 @@ import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.remoteclient.Client;
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
+import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 import de.felixperko.fractals.system.systems.infra.ViewData;
 import de.felixperko.fractals.system.systems.stateinfo.TaskState;

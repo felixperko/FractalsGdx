@@ -1,27 +1,21 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.rendererparams.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.network.infra.connection.ServerConnection;
 import de.felixperko.fractals.system.LayerConfiguration;
 import de.felixperko.fractals.system.PadovanLayerConfiguration;
-import de.felixperko.fractals.system.calculator.infra.DeviceType;
-import de.felixperko.fractals.system.calculator.infra.FractalsCalculator;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
@@ -37,14 +31,8 @@ import de.felixperko.fractals.system.parameters.suppliers.CoordinateModuloParamS
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstLayer;
-import de.felixperko.fractals.system.systems.BreadthFirstSystem.BreadthFirstUpsampleLayer;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.Selection;
-import de.felixperko.fractals.system.systems.infra.SystemContext;
-import de.felixperko.fractals.system.systems.infra.ViewContainer;
-import de.felixperko.fractals.system.systems.stateinfo.SystemStateInfo;
-import de.felixperko.fractals.system.systems.stateinfo.TaskState;
-import de.felixperko.fractals.system.systems.stateinfo.TaskStateInfo;
 import de.felixperko.fractals.system.task.Layer;
 
 public class ShaderSystemContext extends AbstractSystemContext {

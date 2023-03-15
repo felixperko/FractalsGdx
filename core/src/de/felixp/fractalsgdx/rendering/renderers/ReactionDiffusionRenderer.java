@@ -1,11 +1,7 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.GL30;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -13,19 +9,28 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.graphics.glutils.GLFrameBuffer;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Array;
 
+import java.util.List;
+
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.DrawParamsReactionDiffusion;
+import de.felixp.fractalsgdx.rendering.rendererparams.DrawParamsReactionDiffusion;
+import de.felixp.fractalsgdx.rendering.FractalsFloatFrameBuffer;
+import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyListButton;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.Number;
+import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
-import static de.felixp.fractalsgdx.rendering.ReactionDiffusionSystemContext.*;
+import static de.felixp.fractalsgdx.rendering.renderers.ReactionDiffusionSystemContext.*;
 
 public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
 
@@ -49,20 +54,32 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
     int drawX = -1;
     int drawY = -1;
 
+    boolean paused = false;
+    int lastSteps = 1;
+
+    int simulationWidth = 0;
+    int simulationHeight = 0;
+
     public ReactionDiffusionRenderer(RendererContext rendererContext) {
         super(rendererContext);
     }
 
     @Override
     public void init() {
-        GLFrameBuffer.FrameBufferBuilder fbb = getFboBuilderData((int)getWidth(), (int)getHeight());
-        fbo0 = new FractalsFloatFrameBuffer(fbb);
 //        fbo1 = new FractalsFrameBuffer(fbb);
         compileShaders();
         systemContext = new ReactionDiffusionSystemContext();
         systemContext.addParamListener((newSupp, oldSupp) -> {
-
+            if (newSupp.getUID().equals(PARAM_WIDTH) || newSupp.getUID().equals(PARAM_HEIGHT)){
+                simulationWidth = systemContext.getParamContainer().getParam(PARAM_WIDTH).getGeneral(Integer.class);
+                simulationHeight = systemContext.getParamContainer().getParam(PARAM_HEIGHT).getGeneral(Integer.class);
+                initFbo();
+            }
+            paramsChanged(systemContext.getParamContainer());
         });
+        simulationWidth = systemContext.getParamContainer().getParam(PARAM_WIDTH).getGeneral(Integer.class);
+        simulationHeight = systemContext.getParamContainer().getParam(PARAM_HEIGHT).getGeneral(Integer.class);
+        initFbo();
 
 
         ActorGestureListener gestureListener = new ActorGestureListener(0.001f, 0.4f, 1.1f, Integer.MAX_VALUE) {
@@ -85,6 +102,41 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
         addListener(gestureListener);
 
 
+    }
+
+    @Override
+    protected void initButtons(List<CollapsiblePropertyListButton> list) {
+        CollapsiblePropertyListButton resetBtn = new CollapsiblePropertyListButton("clear", "Calculator", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                initFbo();
+            }
+        });
+        list.add(resetBtn);
+        CollapsiblePropertyListButton pauseBtn = new CollapsiblePropertyListButton("pause", "Calculator");
+        pauseBtn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                int steps = (int)systemContext.getParamValue(PARAM_SIMULATIONSPEED);
+                if (paused) {
+                    systemContext.getParamContainer().addParam(new StaticParamSupplier(PARAM_SIMULATIONSPEED, lastSteps));
+                    pauseBtn.setText("pause");
+                } else {
+                    lastSteps = steps;
+                    systemContext.getParamContainer().addParam(new StaticParamSupplier(PARAM_SIMULATIONSPEED, 0));
+                    pauseBtn.setText("resume");
+                }
+                paused = !paused;
+            }
+        });
+        list.add(pauseBtn);
+    }
+
+    protected void initFbo(){
+        GLFrameBuffer.FrameBufferBuilder fbb = getFboBuilderData(simulationWidth, simulationHeight);
+        if (fbo0 != null)
+            fbo0.dispose();
+        fbo0 = new FractalsFloatFrameBuffer(fbb);
     }
 
     protected GLFrameBuffer.FrameBufferBuilder getFboBuilderData(int width, int height){
@@ -137,6 +189,8 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
         ScissorStack.popScissors();
     }
 
+    Matrix4 projectionMatrix = new Matrix4();
+
     @Override
     public void render(Batch batch, float parentAlpha) {
 
@@ -151,9 +205,9 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
             Texture tex1 = fboRender.getTextureAttachments().get(1);
             Texture tex0 = fboRender.getTextureAttachments().get(0);
             tex1.bind(1);
-            computeShader.setUniformi("texture1", 1);
+            setColorShader.setUniformi("texture1", 1);
             tex0.bind(0);
-            computeShader.setUniformi("texture0", 0);
+            setColorShader.setUniformi("texture0", 0);
 
             setColorShader.setUniformi("channel", 0);
             setColorShader.setUniformf("color", 1f, 0f, 0f, 1f);
@@ -180,26 +234,39 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
         int loops = (int)systemContext.getParamValue(PARAM_SIMULATIONSPEED);
         for (int i = 0 ; i < loops ; i++) {
             fboRender.begin();
-            Texture texG = fboRender.getTextureAttachments().get(1);
-            texG.bind(1);
+
+            Texture tex1 = fboRender.getTextureAttachments().get(1);
+            tex1.bind(1);
             computeShader.setUniformi("textureG", 1);
-            Texture texR = fboRender.getTextureAttachments().get(0);
-            texR.bind(0);
+            Texture tex0 = fboRender.getTextureAttachments().get(0);
+            tex0.bind(0);
             computeShader.setUniformi("textureR", 0);
 
+            //apply current fbo resolution to batch
+            projectionMatrix.setToOrtho2D(0, 0, tex0.getWidth(), tex0.getHeight());
+            batch.setProjectionMatrix(projectionMatrix);
+
             computeShader.setUniformf("timeStep", 1f);
+            computeShader.setUniformf("resolution", tex0.getWidth(), tex0.getHeight());
+            computeShader.setUniformf("ratio", tex0.getWidth()/tex0.getHeight());
             computeShader.setUniformf("diffRate1", (float)((Number)systemContext.getParamValue(PARAM_DIFFUSIONRATE_1)).toDouble());
             computeShader.setUniformf("diffRate2", (float)((Number)systemContext.getParamValue(PARAM_DIFFUSIONRATE_2)).toDouble());
             computeShader.setUniformf("reactionRate", (float)((Number)systemContext.getParamValue(PARAM_REACTIONRATE)).toDouble());
-            computeShader.setUniformf("feedRate", (float)((Number)systemContext.getParamValue(PARAM_FEEDRATE)).toDouble());
-            computeShader.setUniformf("killRate", (float)((Number)systemContext.getParamValue(PARAM_KILLRATE)).toDouble());
+            computeShader.setUniformf("feedRateConst", (float)((Number)systemContext.getParamValue(PARAM_FEEDRATE)).toDouble());
+            computeShader.setUniformf("feedRateVarFactorX", 0.2f);
+            computeShader.setUniformf("feedRateVarFactorY", 0f);
+            computeShader.setUniformf("killRateConst", (float)((Number)systemContext.getParamValue(PARAM_KILLRATE)).toDouble());
+            computeShader.setUniformf("killRateVarFactorX", 0f);
+            computeShader.setUniformf("killRateVarFactorY", 0.1f);
 
-            batch.draw(texR, 0, 0, getWidth(), getHeight(), 0, 0, texR.getWidth(), texR.getHeight(), false, true);
+            batch.draw(tex0, 0, 0, tex0.getWidth(), tex0.getHeight(), 0, 0, tex0.getWidth(), tex0.getHeight(), false, true);
 
             batch.flush();
             fboRender.end();
         }
         batch.setShader(passthroughShader);
+        projectionMatrix.setToOrtho2D(0, 0, getWidth(), getHeight());
+        batch.setProjectionMatrix(projectionMatrix);
 
         ParamContainer clientParams = FractalsGdxMain.mainStage.getParamUI().getClientParamsSideMenu().getParamContainer();
 
@@ -210,10 +277,12 @@ public class ReactionDiffusionRenderer extends AbstractFractalRenderer{
 
         Texture renderedTexture = fboRender.getTextureAttachments().get(displayBuffer);
         renderedTexture.bind(0);
-        batch.draw(renderedTexture, 0, 0, getWidth(), getHeight(), 0, 0, renderedTexture.getWidth(), renderedTexture.getHeight(), false, true);
+        batch.draw(renderedTexture, getX(), getY(), getWidth(), getHeight(), 0, 0, renderedTexture.getWidth(), renderedTexture.getHeight(), false, true);
 
 //        debugDrawFBOs(batch);
         batch.flush();
+        projectionMatrix.setToOrtho2D(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        batch.setProjectionMatrix(projectionMatrix);
 
         if (isScreenshot(true))
             makeScreenshot();

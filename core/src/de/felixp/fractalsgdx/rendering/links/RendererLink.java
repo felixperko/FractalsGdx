@@ -1,6 +1,6 @@
-package de.felixp.fractalsgdx.rendering.rendererlink;
+package de.felixp.fractalsgdx.rendering.links;
 
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 
 public interface RendererLink {
 

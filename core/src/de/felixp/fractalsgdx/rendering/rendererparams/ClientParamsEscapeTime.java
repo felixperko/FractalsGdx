@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.params;
+package de.felixp.fractalsgdx.rendering.rendererparams;
 
 import com.badlogic.gdx.graphics.Color;
 

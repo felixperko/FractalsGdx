@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ArrayChunkFactory;
 import de.felixperko.fractals.data.ParamContainer;

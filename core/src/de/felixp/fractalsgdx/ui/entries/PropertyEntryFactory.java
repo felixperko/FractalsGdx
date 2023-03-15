@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;

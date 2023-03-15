@@ -1,16 +1,13 @@
-package de.felixp.fractalsgdx.ui;
+package de.felixp.fractalsgdx.rendering.rendererconfigs;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
-import de.felixp.fractalsgdx.params.DrawParamsTurtleGraphics;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.FractalsGdxMain;
+import de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
-import de.felixp.fractalsgdx.rendering.rendererlink.JuliasetRendererLink;
-import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.links.JuliasetRendererLink;
+import de.felixp.fractalsgdx.rendering.links.RendererLink;
 import de.felixperko.fractals.data.ParamContainer;
 
 public class EscapeTimeRendererConfig extends AbstractRendererConfig{
@@ -52,6 +49,6 @@ public class EscapeTimeRendererConfig extends AbstractRendererConfig{
 
     @Override
     public ParamContainer getDrawParamContainer() {
-        return ClientParamsEscapeTime.getParamContainer(MainStage.palettes);
+        return ClientParamsEscapeTime.getParamContainer(FractalsGdxMain.mainStage.getPalettes());
     }
 }

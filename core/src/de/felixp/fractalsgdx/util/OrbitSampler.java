@@ -2,7 +2,7 @@ package de.felixp.fractalsgdx.util;
 
 import java.util.UUID;
 
-import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
 import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.system.LayerConfiguration;
 import de.felixperko.fractals.system.calculator.EscapeTime.EscapeTimeCpuCalculatorNew;

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime;
 import de.felixp.fractalsgdx.rendering.palette.GradientPalette;
 import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.PalettePoint;

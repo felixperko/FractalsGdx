@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.params;
+package de.felixp.fractalsgdx.rendering.rendererparams;
 
 import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;

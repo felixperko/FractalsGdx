@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.params;
+package de.felixp.fractalsgdx.rendering.rendererparams;
 
 import com.badlogic.gdx.graphics.Color;
 
@@ -28,7 +28,7 @@ public class DrawParamsReactionDiffusion extends AbstractParamTemplate {
 
         String cat_coloring = "Coloring";
         config.addParamDefStatic(PARAM_COLOR, "color", cat_coloring, ClientParamsEscapeTime.TYPE_COLOR, 1.0, Color.WHITE);
-        config.addParamDefStatic(PARAM_SOURCEBUFFER, "display buffer", cat_coloring, CommonFractalParameters.selectionType, 1.0, OPTIONVALUE_SOURCEBUFFER_0);
+        config.addParamDefStatic(PARAM_SOURCEBUFFER, "display buffer", cat_coloring, CommonFractalParameters.selectionType, 1.0, OPTIONVALUE_SOURCEBUFFER_1);
 
         Selection<String> sourcebufferSelection = new Selection<String>(PARAM_SOURCEBUFFER);
         sourcebufferSelection.addOption("Buffer 0", OPTIONVALUE_SOURCEBUFFER_0, "");

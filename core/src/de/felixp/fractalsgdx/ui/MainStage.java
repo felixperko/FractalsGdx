@@ -41,19 +41,21 @@ import java.util.Map;
 import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
-import de.felixp.fractalsgdx.params.DrawParamsTurtleGraphics;
-import de.felixp.fractalsgdx.rendering.AbstractFractalRenderer;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
-import de.felixp.fractalsgdx.rendering.ReactionDiffusionSystemContext;
-import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
-import de.felixp.fractalsgdx.rendering.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.rendering.renderers.AbstractFractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.ReactionDiffusionSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.RemoteRenderer;
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
 import de.felixp.fractalsgdx.remoteclient.SystemInterfaceGdx;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
-import de.felixp.fractalsgdx.rendering.TurtleGraphicsSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.TurtleGraphicsSystemContext;
 import de.felixp.fractalsgdx.rendering.palette.IPalette;
 import de.felixp.fractalsgdx.rendering.palette.ImagePalette;
+import de.felixp.fractalsgdx.rendering.rendererconfigs.EscapeTimeRendererConfig;
+import de.felixp.fractalsgdx.rendering.rendererconfigs.ReactionDiffusionRendererConfig;
+import de.felixp.fractalsgdx.rendering.rendererconfigs.TurtleGraphicsRendererConfig;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.util.FractalsIOUtil;
@@ -482,8 +484,8 @@ public class MainStage extends Stage {
 
     private void handleInput() {
 
-    for (Keybinding keybinding : keybindings)
-        keybinding.update();
+        for (Keybinding keybinding : keybindings)
+            keybinding.update();
 
         escapeHandled = false;
     }

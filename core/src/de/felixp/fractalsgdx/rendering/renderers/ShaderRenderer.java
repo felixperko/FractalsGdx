@@ -1,11 +1,10 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.GLTexture;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,6 +21,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -30,7 +30,6 @@ import org.lwjgl.BufferUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,11 +39,16 @@ import java.util.Map;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
-import de.felixp.fractalsgdx.params.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.rendererparams.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.FractalsFrameBuffer;
+import de.felixp.fractalsgdx.rendering.MouseMovedListener;
+import de.felixp.fractalsgdx.rendering.PanListener;
+import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.rendering.ShaderBuilder;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
-import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
+import de.felixp.fractalsgdx.rendering.links.RendererLink;
 import de.felixp.fractalsgdx.ui.AnimationsUI;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyListButton;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.util.OrbitSampler;
 import de.felixperko.expressions.ChainExpression;
@@ -69,7 +73,7 @@ import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.fractals.util.NumberUtil;
 
 import static de.felixperko.fractals.system.systems.common.CommonFractalParameters.*;
-import static de.felixp.fractalsgdx.params.ClientParamsEscapeTime.*;
+import static de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime.*;
 
 public class ShaderRenderer extends AbstractFractalRenderer {
 
@@ -377,6 +381,26 @@ public class ShaderRenderer extends AbstractFractalRenderer {
             };
             addPanListener(panListener);
         }
+    }
+
+    @Override
+    public void initButtons(List<CollapsiblePropertyListButton> btns) {
+        ShaderRenderer thisRenderer = this;
+        btns.add(new CollapsiblePropertyListButton("reset", "Calculator", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                systemContext = new ShaderSystemContext(thisRenderer);
+                paramsChanged(systemContext.getParamContainer());
+                reset();
+            }
+        }));
+        btns.add(new CollapsiblePropertyListButton("switch sets", "Calculator", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                FractalsGdxMain.mainStage.pressedSwitchRenderers();
+                FractalsGdxMain.mainStage.resetKeyboardFocus();
+            }
+        }));
     }
 
     @Override

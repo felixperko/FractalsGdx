@@ -11,6 +11,7 @@ import de.felixp.fractalsgdx.rendering.orbittrap.AxisOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.CircleOrbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.Orbittrap;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapContainer;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
 import de.felixp.fractalsgdx.rendering.valuereference.ParamAttributeValueReference;
 import de.felixp.fractalsgdx.rendering.valuereference.ValueReference;
 import de.felixperko.expressions.ComputeExpressionDomain;
@@ -80,7 +81,7 @@ public class ShaderBuilder {
         return ShaderSystemContext.UID_PRECISION_64_REFERENCE.equals(precision);
     }
 
-    protected void setPrecision(String precision){
+    public void setPrecision(String precision){
         this.precision = precision;
     }
 

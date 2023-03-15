@@ -1,14 +1,12 @@
-package de.felixp.fractalsgdx.rendering.rendererlink;
+package de.felixp.fractalsgdx.rendering.links;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
-import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
 import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.calculator.ComputeExpression;

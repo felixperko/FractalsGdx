@@ -1,8 +1,6 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
-import com.badlogic.gdx.Gdx;
-
-import de.felixp.fractalsgdx.params.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.rendererparams.ComputeParamsCommon;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
@@ -28,6 +26,8 @@ public class TurtleGraphicsSystemContext extends AbstractSystemContext {
     public static final String PARAM_VARIATION_SEED = "zCFj4B";
     public static final String PARAM_VARIATION_ANGLE = "H2PHs3";
     public static final String PARAM_VARIATION_LENGTH = "VsG2-8";
+
+    public static final String PARAM_RESOLUTIONSCALE = "ej66Xx";
 
     public TurtleGraphicsSystemContext(){
         super();
@@ -62,6 +62,8 @@ public class TurtleGraphicsSystemContext extends AbstractSystemContext {
         paramConfig.addParameterDefinition(new ParamDefinition(PARAM_VARIATION_SEED, "variation seed", "Calculator", StaticParamSupplier.class, numberType, 1.0)
                         .withHints("ui-element:slider min=0.0 max=10.0"),
                 new StaticParamSupplier(PARAM_VARIATION_SEED, nf.cn(1.0)));
+
+        paramConfig.addParamDefStatic(PARAM_RESOLUTIONSCALE, "resolution scale", "Calculator", numberType, 1.0, nf.cn(2.0));
 
 
         paramConfig.addParameterDefinition(new ParamDefinition(UID_VARIABLES, "variables", "Rules", StaticParamSupplier.class, stringType, 1.0),

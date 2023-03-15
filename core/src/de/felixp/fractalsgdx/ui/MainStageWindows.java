@@ -33,11 +33,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixp.fractalsgdx.rendering.RendererProperties;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderRenderer;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.UI_PREFS_NAME;

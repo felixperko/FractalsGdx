@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.RemoteRenderer;
 import de.felixp.fractalsgdx.rendering.RendererContext;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderRenderer;
 import de.felixp.fractalsgdx.remoteclient.ChangedResourcesListener;
 import de.felixp.fractalsgdx.remoteclient.MessageInterfaceGdx;
-import de.felixp.fractalsgdx.rendering.rendererlink.RendererLink;
+import de.felixp.fractalsgdx.rendering.links.RendererLink;
 import de.felixperko.fractals.network.messages.ResourceRequestMessage;
 
 import static de.felixp.fractalsgdx.FractalsGdxMain.client;

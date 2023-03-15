@@ -1,10 +1,11 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.felixp.fractalsgdx.rendering.ParamListener;
 import de.felixperko.fractals.data.AbstractArrayChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.network.infra.connection.ServerConnection;

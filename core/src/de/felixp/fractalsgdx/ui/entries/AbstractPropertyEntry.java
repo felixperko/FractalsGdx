@@ -1,6 +1,5 @@
 package de.felixp.fractalsgdx.ui.entries;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -31,7 +30,7 @@ import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.rendering.ClickedListener;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.rendering.MouseMovedListener;
 import de.felixp.fractalsgdx.ui.CollapsiblePropertyList;
 import de.felixp.fractalsgdx.ui.MainStage;

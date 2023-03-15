@@ -4,14 +4,12 @@ import java.util.UUID;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
 import de.felixp.fractalsgdx.ui.MainStage;
-import de.felixp.fractalsgdx.rendering.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.RemoteRenderer;
 import de.felixperko.fractals.data.CompressedChunk;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.manager.client.ClientManagers;
 import de.felixperko.fractals.network.interfaces.ClientSystemInterface;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
-import de.felixperko.fractals.system.numbers.Number;
-import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.systems.BreadthFirstSystem.BFSystemContext;
 import de.felixperko.fractals.system.systems.infra.SystemContext;

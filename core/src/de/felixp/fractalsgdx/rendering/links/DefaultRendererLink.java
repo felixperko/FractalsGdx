@@ -1,12 +1,12 @@
-package de.felixp.fractalsgdx.rendering.rendererlink;
+package de.felixp.fractalsgdx.rendering.links;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import de.felixp.fractalsgdx.remoteclient.ClientSystem;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
-import de.felixp.fractalsgdx.rendering.RemoteRenderer;
-import de.felixp.fractalsgdx.rendering.ShaderRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.RemoteRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderRenderer;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;

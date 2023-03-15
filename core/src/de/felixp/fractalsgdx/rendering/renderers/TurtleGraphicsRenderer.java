@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
@@ -6,7 +6,11 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.glutils.FrameBuffer;
+import com.badlogic.gdx.graphics.glutils.ShaderProgram;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -17,6 +21,7 @@ import com.badlogic.gdx.utils.FloatArray;
 import com.github.tommyettinger.colorful.oklab.ColorTools;
 import com.github.tommyettinger.colorful.oklab.GradientTools;
 
+import java.rmi.server.UID;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,8 +31,10 @@ import java.util.Random;
 import java.util.Set;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.DrawParamsTurtleGraphics;
-import de.felixp.fractalsgdx.ui.MainStage;
+import de.felixp.fractalsgdx.rendering.FractalsFrameBuffer;
+import de.felixp.fractalsgdx.rendering.rendererparams.DrawParamsTurtleGraphics;
+import de.felixp.fractalsgdx.rendering.ParamListener;
+import de.felixp.fractalsgdx.rendering.RendererContext;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
@@ -41,9 +48,11 @@ import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 import de.felixperko.fractals.system.systems.infra.SystemContext;
 
-import static de.felixp.fractalsgdx.rendering.TurtleGraphicsSystemContext.*;
+import static de.felixp.fractalsgdx.rendering.renderers.TurtleGraphicsSystemContext.*;
 
 public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
+    final static String passthroughVertexShaderPath = "PassthroughVertex130.glsl";
+    final static String passthroughFragmentShaderPath = "PassthroughFragment130.glsl";
 
     TurtleGraphicsSystemContext systemContext;
     NumberFactory nf = new NumberFactory(DoubleNumber.class, DoubleComplexNumber.class);
@@ -62,6 +71,10 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
     boolean changedParams = false;
     boolean resetLSystem = false;
 
+    FrameBuffer fbo;
+
+    ShaderProgram passthroughShader;
+
     public TurtleGraphicsRenderer(RendererContext rendererContext) {
         super(rendererContext);
     }
@@ -70,6 +83,7 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
 
     @Override
     public void init() {
+        passthroughShader = compileShader(passthroughVertexShaderPath, passthroughFragmentShaderPath);
         systemContext = new TurtleGraphicsSystemContext();
         systemContext.addParamListener((newSupp, oldSupp) -> {
             changedParams = true;
@@ -77,6 +91,9 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
             if (!generatedActions.contains(uid) && !generatedAngleParams.contains(uid) && !uid.equals(UID_START_ANGLE)){
                 resetLSystem = true;
                 paramsChanged(systemContext.getParamContainer());
+            }
+            if (uid.equals(PARAM_RESOLUTIONSCALE)){
+                sizeChanged();
             }
         });
 
@@ -99,7 +116,7 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
             public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
                 ParamSupplier supp = systemContext.getParamContainer().getParam(CommonFractalParameters.PARAM_MIDPOINT);
                 ComplexNumber midpoint = supp.getGeneral(ComplexNumber.class);
-                ComplexNumber shift = nf.ccn(deltaX, deltaY);
+                ComplexNumber shift = nf.ccn(deltaX*rendererContext.getProperties().getW(), deltaY*rendererContext.getProperties().getH());
                 Number scale = systemContext.getParamContainer().getParam(TurtleGraphicsSystemContext.UID_SCALE).getGeneral(Number.class);
                 shift.multNumber(scale);
                 midpoint.sub(shift);
@@ -132,9 +149,20 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
     @Override
     protected void sizeChanged() {
         super.sizeChanged();
+        float scaleFactor = systemContext == null ? 1.0f : (float) systemContext.getParamContainer().getParam(PARAM_RESOLUTIONSCALE).getGeneral(Number.class).toDouble();
+        scaleFactor = Math.max(scaleFactor, 0.05f);
+        int fboWidth = (int) (scaleFactor * getWidth());
+        int fboHeight = (int) (scaleFactor * getHeight());
+        try {
+            fbo = new FrameBuffer(Pixmap.Format.RGBA8888, fboWidth, fboHeight, false);
+        } catch (IllegalStateException e){
+            e.printStackTrace();
+            System.err.println("Error while creating fbo with dimensions: "+fboWidth+"x"+fboHeight);
+        }
         if (cam != null) {
             cam.viewportWidth = getWidth();
             cam.viewportHeight = getHeight();
+            cam.position.set(cam.viewportWidth / 2f, cam.viewportHeight / 2f, 0);
             cam.update();
         }
     }
@@ -211,14 +239,23 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
         batch.end();
         prepareShapeRenderer(batch);
 
+        fbo.begin();
         renderLSystem(shapeRenderer, reset, changed);
+        fbo.end();
 
         closeShapeRenderer();
+        batch.flush();
+        batch.setShader(passthroughShader);
+        batch.begin();
+
+        Texture renderedTexture = fbo.getTextureAttachments().get(0);
+        renderedTexture.bind(0);
+        batch.draw(renderedTexture, getX(), getY(), getWidth(), getHeight(), 0, 0, renderedTexture.getWidth(), renderedTexture.getHeight(), false, true);
 
         if (isScreenshot(true))
             makeScreenshot();
 
-        batch.begin();
+//        batch.begin();
     }
 
     float screenCoordFactor;
@@ -489,7 +526,7 @@ public class TurtleGraphicsRenderer extends AbstractFractalRenderer {
 
         int lineCount = 0;
 
-        float segmentLength = Gdx.graphics.getHeight()/2;
+        float segmentLength = getHeight()/2;
         for (int i = 0 ; i < iterations ; i++)
             segmentLength *= 0.5f;
 

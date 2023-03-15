@@ -1,21 +1,12 @@
-package de.felixp.fractalsgdx.params;
+package de.felixp.fractalsgdx.rendering.rendererparams;
 
 import com.badlogic.gdx.graphics.Color;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import de.felixp.fractalsgdx.rendering.palette.IPalette;
-import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
-import de.felixperko.fractals.system.parameters.ParamValueType;
-import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
-import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
 import de.felixperko.fractals.system.systems.common.CommonFractalParameters;
 
 public class DrawParamsTurtleGraphics extends AbstractParamTemplate {

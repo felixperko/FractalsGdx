@@ -12,12 +12,21 @@ out vec4 colour1;
 uniform sampler2D textureR;
 uniform sampler2D textureG;
 
+uniform vec2 resolution;
+uniform float ratio;
+
 uniform float timeStep;
 uniform float diffRate1;
 uniform float diffRate2;
 uniform float reactionRate;
-uniform float feedRate;
-uniform float killRate;
+
+uniform float feedRateConst;
+uniform float feedRateVarFactorX;
+uniform float feedRateVarFactorY;
+
+uniform float killRateConst;
+uniform float killRateVarFactorX;
+uniform float killRateVarFactorY;
 
 in vec2 pos;
 
@@ -84,25 +93,25 @@ void main()
 {
 
     float n[18];
-    make_kernel(n, v_texCoords.xy, -1.0, 0.2, 0.05);
-//    make_kernel(n, v_texCoords.xy, -8.0, 1.0, 1.0);
+//    make_kernel(n, v_texCoords.xy, -1.0, 0.2, 0.05);
+    make_kernel(n, v_texCoords.xy, -1.0, 1.0/8.0, 1.0/8.0);
     float currR = clamp(float(texelFetch(textureR, ivec2(gl_FragCoord.x, gl_FragCoord.y), 0)), 0.0, 1.0);
     float currG = clamp(float(texelFetch(textureG, ivec2(gl_FragCoord.x, gl_FragCoord.y), 0)), 0.0, 1.0);
     float neighbourAvgR = (n[0]+n[1]+n[2]+n[3]+n[4]+n[5]+n[6]+n[7]+n[8]);
     float neighbourAvgG = (n[9]+n[10]+n[11]+n[12]+n[13]+n[14]+n[15]+n[16]+n[17]);
 
+//    float deltaX = (pos.x)*ratio;
+//    float deltaY = (pos.y);
+    float deltaX = float(gl_FragCoord.x)/resolution.x - 0.5;
+    float deltaY = float(gl_FragCoord.y)/resolution.y - 0.5;
+//    float deltaX = 0.0;
+//    float deltaY = 0.0;
+//    float feedRate = feedRateConst;
+//    float killRate = killRateConst;
+    float feedRate = feedRateConst + feedRateVarFactorX*deltaX + feedRateVarFactorY*deltaY;
+    float killRate = killRateConst + killRateVarFactorX*deltaX + killRateVarFactorY*deltaY;
+
     float deltaT = timeStep;
-//    float diffRateR = 1.0;
-//    float diffRateG = 0.4;
-//    float feedRate = 0.055;
-//    float feedRate = 0.03;
-//    float killRate = 0.062;
-//    float killRate = 0.06;
-//    float killRate = 0.05;
-//    diffRateG = 0.0;
-//    float feedRate = 0.25;
-//    float killRate = 0.0;
-//    float newR = currR + (feedRate*(1.0-currR))*deltaT;
     float reactionDelta = reactionRate*currR*currG*currG;
     float newR = currR + (diffRate1*(neighbourAvgR) - reactionDelta + feedRate*(1.0-currR))*deltaT;
     float newG = currG + (diffRate2*(neighbourAvgG) + reactionDelta - (killRate+feedRate)*currG)*deltaT;

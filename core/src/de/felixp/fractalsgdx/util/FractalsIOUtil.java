@@ -1,11 +1,10 @@
 package de.felixp.fractalsgdx.util;
 
 import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
-import de.felixp.fractalsgdx.rendering.ShaderSystemContext;
+import de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.rendering.renderers.ShaderSystemContext;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapsXMLDeserializer;
 import de.felixp.fractalsgdx.rendering.orbittrap.OrbittrapsXMLSerializer;
 import de.felixp.fractalsgdx.rendering.palette.ColorXMLDeserializer;

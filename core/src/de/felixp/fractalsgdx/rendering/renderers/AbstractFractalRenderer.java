@@ -1,4 +1,4 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -13,12 +13,17 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.params.ClientParamsEscapeTime;
-import de.felixp.fractalsgdx.params.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.rendererparams.ClientParamsEscapeTime;
+import de.felixp.fractalsgdx.rendering.rendererparams.ComputeParamsCommon;
+import de.felixp.fractalsgdx.rendering.PanListener;
+import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.rendering.ScreenshotListener;
+import de.felixp.fractalsgdx.ui.CollapsiblePropertyListButton;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
@@ -119,6 +124,17 @@ public abstract class AbstractFractalRenderer extends WidgetGroup implements Fra
         this.rendererContext = rendererContext;
     }
 
+    public abstract void init();
+    protected abstract void render(Batch batch, float parentAlpha);
+    public abstract int getPixelCount();
+
+    /**
+     * Override to add buttons
+     * @param list
+     */
+    protected void initButtons(List<CollapsiblePropertyListButton> list) {
+    }
+
     @Override
     public void initRenderer() {
         if (initialized)
@@ -140,14 +156,6 @@ public abstract class AbstractFractalRenderer extends WidgetGroup implements Fra
     }
 
     @Override
-    public void disposeRenderer() {
-        FractalsGdxMain.mainStage.removeListener(clickListener);
-    }
-
-    public abstract void init();
-    public abstract int getPixelCount();
-
-    @Override
     public void draw(Batch batch, float parentAlpha) {
 
         if (handleSwitchRendererConfigs())
@@ -160,7 +168,17 @@ public abstract class AbstractFractalRenderer extends WidgetGroup implements Fra
         render(batch, parentAlpha);
     }
 
-    protected abstract void render(Batch batch, float parentAlpha);
+    public List<CollapsiblePropertyListButton> getButtons(){
+        List<CollapsiblePropertyListButton> btns = new ArrayList<>();
+        initButtons(btns);
+        return btns;
+    }
+
+    @Override
+    public void disposeRenderer() {
+        FractalsGdxMain.mainStage.removeListener(clickListener);
+    }
+
 
     public ShaderProgram compileShader(String vertexPath, String fragmentPath){
 //        ShaderProgram shader = new ShaderProgram(Gdx.files.internal(vertexPath),

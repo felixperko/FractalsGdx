@@ -19,7 +19,7 @@ import com.kotcrab.vis.ui.widget.color.ColorPicker;
 import com.kotcrab.vis.ui.widget.color.ColorPickerListener;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.ui.MainStage;
 import de.felixp.fractalsgdx.ui.actors.ModalColorPicker;
 import de.felixperko.fractals.data.ParamContainer;

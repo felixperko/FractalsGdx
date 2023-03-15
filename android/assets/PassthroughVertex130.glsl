@@ -21,5 +21,5 @@ void main()
 
 	//ensure midpoint at resolution/2
 	vec2 mid = vec2(round((resolution.x)/(2.0/float(upscaleFactor))), round((resolution.y)/(2.0/float(upscaleFactor))));
-	pos = vec2((a_position.x-mid.x)/(resolution.x), (a_position.y-mid.y)/(resolution.y));
+	pos = vec2(a_position.x/resolution.x-0.5, a_position.y/resolution.y-0.5);
 }

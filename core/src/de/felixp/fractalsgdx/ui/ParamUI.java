@@ -1,28 +1,20 @@
 package de.felixp.fractalsgdx.ui;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Align;
-import com.kotcrab.vis.ui.FocusManager;
 import com.kotcrab.vis.ui.widget.VisTable;
 
-import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.PropertyEntryFactory;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.numbers.ComplexNumber;
-import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.numbers.impl.DoubleComplexNumber;
 import de.felixperko.fractals.system.numbers.impl.DoubleNumber;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
-import de.felixperko.fractals.system.parameters.suppliers.CoordinateBasicShiftParamSupplier;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;
-import de.felixperko.fractals.system.parameters.suppliers.StaticParamSupplier;
-import de.felixperko.fractals.system.systems.infra.SystemContext;
 
 public class ParamUI {
 
@@ -54,8 +46,8 @@ public class ParamUI {
         //initRenderer menus at sides
         //
 
-        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getSwitchRenderersButton();
-        serverParamsSideMenu.addButton(switchJuliasetMandelbrotButton);
+//        CollapsiblePropertyListButton switchJuliasetMandelbrotButton = getSwitchRenderersButton();
+//        serverParamsSideMenu.addButton(switchJuliasetMandelbrotButton);
 
 //        clientParamsSideMenu.setSliderLimitsVisible(false);
         clientParamsSideMenu.setControlWidthScreenScaling(0.1f);

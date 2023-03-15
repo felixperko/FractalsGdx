@@ -2,6 +2,8 @@ package de.felixp.fractalsgdx.rendering;
 
 import java.util.Properties;
 
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
+
 public class RendererProperties extends Properties {
 
     public static int ORIENTATION_FULLSCREEN = 0;

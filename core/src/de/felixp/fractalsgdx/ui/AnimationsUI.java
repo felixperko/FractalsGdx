@@ -33,14 +33,13 @@ import de.felixp.fractalsgdx.animation.interpolationTypes.LogarithmicInterpolati
 import de.felixp.fractalsgdx.animation.interpolations.ComplexNumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.NumberParamInterpolation;
 import de.felixp.fractalsgdx.animation.interpolations.ParamInterpolation;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.ui.actors.FractalsWindow;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;
 import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
-import de.felixperko.fractals.system.parameters.ParamDefinition;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttribute;
 import de.felixperko.fractals.system.parameters.attributes.ParamAttributeHolder;
 import de.felixperko.fractals.system.parameters.suppliers.ParamSupplier;

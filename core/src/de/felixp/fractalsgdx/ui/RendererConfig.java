@@ -2,7 +2,7 @@ package de.felixp.fractalsgdx.ui;
 
 import java.util.List;
 
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixperko.fractals.data.ParamContainer;
 
 public interface RendererConfig {

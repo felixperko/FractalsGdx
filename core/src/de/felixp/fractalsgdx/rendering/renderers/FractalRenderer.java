@@ -1,7 +1,10 @@
-package de.felixp.fractalsgdx.rendering;
+package de.felixp.fractalsgdx.rendering.renderers;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 
+import de.felixp.fractalsgdx.rendering.PanListener;
+import de.felixp.fractalsgdx.rendering.RendererContext;
+import de.felixp.fractalsgdx.rendering.ScreenshotListener;
 import de.felixperko.fractals.data.ParamContainer;
 import de.felixperko.fractals.system.numbers.ComplexNumber;
 import de.felixperko.fractals.system.numbers.Number;

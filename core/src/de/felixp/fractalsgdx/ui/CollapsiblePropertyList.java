@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import de.felixp.fractalsgdx.FractalsGdxMain;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.AbstractFractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixp.fractalsgdx.ui.actors.TraversableGroup;
 import de.felixp.fractalsgdx.ui.entries.AbstractPropertyEntry;
 import de.felixp.fractalsgdx.ui.entries.EntryView;
@@ -35,7 +36,6 @@ import de.felixperko.expressions.ComputeExpressionBuilder;
 import de.felixperko.expressions.ComputeExpressionDomain;
 import de.felixperko.expressions.ExpExpression;
 import de.felixperko.fractals.data.ParamContainer;
-import de.felixperko.fractals.system.numbers.NumberFactory;
 import de.felixperko.fractals.system.parameters.ExpressionsParam;
 import de.felixperko.fractals.system.parameters.ParamConfiguration;
 import de.felixperko.fractals.system.parameters.ParamDefinition;
@@ -66,6 +66,8 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
 
     TraversableGroup traversableGroup = new TraversableGroup();
 
+    int buttonsPerRow = 3;
+
     public CollapsiblePropertyList() {
         super();
         traversableGroup.setTree(tree);
@@ -84,6 +86,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
     Map<String, ParamDefinition> generatedDefs = new HashMap<>();
 
     public void setParameterConfiguration(ParamContainer paramContainer, ParamConfiguration paramConfig, PropertyEntryFactory propertyEntryFactory){
+
+        clearButtons();
+        for (CollapsiblePropertyListButton button : ((AbstractFractalRenderer)FractalsGdxMain.mainStage.getFocusedRenderer()).getButtons())
+            addButton(button);
 
         //allow force reset by first setting paramContainer null and then setting a new one
         //TODO proper reset mechanism
@@ -312,10 +318,22 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
                 if (catNode == null)
                     catNode = addNodeForCategory(category);
                 Table table = (Table) ((Tree.Node) catNode.getChildren().get(0)).getActor();
-                for (CollapsiblePropertyListButton button : e.getValue()) {
+                List<CollapsiblePropertyListButton> catButtons = e.getValue();
+                VisTable buttonTable = new VisTable(true);
+                int buttonColCounter = 0;
+                for (CollapsiblePropertyListButton button : catButtons) {
+                    buttonTable.add(button).padBottom(2);
+                    buttonColCounter++;
+                    if (buttonColCounter >= buttonsPerRow){
+                        buttonColCounter = 0;
+                        table.add();
+                        table.add(buttonTable).colspan(2).row();
+                        buttonTable = new VisTable(true);
+                    }
+                }
+                if (buttonColCounter > 0) {
                     table.add();
-                    table.add();
-                    table.add(button).padBottom(2).row();
+                    table.add(buttonTable).colspan(2).row();
                 }
             }
             for (Map.Entry<String, List<AbstractPropertyEntry>> e : propertyEntriesPerCategory.entrySet()) {
@@ -430,6 +448,10 @@ public class CollapsiblePropertyList extends CollapsibleSideMenu {
         }
         list.add(button);
         return this;
+    }
+
+    public void clearButtons(){
+        buttonsPerCategory.clear();
     }
 
     public void addAllListener(ChangeListener changeListener){

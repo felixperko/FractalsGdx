@@ -14,6 +14,11 @@ public class CollapsiblePropertyListButton extends VisTextButton {
         this.category = category;
     }
 
+    public CollapsiblePropertyListButton(String text, String category) {
+        super(text);
+        this.category = category;
+    }
+
     public String getCategory() {
         return category;
     }

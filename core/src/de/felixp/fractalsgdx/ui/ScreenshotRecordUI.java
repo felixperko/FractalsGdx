@@ -31,11 +31,10 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 import de.felixp.fractalsgdx.animation.AnimationListener;
 import de.felixp.fractalsgdx.animation.ParamAnimation;
-import de.felixp.fractalsgdx.rendering.FractalRenderer;
+import de.felixp.fractalsgdx.rendering.renderers.FractalRenderer;
 import de.felixperko.fractals.util.NumberUtil;
 
 public class ScreenshotRecordUI {
